@@ -4,21 +4,1921 @@
 <meta charset="UTF-8">
 <title>Stock Pulse</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  body {
-    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    background: #08090C; color: #EDECE8; font-family: system-ui, sans-serif; text-align: center; padding: 24px;
+  :root {
+    --bg-deep: #08090C;
+    --bg-panel: #101319;
+    --bg-panel-raised: #161A21;
+    --amber: #FFB100;
+    --amber-dim: #6B4E00;
+    --amber-soft: rgba(255,177,0,0.10);
+    --bull: #35D48C;
+    --bull-soft: rgba(53,212,140,0.12);
+    --bear: #FF5C6C;
+    --bear-soft: rgba(255,92,108,0.12);
+    --text-primary: #EDECE8;
+    --text-muted: #767C88;
+    --text-faint: #454A54;
+    --border: #1F232B;
   }
-  h1 { font-size: 22px; }
-  p { color: #767C88; max-width: 420px; margin: 8px auto 0; line-height: 1.6; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg-deep); color: var(--text-primary); font-family: 'Inter', sans-serif; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  a { color: inherit; }
+
+  /* Ticker tape */
+  .tape-wrap { background: #000; border-bottom: 1px solid var(--amber-dim); overflow: hidden; white-space: nowrap; padding: 8px 0; }
+  .tape { display: inline-block; padding-left: 100%; animation: scroll-left 55s linear infinite; }
+  .tape-wrap:hover .tape { animation-play-state: paused; }
+  @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+  .tape-item { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; margin-right: 36px; letter-spacing: 0.3px; }
+  .tape-item .sym { color: var(--amber); font-weight: 700; }
+  .tape-item .up { color: var(--bull); }
+  .tape-item .down { color: var(--bear); }
+  .ticker-link { text-decoration: none; cursor: pointer; }
+  .ticker-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+  header { padding: 26px 32px 0; max-width: 1440px; margin: 0 auto; }
+  .title-row { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 25px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
+  h1 .dot { color: var(--amber); }
+  .timestamp { color: var(--text-muted); font-size: 11.5px; font-family: 'JetBrains Mono', monospace; }
+
+  main { max-width: 1440px; margin: 0 auto; padding: 20px 32px 40px; }
+
+  /* Market pulse strip */
+  .pulse-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  @media (max-width: 700px) { .pulse-strip { grid-template-columns: repeat(2, 1fr); } }
+  .pulse-cell { background: var(--bg-panel); padding: 12px 16px; }
+  .pulse-name { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); }
+  .pulse-price { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 700; margin-top: 2px; }
+  .pulse-chg { font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-top: 1px; }
+  .pulse-chg.up { color: var(--bull); }
+  .pulse-chg.down { color: var(--bear); }
+  .pulse-chg.flat { color: var(--text-muted); }
+
+  section.block { margin-top: 30px; }
+  .block-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+  .block-title { font-family: 'Space Grotesk', sans-serif; font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+  .block-title.amber { color: var(--amber); }
+  .block-title.bull { color: var(--bull); }
+  .block-title.bear { color: var(--bear); }
+  .block-sub { color: var(--text-muted); font-size: 12px; margin: 0 0 14px; }
+  .empty-state { color: var(--text-muted); font-size: 13px; padding: 20px 0; text-align: center; border: 1px dashed var(--border); border-radius: 6px; }
+
+  /* Sector heatmap */
+  .heatmap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+  .heat-tile { border-radius: 7px; padding: 11px 13px; border: 1px solid var(--border); }
+  .heat-name { font-size: 10.5px; color: var(--text-primary); opacity: 0.85; }
+  .heat-chg { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; margin-top: 3px; }
+
+  /* Signals */
+  .signal-list { display: flex; flex-direction: column; gap: 8px; }
+  .signal-card { display: flex; gap: 12px; align-items: flex-start; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; }
+  .signal-card.bullish_dip { border-left: 3px solid var(--bull); }
+  .signal-card.bearish_rally { border-left: 3px solid var(--bear); }
+  .signal-card.volume_spike { border-left: 3px solid var(--amber); }
+  .signal-icon { font-family: 'JetBrains Mono', monospace; font-size: 16px; margin-top: 1px; }
+  .signal-icon.bullish_dip { color: var(--bull); }
+  .signal-icon.bearish_rally { color: var(--bear); }
+  .signal-icon.volume_spike { color: var(--amber); }
+  .signal-headline { font-size: 13.5px; font-weight: 600; }
+  .signal-detail { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+
+  /* Leader panels */
+  .leader-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 800px) { .leader-grid { grid-template-columns: 1fr; } }
+  .leader-panel { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .leader-panel.bull-panel { border-top: 2px solid var(--bull); }
+  .leader-panel.bear-panel { border-top: 2px solid var(--bear); }
+  .leader-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .leader-row:last-child { border-bottom: none; }
+  .leader-rank { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint); width: 14px; }
+  .leader-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13.5px; width: 52px; }
+  .leader-price-col { font-family: 'JetBrains Mono', monospace; font-size: 11px; width: 74px; text-align: right; line-height: 1.3; }
+  .leader-price-col .px { color: var(--text-primary); display: block; }
+  .leader-price-col .chg { display: block; }
+  .leader-price-col .chg.up { color: var(--bull); }
+  .leader-price-col .chg.down { color: var(--bear); }
+  .leader-price-col .chg.na { color: var(--text-faint); }
+  .leader-bar-wrap { flex: 1; }
+  .leader-bar-track { height: 5px; background: var(--bg-panel-raised); border-radius: 3px; overflow: hidden; display: flex; }
+  .leader-bar-seg.bull-seg { background: var(--bull); height: 100%; }
+  .leader-bar-seg.bear-seg { background: var(--bear); height: 100%; }
+  .leader-bar-seg.neutral-seg { background: var(--text-faint); height: 100%; }
+  .leader-meta { font-size: 9.5px; color: var(--text-muted); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+  .leader-mentions { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-muted); width: 44px; text-align: right; }
+  .leader-delta { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; width: 44px; text-align: right; }
+  .leader-delta.up { color: var(--bull); }
+  .leader-delta.down { color: var(--bear); }
+  .leader-delta.flat { color: var(--text-faint); }
+
+  /* Most discussed table */
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 500; padding: 0 8px 10px; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 8px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .ticker-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13.5px; }
+  .wl-badge { display: inline-block; font-size: 9px; color: var(--amber); border: 1px solid var(--amber-dim); border-radius: 3px; padding: 1px 4px; margin-left: 6px; vertical-align: middle; }
+  .label-pill { display: inline-block; font-size: 10.5px; font-weight: 500; padding: 3px 9px; border-radius: 20px; }
+  .label-bullish { background: var(--bull-soft); color: var(--bull); }
+  .label-bearish { background: var(--bear-soft); color: var(--bear); }
+  .label-neutral { background: rgba(118,124,136,0.15); color: var(--text-muted); }
+  .price-cell .px { font-family: 'JetBrains Mono', monospace; }
+  .price-cell .chg { font-family: 'JetBrains Mono', monospace; font-size: 11px; margin-left: 6px; }
+  .price-cell .chg.up { color: var(--bull); }
+  .price-cell .chg.down { color: var(--bear); }
+  .price-cell .chg.na { color: var(--text-faint); }
+
+  /* Watchlist grid */
+  .watchlist-controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .wl-filter-btn {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--bg-panel); color: var(--text-muted); cursor: pointer;
+  }
+  .wl-filter-btn.active { border-color: var(--amber-dim); color: var(--amber); background: var(--amber-soft); }
+  .watchlist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .wl-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .wl-card.has-bull { border-left: 3px solid var(--bull); }
+  .wl-card.has-bear { border-left: 3px solid var(--bear); }
+  .wl-card.no-data { opacity: 0.45; }
+  .wl-card-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .wl-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13.5px; }
+  .wl-chg { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .wl-chg.up { color: var(--bull); }
+  .wl-chg.down { color: var(--bear); }
+  .wl-chg.na { color: var(--text-faint); }
+  .wl-label { font-size: 10.5px; margin-top: 6px; }
+  .wl-label.bull-text { color: var(--bull); }
+  .wl-label.bear-text { color: var(--bear); }
+  .wl-label.muted-text { color: var(--text-faint); }
+
+  /* News */
+  .news-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+  @media (max-width: 800px) { .news-grid { grid-template-columns: 1fr; } }
+  .news-item { padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .news-source { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--amber); font-family: 'JetBrains Mono', monospace; }
+  .news-title { font-size: 12.5px; margin: 4px 0 0; line-height: 1.4; }
+  .news-title a { text-decoration: none; }
+  .news-title a:hover { color: var(--amber); }
+
+  footer { text-align: center; padding: 24px; color: var(--text-muted); font-size: 10.5px; font-family: 'JetBrains Mono', monospace; }
 </style>
 </head>
 <body>
-  <div>
-    <h1>Stock Pulse is warming up…</h1>
-    <p>The first scheduled run hasn't completed yet. Once the GitHub Action runs
-    (on its schedule, or triggered manually from the Actions tab), this page
-    will update automatically with your dashboard.</p>
+
+<div class="tape-wrap"><div class="tape" id="tape"></div></div>
+
+<header>
+  <div class="title-row">
+    <h1>STOCK<span class="dot">·</span>PULSE</h1>
+    <span class="timestamp" id="timestamp"></span>
   </div>
+</header>
+
+<main>
+  <section class="block" style="margin-top:16px;">
+    <div class="pulse-strip" id="pulse-strip"></div>
+  </section>
+
+  <section class="block">
+    <div class="block-header"><span class="block-title amber">Sector Heatmap</span></div>
+    <p class="block-sub">Day performance across the 11 S&amp;P sectors</p>
+    <div class="heatmap-grid" id="heatmap-grid"></div>
+  </section>
+
+  <section class="block" id="signals-block">
+    <div class="block-header"><span class="block-title amber">Signals</span></div>
+    <p class="block-sub">Where retail chatter and price action disagree, or where volume is abnormal — the calls worth a second look</p>
+    <div class="signal-list" id="signal-list"></div>
+    <div id="signals-empty" class="empty-state" style="display:none;">No notable divergences or volume spikes today.</div>
+  </section>
+
+  <section class="block">
+    <div class="leader-grid">
+      <div class="leader-panel bull-panel">
+        <div class="block-header"><span class="block-title bull">Bullish Leaders</span></div>
+        <p class="block-sub">Highest net-positive sentiment</p>
+        <div id="bullish-rows"></div>
+        <div id="bullish-empty" class="empty-state" style="display:none;">No tickers cleared the bullish threshold today.</div>
+      </div>
+      <div class="leader-panel bear-panel">
+        <div class="block-header"><span class="block-title bear">Bearish Leaders</span></div>
+        <p class="block-sub">Highest net-negative sentiment</p>
+        <div id="bearish-rows"></div>
+        <div id="bearish-empty" class="empty-state" style="display:none;">No tickers cleared the bearish threshold today.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-header"><span class="block-title amber">Most Discussed</span></div>
+    <p class="block-sub">Ranked by message volume regardless of direction — where the chatter is loudest</p>
+    <table>
+      <thead><tr><th>Ticker</th><th>Price</th><th>Mentions</th><th>Bull / Bear Split</th><th>Overall</th></tr></thead>
+      <tbody id="discussed-body"></tbody>
+    </table>
+    <div id="discussed-empty" class="empty-state" style="display:none;">Nothing met the mention threshold today.</div>
+  </section>
+
+  <section class="block">
+    <div class="block-header"><span class="block-title amber">Your Watchlist</span></div>
+    <p class="block-sub">Every ticker you're tracking, whether or not it made noise today</p>
+    <div class="watchlist-controls" id="watchlist-controls"></div>
+    <div class="watchlist-grid" id="watchlist-grid"></div>
+  </section>
+
+  <section class="block">
+    <div class="block-header"><span class="block-title amber">Market News</span></div>
+    <p class="block-sub">Latest headlines from your configured feeds</p>
+    <div class="news-grid" id="news-list"></div>
+  </section>
+</main>
+
+<footer>Generated locally &middot; Sentiment reflects retail chatter, not financial advice &middot; Prices via Yahoo Finance, may be delayed</footer>
+
+<script>
+const DATA = {
+  "generated_at": "2026-08-10 02:45 AM UTC",
+  "total_messages": 1470,
+  "total_tickers": 49,
+  "market_pulse": [
+    {
+      "symbol": "SPY",
+      "name": "S&P 500",
+      "price": 773.26,
+      "change_pct": 0.61
+    },
+    {
+      "symbol": "QQQ",
+      "name": "Nasdaq 100",
+      "price": 723.03,
+      "change_pct": 1.17
+    },
+    {
+      "symbol": "DIA",
+      "name": "Dow Jones",
+      "price": 539.62,
+      "change_pct": 0.27
+    },
+    {
+      "symbol": "^VIX",
+      "name": "VIX",
+      "price": 14.9,
+      "change_pct": -1.65
+    }
+  ],
+  "sector_heatmap": [
+    {
+      "symbol": "XLK",
+      "name": "Technology",
+      "price": 187.97,
+      "change_pct": 1.42
+    },
+    {
+      "symbol": "XLF",
+      "name": "Financials",
+      "price": 57.6,
+      "change_pct": -0.36
+    },
+    {
+      "symbol": "XLE",
+      "name": "Energy",
+      "price": 57.5,
+      "change_pct": -1.13
+    },
+    {
+      "symbol": "XLV",
+      "name": "Health Care",
+      "price": 165.68,
+      "change_pct": 0.75
+    },
+    {
+      "symbol": "XLI",
+      "name": "Industrials",
+      "price": 185.18,
+      "change_pct": 0.23
+    },
+    {
+      "symbol": "XLY",
+      "name": "Consumer Disc.",
+      "price": 119.86,
+      "change_pct": 1.49
+    },
+    {
+      "symbol": "XLP",
+      "name": "Consumer Staples",
+      "price": 85.12,
+      "change_pct": 0.01
+    },
+    {
+      "symbol": "XLU",
+      "name": "Utilities",
+      "price": 43.61,
+      "change_pct": 0.53
+    },
+    {
+      "symbol": "XLB",
+      "name": "Materials",
+      "price": 52.86,
+      "change_pct": 1.32
+    },
+    {
+      "symbol": "XLRE",
+      "name": "Real Estate",
+      "price": 44.98,
+      "change_pct": 0.38
+    },
+    {
+      "symbol": "XLC",
+      "name": "Communication",
+      "price": 111.25,
+      "change_pct": 0.06
+    }
+  ],
+  "signals": [
+    {
+      "type": "bullish_dip",
+      "ticker": "AUPH",
+      "headline": "AUPH down 1.74% but chatter stays bullish",
+      "detail": "63% of 30 messages are bullish while the stock fell 1.74% today \u2014 could be dip-buying conviction or complacency into weakness.",
+      "magnitude": 0.4524
+    },
+    {
+      "type": "bullish_dip",
+      "ticker": "AMD",
+      "headline": "AMD down 1.21% but chatter stays bullish",
+      "detail": "50% of 30 messages are bullish while the stock fell 1.21% today \u2014 could be dip-buying conviction or complacency into weakness.",
+      "magnitude": 0.27104
+    }
+  ],
+  "top_bullish": [
+    {
+      "ticker": "PDYN",
+      "mentions": 30,
+      "avg_sentiment": 0.524,
+      "label": "Bullish",
+      "bullish_count": 25,
+      "bearish_count": 0,
+      "neutral_count": 5,
+      "bullish_pct": 83,
+      "bearish_pct": 0,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 5.99,
+      "change_pct": 1.7,
+      "examples": [
+        {
+          "title": "$PDYN just keep buying ..buying and buy in one day 20$"
+        },
+        {
+          "title": "$PDYN 100 % optimistic.   The Israeli\u2018s obviously love it. \ufffc"
+        },
+        {
+          "title": "$PDYN the valuation story in this can change in a split second.   Depending on what type of contracts they get in the ne"
+        }
+      ]
+    },
+    {
+      "ticker": "OSCR",
+      "mentions": 30,
+      "avg_sentiment": 0.517,
+      "label": "Bullish",
+      "bullish_count": 23,
+      "bearish_count": 2,
+      "neutral_count": 5,
+      "bullish_pct": 77,
+      "bearish_pct": 7,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 27.9,
+      "change_pct": 5.12,
+      "examples": [
+        {
+          "title": "$OSCR $30 plus imminent."
+        },
+        {
+          "title": "$OSCR nice range low reclaim."
+        },
+        {
+          "title": "$OSCR is seeing heavy institutional volume and high-beta momentum following record first-half profitability and a raised"
+        }
+      ]
+    },
+    {
+      "ticker": "NOW",
+      "mentions": 30,
+      "avg_sentiment": 0.506,
+      "label": "Bullish",
+      "bullish_count": 23,
+      "bearish_count": 1,
+      "neutral_count": 6,
+      "bullish_pct": 77,
+      "bearish_pct": 3,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 124.88,
+      "change_pct": 6.42,
+      "examples": [
+        {
+          "title": "$NOW inverse head and shoulders."
+        },
+        {
+          "title": "***\u200bIf you click on the link, way below \ud83e\udc83 , to the Claude Portfolio account on X, u&#39;ll see the account, that Dictato"
+        },
+        {
+          "title": "$NOW dem good shrooms, bro..."
+        }
+      ]
+    },
+    {
+      "ticker": "IONQ",
+      "mentions": 30,
+      "avg_sentiment": 0.475,
+      "label": "Bullish",
+      "bullish_count": 25,
+      "bearish_count": 3,
+      "neutral_count": 2,
+      "bullish_pct": 83,
+      "bearish_pct": 10,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 44.43,
+      "change_pct": 11.86,
+      "examples": [
+        {
+          "title": "$INFQ  For fuck sake, THANK YOU. I was literally trying to find this exact excerpt. I clearly remember I saw evidence of"
+        },
+        {
+          "title": "$IONQ give me $50. let my calls print pls"
+        },
+        {
+          "title": "$IONQ what would be a good time to buy this?"
+        }
+      ]
+    },
+    {
+      "ticker": "RUM",
+      "mentions": 30,
+      "avg_sentiment": 0.412,
+      "label": "Bullish",
+      "bullish_count": 28,
+      "bearish_count": 0,
+      "neutral_count": 2,
+      "bullish_pct": 93,
+      "bearish_pct": 0,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 6.39,
+      "change_pct": 2.98,
+      "examples": [
+        {
+          "title": "$RUM like the sunday before earnings warning pump.  Weve waited long enough."
+        },
+        {
+          "title": "$RUM"
+        },
+        {
+          "title": "$RUM the short trade in this like SoundHound AI $SOUN \nare in for a real bruising"
+        }
+      ]
+    },
+    {
+      "ticker": "TOS.X",
+      "mentions": 30,
+      "avg_sentiment": 0.399,
+      "label": "Bullish",
+      "bullish_count": 26,
+      "bearish_count": 2,
+      "neutral_count": 2,
+      "bullish_pct": 87,
+      "bearish_pct": 7,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": null,
+      "change_pct": null,
+      "examples": [
+        {
+          "title": "$TOS.X Where are the buyers other than the manipulative buy BOT? \ud83d\ude2c"
+        },
+        {
+          "title": "$TOS.X \nhttps://x.com/TokenOS_AI/status/2086531588213600512"
+        },
+        {
+          "title": "$TOS.X where\u2019s bro now \ud83d\ude02"
+        }
+      ]
+    },
+    {
+      "ticker": "SOUN",
+      "mentions": 30,
+      "avg_sentiment": 0.396,
+      "label": "Bullish",
+      "bullish_count": 25,
+      "bearish_count": 0,
+      "neutral_count": 5,
+      "bullish_pct": 83,
+      "bearish_pct": 0,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 8.02,
+      "change_pct": 13.28,
+      "examples": [
+        {
+          "title": "$KAITO.X $SOUN \ud83d\udfe2\ud83d\udc8e\ud83d\ude80400% run incoming fast\ud83d\udea8\ud83d\udea8\ud83d\udea8\ud83d\udea8\ud83d\udd25\ud83d\udd25\ud83d\udd25\ud83d\udd25"
+        },
+        {
+          "title": "$RUM the short trade in this like SoundHound AI $SOUN \nare in for a real bruising"
+        },
+        {
+          "title": "$SOUN \ud83d\udfe2\ud83d\udfe2\ud83d\ude80\ud83d\ude80\ud83d\ude80"
+        }
+      ]
+    },
+    {
+      "ticker": "IOVA",
+      "mentions": 30,
+      "avg_sentiment": 0.394,
+      "label": "Bullish",
+      "bullish_count": 25,
+      "bearish_count": 4,
+      "neutral_count": 1,
+      "bullish_pct": 83,
+      "bearish_pct": 13,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 6.34,
+      "change_pct": 2.09,
+      "examples": [
+        {
+          "title": "$IOVA been here over 5yrs   Someone put the SP range .  Sorry I can\u2019t remember .  Was in $6 out at 13, back in 11-10.  T"
+        },
+        {
+          "title": "$IOVA the tides are changing maybe Wayne wants the largest run up in biotech history."
+        },
+        {
+          "title": "$IOVA \n\n100 Mn shares short,25% of total shares\n\nGenuine short squeeze potential"
+        }
+      ]
+    }
+  ],
+  "top_bearish": [],
+  "most_discussed": [
+    {
+      "ticker": "IOVA",
+      "mentions": 30,
+      "avg_sentiment": 0.394,
+      "label": "Bullish",
+      "bullish_count": 25,
+      "bearish_count": 4,
+      "neutral_count": 1,
+      "bullish_pct": 83,
+      "bearish_pct": 13,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 6.34,
+      "change_pct": 2.09,
+      "examples": [
+        {
+          "title": "$IOVA been here over 5yrs   Someone put the SP range .  Sorry I can\u2019t remember .  Was in $6 out at 13, back in 11-10.  T"
+        },
+        {
+          "title": "$IOVA the tides are changing maybe Wayne wants the largest run up in biotech history."
+        },
+        {
+          "title": "$IOVA \n\n100 Mn shares short,25% of total shares\n\nGenuine short squeeze potential"
+        }
+      ]
+    },
+    {
+      "ticker": "RUM",
+      "mentions": 30,
+      "avg_sentiment": 0.412,
+      "label": "Bullish",
+      "bullish_count": 28,
+      "bearish_count": 0,
+      "neutral_count": 2,
+      "bullish_pct": 93,
+      "bearish_pct": 0,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 6.39,
+      "change_pct": 2.98,
+      "examples": [
+        {
+          "title": "$RUM like the sunday before earnings warning pump.  Weve waited long enough."
+        },
+        {
+          "title": "$RUM"
+        },
+        {
+          "title": "$RUM the short trade in this like SoundHound AI $SOUN \nare in for a real bruising"
+        }
+      ]
+    },
+    {
+      "ticker": "WEN",
+      "mentions": 30,
+      "avg_sentiment": 0.259,
+      "label": "Leaning Bullish",
+      "bullish_count": 21,
+      "bearish_count": 8,
+      "neutral_count": 1,
+      "bullish_pct": 70,
+      "bearish_pct": 27,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 7.69,
+      "change_pct": 4.06,
+      "examples": [
+        {
+          "title": "$WEN guaranteed we see $12 very soon\nShorts must pay\n\nLong live Wendy!!!!"
+        },
+        {
+          "title": "$WEN trending number 2 wow cant imagine what the short are filling now let me repost the number for a good bankrupty att"
+        },
+        {
+          "title": "$WEN i&#39;m pretty sure bro, he&#39;s either a.Short seller protecting his epstein buddies, or his mom dropped him on h"
+        }
+      ]
+    },
+    {
+      "ticker": "MNDY",
+      "mentions": 30,
+      "avg_sentiment": 0.117,
+      "label": "Leaning Bullish",
+      "bullish_count": 11,
+      "bearish_count": 6,
+      "neutral_count": 13,
+      "bullish_pct": 37,
+      "bearish_pct": 20,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 93.13,
+      "change_pct": 6.35,
+      "examples": [
+        {
+          "title": "$MNDY  \nGarbage"
+        },
+        {
+          "title": "$MNDY  \nThey cut the work crews for a reason . Their cash position not the best and it might gap down to 70 again."
+        },
+        {
+          "title": "Stocks to Watch Monday, August 10, 2026 \u2014  \n \n$ASTS Earnings Monday + Three Satellites Just Launched \n$SPG Mall REITs Re"
+        }
+      ]
+    },
+    {
+      "ticker": "DOCS",
+      "mentions": 30,
+      "avg_sentiment": 0.065,
+      "label": "Neutral",
+      "bullish_count": 14,
+      "bearish_count": 11,
+      "neutral_count": 5,
+      "bullish_pct": 47,
+      "bearish_pct": 37,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 27.4,
+      "change_pct": 32.62,
+      "examples": [
+        {
+          "title": "$DOCS heading sub 27. Blah"
+        },
+        {
+          "title": "$DOCS"
+        },
+        {
+          "title": "$DOCS"
+        }
+      ]
+    },
+    {
+      "ticker": "MELI",
+      "mentions": 30,
+      "avg_sentiment": 0.312,
+      "label": "Leaning Bullish",
+      "bullish_count": 19,
+      "bearish_count": 5,
+      "neutral_count": 6,
+      "bullish_pct": 63,
+      "bearish_pct": 17,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 1820.69,
+      "change_pct": -0.51,
+      "examples": [
+        {
+          "title": "$MELI they held this down for weeklies right? \n\nOr did they hold it up \n\nMkt dependent\u2026 1970 run possible"
+        },
+        {
+          "title": "$WMT \u00d7 $MELI \ud83c\udf0e\n\nThe Commerce Platform of the Americas.\n\nWhat if Walmart made the boldest acquisition in retail history?\n"
+        },
+        {
+          "title": "$WMT \u00d7 $MELI \ud83c\udf0e\n\nThe Commerce Platform of the Americas.\n\nWhat if Walmart made the biggest acquisition in its history?\n\nMe"
+        }
+      ]
+    },
+    {
+      "ticker": "OSCR",
+      "mentions": 30,
+      "avg_sentiment": 0.517,
+      "label": "Bullish",
+      "bullish_count": 23,
+      "bearish_count": 2,
+      "neutral_count": 5,
+      "bullish_pct": 77,
+      "bearish_pct": 7,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 27.9,
+      "change_pct": 5.12,
+      "examples": [
+        {
+          "title": "$OSCR $30 plus imminent."
+        },
+        {
+          "title": "$OSCR nice range low reclaim."
+        },
+        {
+          "title": "$OSCR is seeing heavy institutional volume and high-beta momentum following record first-half profitability and a raised"
+        }
+      ]
+    },
+    {
+      "ticker": "CRSR",
+      "mentions": 30,
+      "avg_sentiment": 0.367,
+      "label": "Bullish",
+      "bullish_count": 23,
+      "bearish_count": 0,
+      "neutral_count": 7,
+      "bullish_pct": 77,
+      "bearish_pct": 0,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 14.35,
+      "change_pct": 35.25,
+      "examples": [
+        {
+          "title": "$VIVS \ud83d\udc40\nOnce they realize they regained compliance I wouldn\u2019t be surprised if this ran to .60 next .75 or .85 &amp; back"
+        },
+        {
+          "title": "$CRSR PT 25"
+        },
+        {
+          "title": "$CRSR I believe that institutions have beat retail here in terms of positioning over the last few quarters. Retail has c"
+        }
+      ]
+    },
+    {
+      "ticker": "PDYN",
+      "mentions": 30,
+      "avg_sentiment": 0.524,
+      "label": "Bullish",
+      "bullish_count": 25,
+      "bearish_count": 0,
+      "neutral_count": 5,
+      "bullish_pct": 83,
+      "bearish_pct": 0,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 5.99,
+      "change_pct": 1.7,
+      "examples": [
+        {
+          "title": "$PDYN just keep buying ..buying and buy in one day 20$"
+        },
+        {
+          "title": "$PDYN 100 % optimistic.   The Israeli\u2018s obviously love it. \ufffc"
+        },
+        {
+          "title": "$PDYN the valuation story in this can change in a split second.   Depending on what type of contracts they get in the ne"
+        }
+      ]
+    },
+    {
+      "ticker": "GEO",
+      "mentions": 30,
+      "avg_sentiment": 0.185,
+      "label": "Leaning Bullish",
+      "bullish_count": 15,
+      "bearish_count": 6,
+      "neutral_count": 9,
+      "bullish_pct": 50,
+      "bearish_pct": 20,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 30.69,
+      "change_pct": 1.82,
+      "examples": [
+        {
+          "title": "$GEO https://archive.is/RR6tY"
+        },
+        {
+          "title": "$GEO \n\nBig dump tomorrow"
+        },
+        {
+          "title": "$GEO Positive (82%): GEO&#39;s stock price faces moderate upward pressure because the reported revenue and EPS outperfor"
+        }
+      ]
+    },
+    {
+      "ticker": "DXYZ",
+      "mentions": 30,
+      "avg_sentiment": 0.252,
+      "label": "Leaning Bullish",
+      "bullish_count": 17,
+      "bearish_count": 2,
+      "neutral_count": 11,
+      "bullish_pct": 57,
+      "bearish_pct": 7,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 25.89,
+      "change_pct": 2.7,
+      "examples": [
+        {
+          "title": "$DXYZ $RVI $VCX"
+        },
+        {
+          "title": "$DXYZ $RVI $VCX \n\nHmm \ud83e\udd14"
+        },
+        {
+          "title": "$DXYZ"
+        }
+      ]
+    },
+    {
+      "ticker": "SLS",
+      "mentions": 30,
+      "avg_sentiment": 0.189,
+      "label": "Leaning Bullish",
+      "bullish_count": 20,
+      "bearish_count": 8,
+      "neutral_count": 2,
+      "bullish_pct": 67,
+      "bearish_pct": 27,
+      "in_watchlist": false,
+      "is_trending": true,
+      "delta": null,
+      "price": 12.01,
+      "change_pct": 2.65,
+      "examples": [
+        {
+          "title": "$SLS last week for filings!"
+        },
+        {
+          "title": "@Twittwot This is an absolute lie.  @Stocktwits, this user is making false accusations about me and attempting to defame"
+        },
+        {
+          "title": "$SLS Some F-WADS still think this is kindergarten or Romper Room or some sheet. \n\nNut the f up and know what you own. Th"
+        }
+      ]
+    }
+  ],
+  "watchlist_grid": [
+    {
+      "ticker": "AAPL",
+      "mentions": 30,
+      "avg_sentiment": 0.387,
+      "label": "Bullish",
+      "bullish_count": 24,
+      "bearish_count": 3,
+      "neutral_count": 3,
+      "bullish_pct": 80,
+      "bearish_pct": 10,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 313.33,
+      "change_pct": 0.29,
+      "examples": [
+        {
+          "title": "$MNKD $AVGO $NVDA $HEI $AAPL which one of these stocks will have the best increase in share price Monday ?  You make the"
+        },
+        {
+          "title": "$AAPL \ud83d\uded1\ud83d\uded1 do you know what I still can\u2019t believe??  DO YOU KNOW WHAT I STILL Canter Believe AFTER almost 2 YEARS??     Ho"
+        },
+        {
+          "title": "$MU $SKHY $SNDK $QQQ $AAPL  \n \nNeedless to say.  If Micron, SK Hynix, and Samsung could offload Apple onto CXMT it would"
+        }
+      ]
+    },
+    {
+      "ticker": "AMD",
+      "mentions": 30,
+      "avg_sentiment": 0.224,
+      "label": "Leaning Bullish",
+      "bullish_count": 15,
+      "bearish_count": 4,
+      "neutral_count": 11,
+      "bullish_pct": 50,
+      "bearish_pct": 13,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 483.36,
+      "change_pct": -1.21,
+      "examples": [
+        {
+          "title": "$AMD gimme that 420 action"
+        },
+        {
+          "title": "Stocks to Watch Monday, August 10, 2026 \u2014  \n \n$B The Gold Stock Reacts to $4,000+ Spot Prices \n$AMD The Symmetrical Tria"
+        },
+        {
+          "title": "$AMD \u2764\ufe0f cooter"
+        }
+      ]
+    },
+    {
+      "ticker": "AMZN",
+      "mentions": 30,
+      "avg_sentiment": 0.312,
+      "label": "Leaning Bullish",
+      "bullish_count": 17,
+      "bearish_count": 7,
+      "neutral_count": 6,
+      "bullish_pct": 57,
+      "bearish_pct": 23,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 274.48,
+      "change_pct": 0.82,
+      "examples": [
+        {
+          "title": "$AMZN"
+        },
+        {
+          "title": "$WMT \u00d7 $MELI \ud83c\udf0e\n\nThe Commerce Platform of the Americas.\n\nWhat if Walmart made the boldest acquisition in retail history?\n"
+        },
+        {
+          "title": "$WMT \u00d7 $MELI \ud83c\udf0e\n\nThe Commerce Platform of the Americas.\n\nWhat if Walmart made the biggest acquisition in its history?\n\nMe"
+        }
+      ]
+    },
+    {
+      "ticker": "COIN",
+      "mentions": 30,
+      "avg_sentiment": 0.262,
+      "label": "Leaning Bullish",
+      "bullish_count": 20,
+      "bearish_count": 4,
+      "neutral_count": 6,
+      "bullish_pct": 67,
+      "bearish_pct": 13,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 153.6,
+      "change_pct": 5.63,
+      "examples": [
+        {
+          "title": "$BTC.X $COIN 10X and I sell 1/2\u2026"
+        },
+        {
+          "title": "$COIN getting to 155 and staying there this week would be a big win . Is that too much to ask?"
+        },
+        {
+          "title": "$AMP.X $ARB.X $BTC.X $COIN \n\nThey would be foolish to wait and miss the 10X\u2026."
+        }
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "mentions": 30,
+      "avg_sentiment": 0.106,
+      "label": "Leaning Bullish",
+      "bullish_count": 14,
+      "bearish_count": 13,
+      "neutral_count": 3,
+      "bullish_pct": 47,
+      "bearish_pct": 43,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 354.3,
+      "change_pct": -0.96,
+      "examples": [
+        {
+          "title": "$SPY $QQQ $GOOGL $GOOG $NVDA what are you more interested in buying right now?"
+        },
+        {
+          "title": "$GOOGL boomtown anytime anyday anyhour"
+        },
+        {
+          "title": "AI Is Changing the Cloud Game \u2601\ufe0f \n \nOne number that caught my attention: the cloud market is projected to grow from roug"
+        }
+      ]
+    },
+    {
+      "ticker": "HTZ",
+      "mentions": 30,
+      "avg_sentiment": 0.236,
+      "label": "Leaning Bullish",
+      "bullish_count": 19,
+      "bearish_count": 5,
+      "neutral_count": 6,
+      "bullish_pct": 63,
+      "bearish_pct": 17,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 2.27,
+      "change_pct": 12.38,
+      "examples": [
+        {
+          "title": "$HTZ \nI\u2019ve called out 15 retards so far. Everyone done lying yet?"
+        },
+        {
+          "title": "$HTZ lmao, bagholders always claim that they are long. Fact is that any real &quot;investor&quot; that is long would not"
+        },
+        {
+          "title": "$HTZ \nI thought this was going to $5 Monday?"
+        }
+      ]
+    },
+    {
+      "ticker": "IONQ",
+      "mentions": 30,
+      "avg_sentiment": 0.475,
+      "label": "Bullish",
+      "bullish_count": 25,
+      "bearish_count": 3,
+      "neutral_count": 2,
+      "bullish_pct": 83,
+      "bearish_pct": 10,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 44.43,
+      "change_pct": 11.86,
+      "examples": [
+        {
+          "title": "$INFQ  For fuck sake, THANK YOU. I was literally trying to find this exact excerpt. I clearly remember I saw evidence of"
+        },
+        {
+          "title": "$IONQ give me $50. let my calls print pls"
+        },
+        {
+          "title": "$IONQ what would be a good time to buy this?"
+        }
+      ]
+    },
+    {
+      "ticker": "META",
+      "mentions": 30,
+      "avg_sentiment": 0.296,
+      "label": "Leaning Bullish",
+      "bullish_count": 20,
+      "bearish_count": 4,
+      "neutral_count": 6,
+      "bullish_pct": 67,
+      "bearish_pct": 13,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 592.1,
+      "change_pct": 0.37,
+      "examples": [
+        {
+          "title": "$META  please somebody make it make sense!!"
+        },
+        {
+          "title": "$META $SPY \n\nInsane takedown by mark zuckerberg \n\nhttps://www.reddit.com/r/ufc/s/I7vAlNnwGL"
+        },
+        {
+          "title": "$META is pulling aggressive institutional volume as Meta Platforms accelerates its massive investments in custom AI sili"
+        }
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "mentions": 30,
+      "avg_sentiment": 0.386,
+      "label": "Bullish",
+      "bullish_count": 21,
+      "bearish_count": 3,
+      "neutral_count": 6,
+      "bullish_pct": 70,
+      "bearish_pct": 10,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 499.99,
+      "change_pct": 0.03,
+      "examples": [
+        {
+          "title": "$MSFT cpi is going to be good this week. I don\u2019t think this is in store for a pullback yet."
+        },
+        {
+          "title": "@Theta_Pincher @MoneyBarge Brent learned his lesson with the media player he sold to $MSFT   \n$AMFN is a subsidiary of K"
+        },
+        {
+          "title": "THESE MEGA-CAPS HAVE A WILD TRACK RECORD  \n \nOne thing stands out: several market leaders have historically avoided back"
+        }
+      ]
+    },
+    {
+      "ticker": "MSTR",
+      "mentions": 30,
+      "avg_sentiment": 0.35,
+      "label": "Bullish",
+      "bullish_count": 25,
+      "bearish_count": 2,
+      "neutral_count": 3,
+      "bullish_pct": 83,
+      "bearish_pct": 7,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 100.01,
+      "change_pct": 3.26,
+      "examples": [
+        {
+          "title": "$MSTR It wants to run soon bad."
+        },
+        {
+          "title": "$MSTR wonder how diluted my shares were this week\u2026"
+        },
+        {
+          "title": "$AIFC $XRP.X $GME $MSTR $PEPECOIN.X"
+        }
+      ]
+    },
+    {
+      "ticker": "NOW",
+      "mentions": 30,
+      "avg_sentiment": 0.506,
+      "label": "Bullish",
+      "bullish_count": 23,
+      "bearish_count": 1,
+      "neutral_count": 6,
+      "bullish_pct": 77,
+      "bearish_pct": 3,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 124.88,
+      "change_pct": 6.42,
+      "examples": [
+        {
+          "title": "$NOW inverse head and shoulders."
+        },
+        {
+          "title": "***\u200bIf you click on the link, way below \ud83e\udc83 , to the Claude Portfolio account on X, u&#39;ll see the account, that Dictato"
+        },
+        {
+          "title": "$NOW dem good shrooms, bro..."
+        }
+      ]
+    },
+    {
+      "ticker": "NVDA",
+      "mentions": 30,
+      "avg_sentiment": 0.21,
+      "label": "Leaning Bullish",
+      "bullish_count": 17,
+      "bearish_count": 9,
+      "neutral_count": 4,
+      "bullish_pct": 57,
+      "bearish_pct": 30,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 223.96,
+      "change_pct": 2.27,
+      "examples": [
+        {
+          "title": "$MNKD $AVGO $NVDA $HEI $AAPL which one of these stocks will have the best increase in share price Monday ?  You make the"
+        },
+        {
+          "title": "$BB Robotaxis require two kinds of trust: deterministic execution inside the vehicle and secure, resilient connectivity "
+        },
+        {
+          "title": "$NVDA FIG AMD"
+        }
+      ]
+    },
+    {
+      "ticker": "PLTR",
+      "mentions": 30,
+      "avg_sentiment": 0.255,
+      "label": "Leaning Bullish",
+      "bullish_count": 21,
+      "bearish_count": 4,
+      "neutral_count": 5,
+      "bullish_pct": 70,
+      "bearish_pct": 13,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 172.01,
+      "change_pct": 10.32,
+      "examples": [
+        {
+          "title": "$ONDS Shorts are trapped. All it will take is for someone to buy in big tonight or PM and tgis can crack $9.55 and then "
+        },
+        {
+          "title": "$PLTR Give me $500+ Karp!!!"
+        },
+        {
+          "title": "$PLTR"
+        }
+      ]
+    },
+    {
+      "ticker": "QBTS",
+      "mentions": 30,
+      "avg_sentiment": 0.365,
+      "label": "Bullish",
+      "bullish_count": 21,
+      "bearish_count": 2,
+      "neutral_count": 7,
+      "bullish_pct": 70,
+      "bearish_pct": 7,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 20.76,
+      "change_pct": 6.98,
+      "examples": [
+        {
+          "title": "$INFQ  For fuck sake, THANK YOU. I was literally trying to find this exact excerpt. I clearly remember I saw evidence of"
+        },
+        {
+          "title": "$RGTI $QUBT $IONQ $QBTS $SPCX\n\nSoon we will find out who is the President of the United States  \ud83d\ude02 \n\nA. Trump\nB. Netanyah"
+        },
+        {
+          "title": "$RGTI $IONQ $QBTS &lt;&lt;--- the real deal !!!!!  \ud83e\udd11 \nhttps://investors.ionq.com/news/news-details/2026/IonQ-Announces-R"
+        }
+      ]
+    },
+    {
+      "ticker": "QUBT",
+      "mentions": 30,
+      "avg_sentiment": 0.342,
+      "label": "Leaning Bullish",
+      "bullish_count": 23,
+      "bearish_count": 2,
+      "neutral_count": 5,
+      "bullish_pct": 77,
+      "bearish_pct": 7,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 9.18,
+      "change_pct": 4.62,
+      "examples": [
+        {
+          "title": "$QUBT +35 \ud83d\udfe2\ud83d\udfe2\ud83d\udfe2\ud83d\udfe2\ud83d\udfe2\ud83d\udfe2\ud83d\udfe2\ud83d\udfe2 +200\u066a"
+        },
+        {
+          "title": "$RGTI $QUBT $IONQ $QBTS $SPCX\n\nSoon we will find out who is the President of the United States  \ud83d\ude02 \n\nA. Trump\nB. Netanyah"
+        },
+        {
+          "title": "$QUBT Quantum Computing Inc. (QCi) operates the first dedicated quantum hardware manufacturing facility in Arizona, prod"
+        }
+      ]
+    },
+    {
+      "ticker": "RDDT",
+      "mentions": 30,
+      "avg_sentiment": 0.27,
+      "label": "Leaning Bullish",
+      "bullish_count": 19,
+      "bearish_count": 6,
+      "neutral_count": 5,
+      "bullish_pct": 63,
+      "bearish_pct": 20,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 161.7,
+      "change_pct": 7.18,
+      "examples": [
+        {
+          "title": "$SPY $NVDA it&#39;s the final countdown $BTC.X $RDDT"
+        },
+        {
+          "title": "$NVDA $NTDOY no1 will pay 30,000$ for a card $RDDT $META"
+        },
+        {
+          "title": "$SPY $EBAY no one will buy your pikachu for 23,000$ USD $BTC.X $META $RDDT"
+        }
+      ]
+    },
+    {
+      "ticker": "RGTI",
+      "mentions": 30,
+      "avg_sentiment": 0.232,
+      "label": "Leaning Bullish",
+      "bullish_count": 16,
+      "bearish_count": 7,
+      "neutral_count": 7,
+      "bullish_pct": 53,
+      "bearish_pct": 23,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 17.94,
+      "change_pct": 8.53,
+      "examples": [
+        {
+          "title": "$INFQ  For fuck sake, THANK YOU. I was literally trying to find this exact excerpt. I clearly remember I saw evidence of"
+        },
+        {
+          "title": "$RGTI $QUBT $IONQ $QBTS $SPCX\n\nSoon we will find out who is the President of the United States  \ud83d\ude02 \n\nA. Trump\nB. Netanyah"
+        },
+        {
+          "title": "8/9 Notable Options Flow - Big Money Spotted \n \nSome unusually large call activity stood out today. Here\u2019s what caught m"
+        }
+      ]
+    },
+    {
+      "ticker": "SOFI",
+      "mentions": 30,
+      "avg_sentiment": 0.365,
+      "label": "Bullish",
+      "bullish_count": 22,
+      "bearish_count": 4,
+      "neutral_count": 4,
+      "bullish_pct": 73,
+      "bearish_pct": 13,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 18.38,
+      "change_pct": 1.55,
+      "examples": [
+        {
+          "title": "$SOFI Can we see 16 tomorrow?"
+        },
+        {
+          "title": "$SOFI 19 EOW"
+        },
+        {
+          "title": "$CELH $SPY $BTC.X $SOFI $ELF   \n  \nKiddo, CELH can easily go 2-3X next few weeks: \n \nThey will have to buy up Billions i"
+        }
+      ]
+    },
+    {
+      "ticker": "TSLA",
+      "mentions": 30,
+      "avg_sentiment": 0.208,
+      "label": "Leaning Bullish",
+      "bullish_count": 17,
+      "bearish_count": 9,
+      "neutral_count": 4,
+      "bullish_pct": 57,
+      "bearish_pct": 30,
+      "in_watchlist": true,
+      "is_trending": false,
+      "delta": null,
+      "price": 328.58,
+      "change_pct": 2.83,
+      "examples": [
+        {
+          "title": "$BB Robotaxis require two kinds of trust: deterministic execution inside the vehicle and secure, resilient connectivity "
+        },
+        {
+          "title": "$TSLA \ud83d\uded1\ud83d\uded1\ud83d\uded1\ud83e\udd37\ud83e\udd37\ud83e\udd37make it make sense"
+        },
+        {
+          "title": "$SPCX $TSLA Elon bears"
+        }
+      ]
+    }
+  ],
+  "news": [
+    {
+      "source": "Yahoo Finance",
+      "title": "BofA points to the Eli Lilly market that could outsize the U.S.",
+      "link": "https://finance.yahoo.com/healthcare/articles/bofa-points-eli-lilly-market-183300957.html",
+      "published": "2026-08-08T18:33:00Z",
+      "summary": ""
+    },
+    {
+      "source": "Yahoo Finance",
+      "title": "Wall Street Can't Agree on Palantir. Here's What Investors Should Do Next",
+      "link": "https://finance.yahoo.com/markets/stocks/articles/wall-street-cant-agree-palantir-153002414.html",
+      "published": "2026-08-08T15:30:02Z",
+      "summary": ""
+    },
+    {
+      "source": "Yahoo Finance",
+      "title": "AMD Tops Q2 Estimates, but Investors Still Hit the Sell Button. What's Next for AMD Stock.",
+      "link": "https://finance.yahoo.com/markets/stocks/articles/amd-tops-q2-estimates-investors-151502222.html",
+      "published": "2026-08-08T15:15:02Z",
+      "summary": ""
+    },
+    {
+      "source": "Yahoo Finance",
+      "title": "Dear SanDisk Stock Fans, Mark Your Calendars for a Fresh Catalyst on August 13",
+      "link": "https://finance.yahoo.com/markets/stocks/articles/dear-sandisk-stock-fans-mark-151502073.html",
+      "published": "2026-08-08T15:15:02Z",
+      "summary": ""
+    },
+    {
+      "source": "Yahoo Finance",
+      "title": "Why This ETF Might Be Ready to Make a Quantum Leap",
+      "link": "https://finance.yahoo.com/markets/stocks/articles/why-etf-might-ready-quantum-150002485.html",
+      "published": "2026-08-08T15:00:02Z",
+      "summary": ""
+    },
+    {
+      "source": "Yahoo Finance",
+      "title": "AI is Hollowing Out Tech Sector Jobs: Oracle and Microsoft Help Push Layoff Rate to 20-Year High",
+      "link": "https://finance.yahoo.com/technology/ai/articles/ai-hollowing-tech-sector-jobs-153836165.html",
+      "published": "2026-08-08T15:38:36Z",
+      "summary": ""
+    },
+    {
+      "source": "Yahoo Finance",
+      "title": "Google's AI claimed Flock cameras hold $650 in gold and 23 pounds of copper \u2014 It was duped by meme",
+      "link": "https://finance.yahoo.com/technology/ai/articles/googles-ai-claimed-flock-cameras-150000005.html",
+      "published": "2026-08-08T15:00:00Z",
+      "summary": ""
+    },
+    {
+      "source": "Yahoo Finance",
+      "title": "Berkshire Hathaway Beats Earnings Views, Ends 14 Quarters Of Selling Equities",
+      "link": "https://www.investors.com/news/berkshire-hathaway-earnings-buybacks-cash-hoard-warren-buffett/?src=A00220&yptr=yahoo",
+      "published": "2026-08-08T14:52:35Z",
+      "summary": ""
+    },
+    {
+      "source": "Yahoo Finance",
+      "title": "Dear Analog Devices Stock Fans, Mark Your Calendars for August 19",
+      "link": "https://finance.yahoo.com/markets/stocks/articles/dear-analog-devices-stock-fans-144501896.html",
+      "published": "2026-08-08T14:45:01Z",
+      "summary": ""
+    },
+    {
+      "source": "Yahoo Finance",
+      "title": "Performance raises are back for 2027, but increases will be modest",
+      "link": "https://finance.yahoo.com/economy/article/performance-raises-are-back-for-2027-but-increases-will-be-modest-163535548.html",
+      "published": "2026-08-08T16:35:35Z",
+      "summary": ""
+    },
+    {
+      "source": "MarketWatch Top Stories",
+      "title": "U.S. stock futures flat as investors await inflation data, grapple with more Iran uncertainty",
+      "link": "https://www.marketwatch.com/story/u-s-stock-futures-flat-as-investors-await-inflation-data-grapple-with-more-iran-uncertainty-133212d2?mod=mw_rss_topstories",
+      "published": "Mon, 10 Aug 2026 02:30:00 GMT",
+      "summary": "U.S. stock-index futures were little changed on Sunday, after new demands from Iran raised fresh doubts about the Strait of Hormuz reopening anytime soon and as investors await key inflation data late"
+    },
+    {
+      "source": "MarketWatch Top Stories",
+      "title": "\u2018I\u2019m easing into retirement\u2019: I\u2019m getting an $80,000 pension payout. Where can I invest it safely?",
+      "link": "https://www.marketwatch.com/story/im-easing-into-retirement-im-getting-an-80-000-pension-payout-where-can-i-invest-it-safely-6653d810?mod=mw_rss_topstories",
+      "published": "Mon, 10 Aug 2026 00:00:00 GMT",
+      "summary": "\u201cI expect to have several years before I take distributions from my 401(k) account.\u201d"
+    },
+    {
+      "source": "MarketWatch Top Stories",
+      "title": "If I marry my girlfriend, 67, will she lose her Supplemental Security Income and divorced spouse benefits?",
+      "link": "https://www.marketwatch.com/story/if-i-marry-my-girlfriend-67-will-she-lose-her-supplemental-security-income-and-divorced-spouse-benefits-9340bab9?mod=mw_rss_topstories",
+      "published": "Sun, 09 Aug 2026 23:30:00 GMT",
+      "summary": "\u201cShe has been living with me for four years.\u201d"
+    },
+    {
+      "source": "MarketWatch Top Stories",
+      "title": "The number of stocks beating the S&P 500 is the highest in 4 years. Why that number should rise.",
+      "link": "https://www.marketwatch.com/story/the-number-of-stocks-beating-the-s-p-500-is-the-highest-in-4-years-why-that-number-should-rise-b9bd05b3?mod=mw_rss_topstories",
+      "published": "Sun, 09 Aug 2026 19:11:00 GMT",
+      "summary": "For the first time in four years, the average stock is beating the stock market."
+    },
+    {
+      "source": "MarketWatch Top Stories",
+      "title": "\u2018My wife and I are both retired\u2019: Do we dip into our $2.3 million fund to pay off our $300,000 mortgage at 2.9%?",
+      "link": "https://www.marketwatch.com/story/my-wife-and-i-are-both-retired-do-we-dip-into-our-2-3-million-fund-to-pay-off-our-300-000-mortgage-at-2-9-2d23d1df?mod=mw_rss_topstories",
+      "published": "Sun, 09 Aug 2026 16:00:00 GMT",
+      "summary": "\u201cRight now, we\u2019re withdrawing about $100,000 a year from our investments.\u201d"
+    },
+    {
+      "source": "MarketWatch Top Stories",
+      "title": "S&P 500 sales growth is at a nearly 5-year high. Here\u2019s what\u2019s behind the surge.",
+      "link": "https://www.marketwatch.com/story/s-p-500-sales-growth-is-at-a-nearly-5-year-high-heres-whats-behind-the-surge-a4ccf06d?mod=mw_rss_topstories",
+      "published": "Sun, 09 Aug 2026 14:00:00 GMT",
+      "summary": "Energy companies in the S&amp;P 500 have put up a 42.5% revenue gain in the second quarter, powering the index\u2019s sales performance."
+    },
+    {
+      "source": "MarketWatch Top Stories",
+      "title": "\u2018I don\u2019t wish to be cold-hearted\u2019: My elderly relative can no longer care for himself. Am I wrong to leave his care to the state?",
+      "link": "https://www.marketwatch.com/story/i-dont-wish-to-be-cold-hearted-my-elderly-relative-can-no-longer-care-for-himself-am-i-wrong-to-leave-his-care-to-the-state-8d546b32?mod=mw_rss_topstories",
+      "published": "Sun, 09 Aug 2026 13:30:00 GMT",
+      "summary": "\u201cHe has never been particularly generous or nurturing.\u201d"
+    },
+    {
+      "source": "MarketWatch Top Stories",
+      "title": "\u2018This has been an emotionally difficult time\u2019: My brother has cancer and my father is 94. How do I shoulder this responsibility?",
+      "link": "https://www.marketwatch.com/story/this-has-been-an-emotionally-difficult-time-my-brother-has-cancer-and-my-father-is-94-how-do-i-shoulder-this-responsibility-9da09dc4?mod=mw_rss_topstories",
+      "published": "Sun, 09 Aug 2026 13:00:00 GMT",
+      "summary": "\u201cMy father placed his $600,000 Wisconsin home into a revocable trust, naming my brother as beneficiary.\u201d"
+    },
+    {
+      "source": "MarketWatch Top Stories",
+      "title": "I got two email invitations from friends. Is this a phishing scam \u2014 or am I suddenly popular?",
+      "link": "https://www.marketwatch.com/story/i-got-two-email-invitations-from-friends-is-this-a-phishing-scam-or-am-i-suddenly-popular-d9680aa8?mod=mw_rss_topstories",
+      "published": "Sun, 09 Aug 2026 12:30:00 GMT",
+      "summary": "\u201cI was surprised \u2014 and flattered \u2014 to find myself on the guest list.\u201d"
+    },
+    {
+      "source": "MarketWatch Top Stories",
+      "title": "\u2018Her bank accounts were stripped bare by Medicaid\u2019: My late friend had $20,000 in credit-card debt. Will her life insurance pay for it?",
+      "link": "https://www.marketwatch.com/story/her-bank-accounts-were-stripped-bare-by-medicaid-my-late-friend-had-20-000-in-credit-card-debt-will-her-life-insurance-pay-for-it-17ee9792?mod=mw_rss_topstories",
+      "published": "Sun, 09 Aug 2026 12:30:00 GMT",
+      "summary": "\u201cShe left behind a 30-year-old son and 32-year-old daughter.\u201d"
+    },
+    {
+      "source": "MarketWatch Market Pulse",
+      "title": "Jobless claims fall to lowest level since mid-May",
+      "link": "https://www.marketwatch.com/story/jobless-claims-fall-to-lowest-level-since-mid-may-bda58e3b?mod=mw_rss_marketpulse",
+      "published": "Thu, 03 Jul 2025 12:36:00 GMT",
+      "summary": ""
+    },
+    {
+      "source": "MarketWatch Market Pulse",
+      "title": "Jobless claims stay low in latest week",
+      "link": "https://www.marketwatch.com/story/jobless-claims-stay-low-in-latest-week-27b4b50b?mod=mw_rss_marketpulse",
+      "published": "Thu, 13 Feb 2025 13:33:00 GMT",
+      "summary": ""
+    },
+    {
+      "source": "MarketWatch Market Pulse",
+      "title": "Consumer credit growth soars in December",
+      "link": "https://www.marketwatch.com/story/consumer-credit-growth-soars-in-december-d405d18e?mod=mw_rss_marketpulse",
+      "published": "Fri, 07 Feb 2025 20:26:00 GMT",
+      "summary": ""
+    },
+    {
+      "source": "MarketWatch Market Pulse",
+      "title": "U.S. productivity slows down in fourth quarter while unit labor costs accelerate",
+      "link": "https://www.marketwatch.com/story/u-s-productivity-slows-down-in-fourth-quarter-while-unit-labor-costs-accelerate-3c2b9092?mod=mw_rss_marketpulse",
+      "published": "Thu, 06 Feb 2025 13:34:00 GMT",
+      "summary": ""
+    },
+    {
+      "source": "MarketWatch Market Pulse",
+      "title": "Beyond to buy rights to Buy Buy Baby brand and reunite it with Bed Bath & Beyond",
+      "link": "https://www.marketwatch.com/story/beyond-to-buy-rights-to-buy-buy-baby-brand-and-reunite-it-with-bed-bath-beyond-4383c6be?mod=mw_rss_marketpulse",
+      "published": "Mon, 03 Feb 2025 13:46:00 GMT",
+      "summary": ""
+    },
+    {
+      "source": "MarketWatch Market Pulse",
+      "title": "Trump asks Supreme Court to pause TikTok ban",
+      "link": "https://www.marketwatch.com/story/trump-asks-supreme-court-to-pause-tiktok-ban-2b724ae6?mod=mw_rss_marketpulse",
+      "published": "Sat, 28 Dec 2024 00:32:00 GMT",
+      "summary": ""
+    },
+    {
+      "source": "MarketWatch Market Pulse",
+      "title": "Amazon says it had best-ever Thanksgiving Holiday week with record sales and number of items sold",
+      "link": "https://www.marketwatch.com/story/amazon-says-it-had-best-ever-thanksgiving-holiday-week-with-record-sales-and-number-of-items-sold-786e0143?mod=mw_rss_marketpulse",
+      "published": "Tue, 03 Dec 2024 14:05:00 GMT",
+      "summary": ""
+    },
+    {
+      "source": "MarketWatch Market Pulse",
+      "title": "U.S. stock futures and bond yields drop on reports Putin has updated nuclear doctrine",
+      "link": "https://www.marketwatch.com/story/u-s-stock-futures-and-bond-yields-drop-on-reports-putin-has-updated-nuclear-doctrine-4b9792c4?mod=mw_rss_marketpulse",
+      "published": "Tue, 19 Nov 2024 08:55:00 GMT",
+      "summary": ""
+    },
+    {
+      "source": "MarketWatch Market Pulse",
+      "title": "Charter Communications announces buyout deal for Liberty Broadband at terms above its previous proposal",
+      "link": "https://www.marketwatch.com/story/charter-communications-announces-buyout-deal-for-liberty-broadband-at-terms-above-its-previous-proposal-552f7acd?mod=mw_rss_marketpulse",
+      "published": "Wed, 13 Nov 2024 13:52:00 GMT",
+      "summary": ""
+    },
+    {
+      "source": "MarketWatch Market Pulse",
+      "title": "General Motors unveils new all-electric Cadillac called the Vistiq with 300-mile range",
+      "link": "https://www.marketwatch.com/story/general-motors-unveils-new-all-electric-cadillac-called-the-vistiq-with-300-mile-range-c16fb8a6?mod=mw_rss_marketpulse",
+      "published": "Tue, 12 Nov 2024 13:53:00 GMT",
+      "summary": ""
+    },
+    {
+      "source": "CNBC Top News",
+      "title": "S&P 500 futures slip as traders watch for Strait of Hormuz deal, inflation data: Live updates",
+      "link": "https://www.cnbc.com/2026/08/09/stock-market-today-live-updates.html",
+      "published": "Mon, 10 Aug 2026 00:29:19 GMT",
+      "summary": "The three major indexes are coming off their best weeks since April, and the S&amp;P 500 finished Friday at an all-time closing high."
+    },
+    {
+      "source": "CNBC Top News",
+      "title": "Iran denies any direct talks with U.S. on opening Strait of Hormuz as Houthis claim attack on Saudi refinery",
+      "link": "https://www.cnbc.com/2026/08/09/saudi-aramco-extinguishes-refinery-fire-houthis-claim-attack.html",
+      "published": "Sun, 09 Aug 2026 18:15:57 GMT",
+      "summary": "Iran's foreign minister reportedly said his country is not engaging in talks with the U.S., but added: \"Messages are being exchanged through intermediaries.\""
+    },
+    {
+      "source": "CNBC Top News",
+      "title": "How a small Israeli startup was linked to rogue AI hacks at OpenAI, Anthropic and Meta",
+      "link": "https://www.cnbc.com/2026/08/09/israeli-startup-irregular-linked-to-ai-hacks-openai-anthropic-meta.html",
+      "published": "Sun, 09 Aug 2026 11:31:42 GMT",
+      "summary": "The rogue AI attacks involving OpenAI, Anthropic and Meta all tied back to a small Israeli startup named Irregular."
+    },
+    {
+      "source": "CNBC Top News",
+      "title": "Oil rises amid uncertainty over U.S.-Iran Strait of Hormuz deal",
+      "link": "https://www.cnbc.com/2026/08/10/oil-prices-today-brent-wti-hormuz-trump-iran.html",
+      "published": "Mon, 10 Aug 2026 02:32:43 GMT",
+      "summary": "Oil rose as traders assess mixed signals from the U.S. and Iran amid worries that a deal to open the Strait of Hormuz may not be coming anytime soon."
+    },
+    {
+      "source": "CNBC Top News",
+      "title": "Taylor Farms recalls salsa and guacamole over salmonella risk",
+      "link": "https://www.cnbc.com/2026/08/09/taylor-farms-recalls-salsa-and-guacamole-over-salmonella-risk.html",
+      "published": "Mon, 10 Aug 2026 01:39:45 GMT",
+      "summary": "The supplier voluntarily recalled the products, including salsas and guacamole, after being notified that Coast Citrus Distributors was recalling fresh peppers."
+    },
+    {
+      "source": "CNBC Top News",
+      "title": "Abel puts a big chunk of Berkshire's cash to work",
+      "link": "https://www.cnbc.com/2026/08/09/abel-puts-a-big-chunk-of-berkshires-cash-to-work.html",
+      "published": "Sun, 09 Aug 2026 12:00:33 GMT",
+      "summary": "In his second quarter as the new CEO of Berkshire Hathaway, Greg Abel did some serious spending, including $4.5 billion on buybacks."
+    },
+    {
+      "source": "CNBC Top News",
+      "title": "Myspace eyes comeback as an 'antidote' to social media fatigue \u2014 but it may be a long shot",
+      "link": "https://www.cnbc.com/2026/08/09/myspace-comeback-rival-social-media-giants.html",
+      "published": "Sun, 09 Aug 2026 12:23:54 GMT",
+      "summary": "\"Excitement about Myspace's relaunch reflects nostalgia for a more analog time, when algorithms were less dominant in our lives,\" an analyst told CNBC."
+    },
+    {
+      "source": "CNBC Top News",
+      "title": "Ocasio-Cortez hasn't 'ruled out' running for president or Senate in 2028",
+      "link": "https://www.cnbc.com/2026/08/09/ocasio-cortez-hasnt-ruled-out-running-for-president-or-senate-in-2028.html",
+      "published": "Sun, 09 Aug 2026 14:45:17 GMT",
+      "summary": "The congresswoman, who has emerged as a polling favorite to be the Democratic nominee, said she also has not ruled out a run for the Senate in 2028."
+    },
+    {
+      "source": "CNBC Top News",
+      "title": "Netanyahu says Trump's new Gaza plan is unacceptable",
+      "link": "https://www.cnbc.com/2026/08/09/israel-rejects-trumps-15-point-plan-for-gaza-netanyahu-says.html",
+      "published": "Sun, 09 Aug 2026 20:31:57 GMT",
+      "summary": "Netanyahu is caught between far-right ministers angered by concessions in Gaza and Trump, who wants progress toward ending the conflict."
+    },
+    {
+      "source": "CNBC Top News",
+      "title": "Trump names Will Scharf as White House counsel",
+      "link": "https://www.cnbc.com/2026/08/09/trump-will-scharf-white-house-counsel.html",
+      "published": "Sun, 09 Aug 2026 22:15:28 GMT",
+      "summary": "Will Scharf \u200cwill become the White House's top lawyer \u200bafter overseeing the administrative work of the Oval Office in his current \u2060role."
+    }
+  ]
+};
+
+document.getElementById('timestamp').textContent = 'Updated ' + DATA.generated_at;
+
+function tickerUrl(sym) { return `https://finance.yahoo.com/quote/${encodeURIComponent(sym)}`; }
+function tickerLink(sym, innerHtml) {
+  return `<a class="ticker-link" href="${tickerUrl(sym)}" target="_blank" rel="noopener" title="View ${sym} on Yahoo Finance">${innerHtml}</a>`;
+}
+function labelClass(label) {
+  if (label.includes('Bullish')) return 'label-bullish';
+  if (label.includes('Bearish')) return 'label-bearish';
+  return 'label-neutral';
+}
+function chgClass(chg) {
+  if (chg === null || chg === undefined) return 'na';
+  return chg >= 0 ? 'up' : 'down';
+}
+function fmtChg(chg) {
+  if (chg === null || chg === undefined) return '—';
+  const sign = chg >= 0 ? '+' : '';
+  return `${sign}${chg.toFixed(2)}%`;
+}
+function fmtPrice(px) {
+  if (px === null || px === undefined) return '—';
+  return px < 5 ? `$${px.toFixed(2)}` : `$${px.toFixed(2)}`;
+}
+function deltaHtml(delta) {
+  if (delta === null || delta === undefined) return '<span class="leader-delta flat">new</span>';
+  if (delta > 0.03) return `<span class="leader-delta up">▲${delta.toFixed(2)}</span>`;
+  if (delta < -0.03) return `<span class="leader-delta down">▼${Math.abs(delta).toFixed(2)}</span>`;
+  return '<span class="leader-delta flat">flat</span>';
+}
+
+// Market pulse
+const pulseStrip = document.getElementById('pulse-strip');
+if (DATA.market_pulse.length === 0) {
+  pulseStrip.innerHTML = '<div class="pulse-cell"><div class="pulse-name">Market data unavailable</div></div>';
+} else {
+  pulseStrip.innerHTML = DATA.market_pulse.map(m => `
+    <div class="pulse-cell">
+      <div class="pulse-name">${m.name}</div>
+      <div class="pulse-price">${fmtPrice(m.price)}</div>
+      <div class="pulse-chg ${chgClass(m.change_pct)}">${fmtChg(m.change_pct)}</div>
+    </div>
+  `).join('');
+}
+
+// Sector heatmap
+const heatmapGrid = document.getElementById('heatmap-grid');
+function heatBg(chg) {
+  const intensity = Math.min(Math.abs(chg) / 2.5, 1);
+  const alpha = 0.10 + 0.55 * intensity;
+  return chg >= 0 ? `rgba(53,212,140,${alpha})` : `rgba(255,92,108,${alpha})`;
+}
+if (DATA.sector_heatmap.length === 0) {
+  heatmapGrid.innerHTML = '<div class="empty-state">Sector data unavailable.</div>';
+} else {
+  heatmapGrid.innerHTML = DATA.sector_heatmap.map(s => `
+    <div class="heat-tile" style="background:${heatBg(s.change_pct)};">
+      <div class="heat-name">${s.name}</div>
+      <div class="heat-chg ${chgClass(s.change_pct)}">${fmtChg(s.change_pct)}</div>
+    </div>
+  `).join('');
+}
+
+// Signals
+const signalIcons = { bullish_dip: '▲', bearish_rally: '▼', volume_spike: '◆' };
+const signalList = document.getElementById('signal-list');
+if (DATA.signals.length === 0) {
+  document.getElementById('signals-empty').style.display = 'block';
+} else {
+  signalList.innerHTML = DATA.signals.map(s => `
+    <div class="signal-card ${s.type}">
+      <span class="signal-icon ${s.type}">${signalIcons[s.type] || '•'}</span>
+      <div>
+        <div class="signal-headline">${tickerLink(s.ticker, s.headline)}</div>
+        <div class="signal-detail">${s.detail}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Bullish / Bearish leader panels
+function leaderRow(t, rank) {
+  const bullPct = t.bullish_pct || 0;
+  const bearPct = t.bearish_pct || 0;
+  const neutralPct = Math.max(0, 100 - bullPct - bearPct);
+  return `<div class="leader-row">
+    <span class="leader-rank">${rank}</span>
+    ${tickerLink(t.ticker, `<span class="leader-sym">${t.ticker}</span>`)}
+    <div class="leader-bar-wrap">
+      <div class="leader-bar-track">
+        <div class="leader-bar-seg bull-seg" style="width:${bullPct}%"></div>
+        <div class="leader-bar-seg neutral-seg" style="width:${neutralPct}%"></div>
+        <div class="leader-bar-seg bear-seg" style="width:${bearPct}%"></div>
+      </div>
+      <div class="leader-meta">${bullPct}% bull &middot; ${bearPct}% bear</div>
+    </div>
+    <span class="leader-mentions">${t.mentions}</span>
+    <span class="leader-price-col">
+      <span class="px">${fmtPrice(t.price)}</span>
+      <span class="chg ${chgClass(t.change_pct)}">${fmtChg(t.change_pct)}</span>
+    </span>
+    ${deltaHtml(t.delta)}
+  </div>`;
+}
+
+const bullishRows = document.getElementById('bullish-rows');
+if (DATA.top_bullish.length === 0) {
+  document.getElementById('bullish-empty').style.display = 'block';
+} else {
+  bullishRows.innerHTML = DATA.top_bullish.map((t, i) => leaderRow(t, i + 1)).join('');
+}
+
+const bearishRows = document.getElementById('bearish-rows');
+if (DATA.top_bearish.length === 0) {
+  document.getElementById('bearish-empty').style.display = 'block';
+} else {
+  bearishRows.innerHTML = DATA.top_bearish.map((t, i) => leaderRow(t, i + 1)).join('');
+}
+
+// Most discussed table
+const discussedBody = document.getElementById('discussed-body');
+if (DATA.most_discussed.length === 0) {
+  document.getElementById('discussed-empty').style.display = 'block';
+} else {
+  discussedBody.innerHTML = DATA.most_discussed.map(t => {
+    const bullPct = t.bullish_pct || 0;
+    const bearPct = t.bearish_pct || 0;
+    const neutralPct = Math.max(0, 100 - bullPct - bearPct);
+    const badge = t.in_watchlist ? '<span class="wl-badge">WL</span>' : '';
+    return `<tr>
+      <td>${tickerLink(t.ticker, `<span class="ticker-sym">${t.ticker}</span>`)}${badge}</td>
+      <td class="price-cell"><span class="px">${fmtPrice(t.price)}</span><span class="chg ${chgClass(t.change_pct)}">${fmtChg(t.change_pct)}</span></td>
+      <td class="mono">${t.mentions}</td>
+      <td style="min-width:150px;">
+        <div class="leader-bar-track">
+          <div class="leader-bar-seg bull-seg" style="width:${bullPct}%"></div>
+          <div class="leader-bar-seg neutral-seg" style="width:${neutralPct}%"></div>
+          <div class="leader-bar-seg bear-seg" style="width:${bearPct}%"></div>
+        </div>
+      </td>
+      <td><span class="label-pill ${labelClass(t.label)}">${t.label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// Watchlist grid with filter
+let currentFilter = 'all';
+function renderWatchlist() {
+  const wlGrid = document.getElementById('watchlist-grid');
+  let items = DATA.watchlist_grid;
+  if (currentFilter === 'bullish') items = items.filter(t => t.avg_sentiment >= 0.1);
+  if (currentFilter === 'bearish') items = items.filter(t => t.avg_sentiment <= -0.1);
+  if (currentFilter === 'active') items = items.filter(t => t.mentions > 0);
+
+  wlGrid.innerHTML = items.map(t => {
+    let cls = 'wl-card no-data';
+    let labelCls = 'muted-text';
+    let labelText = 'No chatter today';
+    if (t.mentions > 0) {
+      if (t.avg_sentiment >= 0.1) { cls = 'wl-card has-bull'; labelCls = 'bull-text'; }
+      else if (t.avg_sentiment <= -0.1) { cls = 'wl-card has-bear'; labelCls = 'bear-text'; }
+      else { cls = 'wl-card'; labelCls = 'muted-text'; }
+      labelText = `${t.label} &middot; ${t.mentions} msgs`;
+    }
+    return `<div class="${cls}">
+      <div class="wl-card-top">
+        ${tickerLink(t.ticker, `<span class="wl-sym">${t.ticker}</span>`)}
+        <span class="wl-chg ${chgClass(t.change_pct)}">${fmtChg(t.change_pct)}</span>
+      </div>
+      <div class="wl-label ${labelCls}">${labelText}</div>
+    </div>`;
+  }).join('');
+}
+
+const filters = [
+  { key: 'all', label: 'All' },
+  { key: 'active', label: 'Active only' },
+  { key: 'bullish', label: 'Bullish' },
+  { key: 'bearish', label: 'Bearish' },
+];
+document.getElementById('watchlist-controls').innerHTML = filters.map(f =>
+  `<button class="wl-filter-btn${f.key === 'all' ? ' active' : ''}" data-filter="${f.key}">${f.label}</button>`
+).join('');
+document.querySelectorAll('.wl-filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentFilter = btn.dataset.filter;
+    document.querySelectorAll('.wl-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderWatchlist();
+  });
+});
+renderWatchlist();
+
+// News
+const newsList = document.getElementById('news-list');
+if (DATA.news.length === 0) {
+  newsList.innerHTML = '<div class="empty-state">No headlines fetched.</div>';
+} else {
+  newsList.innerHTML = DATA.news.slice(0, 20).map(n => `
+    <div class="news-item">
+      <div class="news-source">${n.source}</div>
+      <p class="news-title"><a href="${n.link}" target="_blank" rel="noopener">${n.title}</a></p>
+    </div>
+  `).join('');
+}
+
+// Ticker tape — pulled from most_discussed so it reflects true mixed sentiment
+const tapeEl = document.getElementById('tape');
+const tapeItems = DATA.most_discussed.slice(0, 15);
+if (tapeItems.length > 0) {
+  const html = tapeItems.map(t => {
+    const cls = t.avg_sentiment >= 0.1 ? 'up' : (t.avg_sentiment <= -0.1 ? 'down' : '');
+    const arrow = t.avg_sentiment >= 0.1 ? '▲' : (t.avg_sentiment <= -0.1 ? '▼' : '—');
+    const px = t.change_pct !== null && t.change_pct !== undefined ? ` ${fmtChg(t.change_pct)}` : '';
+    return `<span class="tape-item">${tickerLink(t.ticker, `<span class="sym">${t.ticker}</span>`)} <span class="${cls}">${arrow}${px}</span></span>`;
+  }).join('');
+  tapeEl.innerHTML = html + html;
+} else {
+  tapeEl.innerHTML = '<span class="tape-item">No trending tickers yet — run the tool to populate this.</span>';
+}
+</script>
+
 </body>
 </html>
