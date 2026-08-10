@@ -1,0 +1,39 @@
+yaml
+name: Update Stock Pulse Dashboard
+
+on:
+  schedule:
+    # 12:30 UTC ≈ 7:30/8:30am US Eastern depending on daylight saving.
+    # Change the time here if you want a different daily run time —
+    # this field is always in UTC, not your local time.
+    - cron: '30 12 * * *'
+  workflow_dispatch: {}   # lets you trigger a run manually from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Stock Pulse
+        run: python main.py
+
+      - name: Commit and push updated dashboard
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/index.html docs/.nojekyll data/history.json
+          git diff --staged --quiet || git commit -m "Update dashboard $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push
