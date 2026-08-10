@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Stock Pulse</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #08090C;
+    --bg-panel: #101319;
+    --bg-panel-raised: #161A21;
+    --amber: #FFB100;
+    --amber-dim: #6B4E00;
+    --amber-soft: rgba(255,177,0,0.10);
+    --bull: #35D48C;
+    --bull-soft: rgba(53,212,140,0.12);
+    --bear: #FF5C6C;
+    --bear-soft: rgba(255,92,108,0.12);
+    --text-primary: #EDECE8;
+    --text-muted: #767C88;
+    --text-faint: #454A54;
+    --border: #1F232B;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg-deep); color: var(--text-primary); font-family: 'Inter', sans-serif; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  a { color: inherit; }
+
+  /* Ticker tape */
+  .tape-wrap { background: #000; border-bottom: 1px solid var(--amber-dim); overflow: hidden; white-space: nowrap; padding: 8px 0; }
+  .tape { display: inline-block; padding-left: 100%; animation: scroll-left 55s linear infinite; }
+  .tape-wrap:hover .tape { animation-play-state: paused; }
+  @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+  .tape-item { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; margin-right: 36px; letter-spacing: 0.3px; }
+  .tape-item .sym { color: var(--amber); font-weight: 700; }
+  .tape-item .up { color: var(--bull); }
+  .tape-item .down { color: var(--bear); }
+  .ticker-link { text-decoration: none; cursor: pointer; }
+  .ticker-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+  header { padding: 26px 32px 0; max-width: 1440px; margin: 0 auto; }
+  .title-row { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 25px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
+  h1 .dot { color: var(--amber); }
+  .timestamp { color: var(--text-muted); font-size: 11.5px; font-family: 'JetBrains Mono', monospace; }
+
+  main { max-width: 1440px; margin: 0 auto; padding: 20px 32px 40px; }
+
+  /* Market pulse strip */
+  .pulse-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  @media (max-width: 700px) { .pulse-strip { grid-template-columns: repeat(2, 1fr); } }
+  .pulse-cell { background: var(--bg-panel); padding: 12px 16px; }
+  .pulse-name { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); }
+  .pulse-price { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 700; margin-top: 2px; }
+  .pulse-chg { font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-top: 1px; }
+  .pulse-chg.up { color: var(--bull); }
+  .pulse-chg.down { color: var(--bear); }
+  .pulse-chg.flat { color: var(--text-muted); }
+
+  section.block { margin-top: 30px; }
+  .block-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+  .block-title { font-family: 'Space Grotesk', sans-serif; font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+  .block-title.amber { color: var(--amber); }
+  .block-title.bull { color: var(--bull); }
+  .block-title.bear { color: var(--bear); }
+  .block-sub { color: var(--text-muted); font-size: 12px; margin: 0 0 14px; }
+  .empty-state { color: var(--text-muted); font-size: 13px; padding: 20px 0; text-align: center; border: 1px dashed var(--border); border-radius: 6px; }
+
+  /* Sector heatmap */
+  .heatmap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+  .heat-tile { border-radius: 7px; padding: 11px 13px; border: 1px solid var(--border); }
+  .heat-name { font-size: 10.5px; color: var(--text-primary); opacity: 0.85; }
+  .heat-chg { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; margin-top: 3px; }
+
+  /* Signals */
+  .signal-list { display: flex; flex-direction: column; gap: 8px; }
+  .signal-card { display: flex; gap: 12px; align-items: flex-start; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; }
+  .signal-card.bullish_dip { border-left: 3px solid var(--bull); }
+  .signal-card.bearish_rally { border-left: 3px solid var(--bear); }
+  .signal-card.volume_spike { border-left: 3px solid var(--amber); }
+  .signal-icon { font-family: 'JetBrains Mono', monospace; font-size: 16px; margin-top: 1px; }
+  .signal-icon.bullish_dip { color: var(--bull); }
+  .signal-icon.bearish_rally { color: var(--bear); }
+  .signal-icon.volume_spike { color: var(--amber); }
+  .signal-headline { font-size: 13.5px; font-weight: 600; }
+  .signal-detail { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+
+  /* Leader panels */
+  .leader-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 800px) { .leader-grid { grid-template-columns: 1fr; } }
+  .leader-panel { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .leader-panel.bull-panel { border-top: 2px solid var(--bull); }
+  .leader-panel.bear-panel { border-top: 2px solid var(--bear); }
+  .leader-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .leader-row:last-child { border-bottom: none; }
+  .leader-rank { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint); width: 14px; }
+  .leader-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13.5px; width: 52px; }
+  .leader-price-col { font-family: 'JetBrains Mono', monospace; font-size: 11px; width: 74px; text-align: right; line-height: 1.3; }
+  .leader-price-col .px { color: var(--text-primary); display: block; }
+  .leader-price-col .chg { display: block; }
+  .leader-price-col .chg.up { color: var(--bull); }
+  .leader-price-col .chg.down { color: var(--bear); }
+  .leader-price-col .chg.na { color: var(--text-faint); }
+  .leader-bar-wrap { flex: 1; }
+  .leader-bar-track { height: 5px; background: var(--bg-panel-raised); border-radius: 3px; overflow: hidden; display: flex; }
+  .leader-bar-seg.bull-seg { background: var(--bull); height: 100%; }
+  .leader-bar-seg.bear-seg { background: var(--bear); height: 100%; }
+  .leader-bar-seg.neutral-seg { background: var(--text-faint); height: 100%; }
+  .leader-meta { font-size: 9.5px; color: var(--text-muted); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+  .leader-mentions { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-muted); width: 44px; text-align: right; }
+  .leader-delta { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; width: 44px; text-align: right; }
+  .leader-delta.up { color: var(--bull); }
+  .leader-delta.down { color: var(--bear); }
+  .leader-delta.flat { color: var(--text-faint); }
+
+  /* Most discussed table */
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 500; padding: 0 8px 10px; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 8px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .ticker-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13.5px; }
+  .wl-badge { display: inline-block; font-size: 9px; color: var(--amber); border: 1px solid var(--amber-dim); border-radius: 3px; padding: 1px 4px; margin-left: 6px; vertical-align: middle; }
+  .label-pill { display: inline-block; font-size: 10.5px; font-weight: 500; padding: 3px 9px; border-radius: 20px; }
+  .label-bullish { background: var(--bull-soft); color: var(--bull); }
+  .label-bearish { background: var(--bear-soft); color: var(--bear); }
+  .label-neutral { background: rgba(118,124,136,0.15); color: var(--text-muted); }
+  .price-cell .px { font-family: 'JetBrains Mono', monospace; }
+  .price-cell .chg { font-family: 'JetBrains Mono', monospace; font-size: 11px; margin-left: 6px; }
+  .price-cell .chg.up { color: var(--bull); }
+  .price-cell .chg.down { color: var(--bear); }
+  .price-cell .chg.na { color: var(--text-faint); }
+
+  /* Watchlist grid */
+  .watchlist-controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .wl-filter-btn {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--bg-panel); color: var(--text-muted); cursor: pointer;
+  }
+  .wl-filter-btn.active { border-color: var(--amber-dim); color: var(--amber); background: var(--amber-soft); }
+  .watchlist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .wl-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .wl-card.has-bull { border-left: 3px solid var(--bull); }
+  .wl-card.has-bear { border-left: 3px solid var(--bear); }
+  .wl-card.no-data { opacity: 0.45; }
+  .wl-card-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .wl-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13.5px; }
+  .wl-chg { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .wl-chg.up { color: var(--bull); }
+  .wl-chg.down { color: var(--bear); }
+  .wl-chg.na { color: var(--text-faint); }
+  .wl-label { font-size: 10.5px; margin-top: 6px; }
+  .wl-label.bull-text { color: var(--bull); }
+  .wl-label.bear-text { color: var(--bear); }
+  .wl-label.muted-text { color: var(--text-faint); }
+
+  /* News */
+  .news-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+  @media (max-width: 800px) { .news-grid { grid-template-columns: 1fr; } }
+  .news-item { padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .news-source { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--amber); font-family: 'JetBrains Mono', monospace; }
+  .news-title { font-size: 12.5px; margin: 4px 0 0; line-height: 1.4; }
+  .news-title a { text-decoration: none; }
+  .news-title a:hover { color: var(--amber); }
+
+  footer { text-align: center; padding: 24px; color: var(--text-muted); font-size: 10.5px; font-family: 'JetBrains Mono', monospace; }
+</style>
+</head>
+<body>
+
+<div class="tape-wrap"><div class="tape" id="tape"></div></div>
+
+<header>
+  <div class="title-row">
+    <h1>STOCK<span class="dot">·</span>PULSE</h1>
+    <span class="timestamp" id="timestamp"></span>
+  </div>
+</header>
+
+<main>
+  <section class="block" style="margin-top:16px;">
+    <div class="pulse-strip" id="pulse-strip"></div>
+  </section>
+
+  <section class="block">
+    <div class="block-header"><span class="block-title amber">Sector Heatmap</span></div>
+    <p class="block-sub">Day performance across the 11 S&amp;P sectors</p>
+    <div class="heatmap-grid" id="heatmap-grid"></div>
+  </section>
+
+  <section class="block" id="signals-block">
+    <div class="block-header"><span class="block-title amber">Signals</span></div>
+    <p class="block-sub">Where retail chatter and price action disagree, or where volume is abnormal — the calls worth a second look</p>
+    <div class="signal-list" id="signal-list"></div>
+    <div id="signals-empty" class="empty-state" style="display:none;">No notable divergences or volume spikes today.</div>
+  </section>
+
+  <section class="block">
+    <div class="leader-grid">
+      <div class="leader-panel bull-panel">
+        <div class="block-header"><span class="block-title bull">Bullish Leaders</span></div>
+        <p class="block-sub">Highest net-positive sentiment</p>
+        <div id="bullish-rows"></div>
+        <div id="bullish-empty" class="empty-state" style="display:none;">No tickers cleared the bullish threshold today.</div>
+      </div>
+      <div class="leader-panel bear-panel">
+        <div class="block-header"><span class="block-title bear">Bearish Leaders</span></div>
+        <p class="block-sub">Highest net-negative sentiment</p>
+        <div id="bearish-rows"></div>
+        <div id="bearish-empty" class="empty-state" style="display:none;">No tickers cleared the bearish threshold today.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-header"><span class="block-title amber">Most Discussed</span></div>
+    <p class="block-sub">Ranked by message volume regardless of direction — where the chatter is loudest</p>
+    <table>
+      <thead><tr><th>Ticker</th><th>Price</th><th>Mentions</th><th>Bull / Bear Split</th><th>Overall</th></tr></thead>
+      <tbody id="discussed-body"></tbody>
+    </table>
+    <div id="discussed-empty" class="empty-state" style="display:none;">Nothing met the mention threshold today.</div>
+  </section>
+
+  <section class="block">
+    <div class="block-header"><span class="block-title amber">Your Watchlist</span></div>
+    <p class="block-sub">Every ticker you're tracking, whether or not it made noise today</p>
+    <div class="watchlist-controls" id="watchlist-controls"></div>
+    <div class="watchlist-grid" id="watchlist-grid"></div>
+  </section>
+
+  <section class="block">
+    <div class="block-header"><span class="block-title amber">Market News</span></div>
+    <p class="block-sub">Latest headlines from your configured feeds</p>
+    <div class="news-grid" id="news-list"></div>
+  </section>
+</main>
+
+<footer>Generated locally &middot; Sentiment reflects retail chatter, not financial advice &middot; Prices via Yahoo Finance, may be delayed</footer>
+
+<script>
+const DATA = /*__DATA__*/;
+
+document.getElementById('timestamp').textContent = 'Updated ' + DATA.generated_at;
+
+function tickerUrl(sym) { return `https://finance.yahoo.com/quote/${encodeURIComponent(sym)}`; }
+function tickerLink(sym, innerHtml) {
+  return `<a class="ticker-link" href="${tickerUrl(sym)}" target="_blank" rel="noopener" title="View ${sym} on Yahoo Finance">${innerHtml}</a>`;
+}
+function labelClass(label) {
+  if (label.includes('Bullish')) return 'label-bullish';
+  if (label.includes('Bearish')) return 'label-bearish';
+  return 'label-neutral';
+}
+function chgClass(chg) {
+  if (chg === null || chg === undefined) return 'na';
+  return chg >= 0 ? 'up' : 'down';
+}
+function fmtChg(chg) {
+  if (chg === null || chg === undefined) return '—';
+  const sign = chg >= 0 ? '+' : '';
+  return `${sign}${chg.toFixed(2)}%`;
+}
+function fmtPrice(px) {
+  if (px === null || px === undefined) return '—';
+  return px < 5 ? `$${px.toFixed(2)}` : `$${px.toFixed(2)}`;
+}
+function deltaHtml(delta) {
+  if (delta === null || delta === undefined) return '<span class="leader-delta flat">new</span>';
+  if (delta > 0.03) return `<span class="leader-delta up">▲${delta.toFixed(2)}</span>`;
+  if (delta < -0.03) return `<span class="leader-delta down">▼${Math.abs(delta).toFixed(2)}</span>`;
+  return '<span class="leader-delta flat">flat</span>';
+}
+
+// Market pulse
+const pulseStrip = document.getElementById('pulse-strip');
+if (DATA.market_pulse.length === 0) {
+  pulseStrip.innerHTML = '<div class="pulse-cell"><div class="pulse-name">Market data unavailable</div></div>';
+} else {
+  pulseStrip.innerHTML = DATA.market_pulse.map(m => `
+    <div class="pulse-cell">
+      <div class="pulse-name">${m.name}</div>
+      <div class="pulse-price">${fmtPrice(m.price)}</div>
+      <div class="pulse-chg ${chgClass(m.change_pct)}">${fmtChg(m.change_pct)}</div>
+    </div>
+  `).join('');
+}
+
+// Sector heatmap
+const heatmapGrid = document.getElementById('heatmap-grid');
+function heatBg(chg) {
+  const intensity = Math.min(Math.abs(chg) / 2.5, 1);
+  const alpha = 0.10 + 0.55 * intensity;
+  return chg >= 0 ? `rgba(53,212,140,${alpha})` : `rgba(255,92,108,${alpha})`;
+}
+if (DATA.sector_heatmap.length === 0) {
+  heatmapGrid.innerHTML = '<div class="empty-state">Sector data unavailable.</div>';
+} else {
+  heatmapGrid.innerHTML = DATA.sector_heatmap.map(s => `
+    <div class="heat-tile" style="background:${heatBg(s.change_pct)};">
+      <div class="heat-name">${s.name}</div>
+      <div class="heat-chg ${chgClass(s.change_pct)}">${fmtChg(s.change_pct)}</div>
+    </div>
+  `).join('');
+}
+
+// Signals
+const signalIcons = { bullish_dip: '▲', bearish_rally: '▼', volume_spike: '◆' };
+const signalList = document.getElementById('signal-list');
+if (DATA.signals.length === 0) {
+  document.getElementById('signals-empty').style.display = 'block';
+} else {
+  signalList.innerHTML = DATA.signals.map(s => `
+    <div class="signal-card ${s.type}">
+      <span class="signal-icon ${s.type}">${signalIcons[s.type] || '•'}</span>
+      <div>
+        <div class="signal-headline">${tickerLink(s.ticker, s.headline)}</div>
+        <div class="signal-detail">${s.detail}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Bullish / Bearish leader panels
+function leaderRow(t, rank) {
+  const bullPct = t.bullish_pct || 0;
+  const bearPct = t.bearish_pct || 0;
+  const neutralPct = Math.max(0, 100 - bullPct - bearPct);
+  return `<div class="leader-row">
+    <span class="leader-rank">${rank}</span>
+    ${tickerLink(t.ticker, `<span class="leader-sym">${t.ticker}</span>`)}
+    <div class="leader-bar-wrap">
+      <div class="leader-bar-track">
+        <div class="leader-bar-seg bull-seg" style="width:${bullPct}%"></div>
+        <div class="leader-bar-seg neutral-seg" style="width:${neutralPct}%"></div>
+        <div class="leader-bar-seg bear-seg" style="width:${bearPct}%"></div>
+      </div>
+      <div class="leader-meta">${bullPct}% bull &middot; ${bearPct}% bear</div>
+    </div>
+    <span class="leader-mentions">${t.mentions}</span>
+    <span class="leader-price-col">
+      <span class="px">${fmtPrice(t.price)}</span>
+      <span class="chg ${chgClass(t.change_pct)}">${fmtChg(t.change_pct)}</span>
+    </span>
+    ${deltaHtml(t.delta)}
+  </div>`;
+}
+
+const bullishRows = document.getElementById('bullish-rows');
+if (DATA.top_bullish.length === 0) {
+  document.getElementById('bullish-empty').style.display = 'block';
+} else {
+  bullishRows.innerHTML = DATA.top_bullish.map((t, i) => leaderRow(t, i + 1)).join('');
+}
+
+const bearishRows = document.getElementById('bearish-rows');
+if (DATA.top_bearish.length === 0) {
+  document.getElementById('bearish-empty').style.display = 'block';
+} else {
+  bearishRows.innerHTML = DATA.top_bearish.map((t, i) => leaderRow(t, i + 1)).join('');
+}
+
+// Most discussed table
+const discussedBody = document.getElementById('discussed-body');
+if (DATA.most_discussed.length === 0) {
+  document.getElementById('discussed-empty').style.display = 'block';
+} else {
+  discussedBody.innerHTML = DATA.most_discussed.map(t => {
+    const bullPct = t.bullish_pct || 0;
+    const bearPct = t.bearish_pct || 0;
+    const neutralPct = Math.max(0, 100 - bullPct - bearPct);
+    const badge = t.in_watchlist ? '<span class="wl-badge">WL</span>' : '';
+    return `<tr>
+      <td>${tickerLink(t.ticker, `<span class="ticker-sym">${t.ticker}</span>`)}${badge}</td>
+      <td class="price-cell"><span class="px">${fmtPrice(t.price)}</span><span class="chg ${chgClass(t.change_pct)}">${fmtChg(t.change_pct)}</span></td>
+      <td class="mono">${t.mentions}</td>
+      <td style="min-width:150px;">
+        <div class="leader-bar-track">
+          <div class="leader-bar-seg bull-seg" style="width:${bullPct}%"></div>
+          <div class="leader-bar-seg neutral-seg" style="width:${neutralPct}%"></div>
+          <div class="leader-bar-seg bear-seg" style="width:${bearPct}%"></div>
+        </div>
+      </td>
+      <td><span class="label-pill ${labelClass(t.label)}">${t.label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// Watchlist grid with filter
+let currentFilter = 'all';
+function renderWatchlist() {
+  const wlGrid = document.getElementById('watchlist-grid');
+  let items = DATA.watchlist_grid;
+  if (currentFilter === 'bullish') items = items.filter(t => t.avg_sentiment >= 0.1);
+  if (currentFilter === 'bearish') items = items.filter(t => t.avg_sentiment <= -0.1);
+  if (currentFilter === 'active') items = items.filter(t => t.mentions > 0);
+
+  wlGrid.innerHTML = items.map(t => {
+    let cls = 'wl-card no-data';
+    let labelCls = 'muted-text';
+    let labelText = 'No chatter today';
+    if (t.mentions > 0) {
+      if (t.avg_sentiment >= 0.1) { cls = 'wl-card has-bull'; labelCls = 'bull-text'; }
+      else if (t.avg_sentiment <= -0.1) { cls = 'wl-card has-bear'; labelCls = 'bear-text'; }
+      else { cls = 'wl-card'; labelCls = 'muted-text'; }
+      labelText = `${t.label} &middot; ${t.mentions} msgs`;
+    }
+    return `<div class="${cls}">
+      <div class="wl-card-top">
+        ${tickerLink(t.ticker, `<span class="wl-sym">${t.ticker}</span>`)}
+        <span class="wl-chg ${chgClass(t.change_pct)}">${fmtChg(t.change_pct)}</span>
+      </div>
+      <div class="wl-label ${labelCls}">${labelText}</div>
+    </div>`;
+  }).join('');
+}
+
+const filters = [
+  { key: 'all', label: 'All' },
+  { key: 'active', label: 'Active only' },
+  { key: 'bullish', label: 'Bullish' },
+  { key: 'bearish', label: 'Bearish' },
+];
+document.getElementById('watchlist-controls').innerHTML = filters.map(f =>
+  `<button class="wl-filter-btn${f.key === 'all' ? ' active' : ''}" data-filter="${f.key}">${f.label}</button>`
+).join('');
+document.querySelectorAll('.wl-filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentFilter = btn.dataset.filter;
+    document.querySelectorAll('.wl-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderWatchlist();
+  });
+});
+renderWatchlist();
+
+// News
+const newsList = document.getElementById('news-list');
+if (DATA.news.length === 0) {
+  newsList.innerHTML = '<div class="empty-state">No headlines fetched.</div>';
+} else {
+  newsList.innerHTML = DATA.news.slice(0, 20).map(n => `
+    <div class="news-item">
+      <div class="news-source">${n.source}</div>
+      <p class="news-title"><a href="${n.link}" target="_blank" rel="noopener">${n.title}</a></p>
+    </div>
+  `).join('');
+}
+
+// Ticker tape — pulled from most_discussed so it reflects true mixed sentiment
+const tapeEl = document.getElementById('tape');
+const tapeItems = DATA.most_discussed.slice(0, 15);
+if (tapeItems.length > 0) {
+  const html = tapeItems.map(t => {
+    const cls = t.avg_sentiment >= 0.1 ? 'up' : (t.avg_sentiment <= -0.1 ? 'down' : '');
+    const arrow = t.avg_sentiment >= 0.1 ? '▲' : (t.avg_sentiment <= -0.1 ? '▼' : '—');
+    const px = t.change_pct !== null && t.change_pct !== undefined ? ` ${fmtChg(t.change_pct)}` : '';
+    return `<span class="tape-item">${tickerLink(t.ticker, `<span class="sym">${t.ticker}</span>`)} <span class="${cls}">${arrow}${px}</span></span>`;
+  }).join('');
+  tapeEl.innerHTML = html + html;
+} else {
+  tapeEl.innerHTML = '<span class="tape-item">No trending tickers yet — run the tool to populate this.</span>';
+}
+</script>
+
+</body>
+</html>

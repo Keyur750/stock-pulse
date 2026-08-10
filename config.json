@@ -1,0 +1,20 @@
+{
+  "watchlist": [
+    "AMZN", "META", "NOW", "RDDT", "IONQ", "RGTI", "HTZ",
+    "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "PLTR", "AMD",
+    "QBTS", "QUBT", "SOFI", "COIN", "MSTR"
+  ],
+
+  "trending_limit": 30,
+  "messages_per_symbol": 30,
+
+  "news_feeds": {
+    "Yahoo Finance": "https://finance.yahoo.com/news/rssindex",
+    "MarketWatch Top Stories": "https://feeds.content.dowjones.io/public/rss/mw_topstories",
+    "MarketWatch Market Pulse": "https://feeds.content.dowjones.io/public/rss/mw_marketpulse",
+    "CNBC Top News": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114"
+  },
+
+  "min_mentions_to_show": 2,
+  "history_days_to_keep": 30
+}
