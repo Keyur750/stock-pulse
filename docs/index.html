@@ -2,1929 +2,300 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Stock Pulse</title>
+<title>Undertow — Retail sentiment, cross-checked against reality</title>
+<meta name="description" content="Undertow pulls bullish and bearish retail chatter from four independent sources, scores it, and checks it against real price action — daily, free, transparent.">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230F2A4A'/%3E%3Cpath d='M3,20 C7,10 11,10 16,17 C21,24 25,24 29,12' fill='none' stroke='%232C5FF0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg-deep: #08090C;
-    --bg-panel: #101319;
-    --bg-panel-raised: #161A21;
-    --amber: #FFB100;
-    --amber-dim: #6B4E00;
-    --amber-soft: rgba(255,177,0,0.10);
-    --bull: #35D48C;
-    --bull-soft: rgba(53,212,140,0.12);
-    --bear: #FF5C6C;
-    --bear-soft: rgba(255,92,108,0.12);
-    --text-primary: #EDECE8;
-    --text-muted: #767C88;
-    --text-faint: #454A54;
-    --border: #1F232B;
+    --bg-void: #F3F5FA; --bg-deep: #EDF0F7; --bg-panel: #FFFFFF; --bg-panel-2: #FAFBFD;
+    --glass-border: rgba(16,25,45,0.08); --glass-border-hover: rgba(16,25,45,0.18);
+    --brand: #2C5FF0; --brand-2: #16406E; --gold: #B8862F; --violet: #6D5BD0; --teal: #0E8F80;
+    --bull: #0E9F6E; --bear: #DC2626;
+    --text-primary: #10192B; --text-secondary: #45516A; --text-muted: #6B7690; --text-faint: #9AA3B8;
+    --shadow-card: 0 1px 2px rgba(16,25,45,0.05), 0 10px 26px -10px rgba(16,25,45,0.14);
+    --shadow-card-hover: 0 2px 5px rgba(16,25,45,0.07), 0 18px 40px -12px rgba(16,25,45,0.18);
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg-deep); color: var(--text-primary); font-family: 'Inter', sans-serif; }
-  .mono { font-family: 'JetBrains Mono', monospace; }
-  a { color: inherit; }
-
-  /* Ticker tape */
-  .tape-wrap { background: #000; border-bottom: 1px solid var(--amber-dim); overflow: hidden; white-space: nowrap; padding: 8px 0; }
-  .tape { display: inline-block; padding-left: 100%; animation: scroll-left 55s linear infinite; }
-  .tape-wrap:hover .tape { animation-play-state: paused; }
-  @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-  .tape-item { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; margin-right: 36px; letter-spacing: 0.3px; }
-  .tape-item .sym { color: var(--amber); font-weight: 700; }
-  .tape-item .up { color: var(--bull); }
-  .tape-item .down { color: var(--bear); }
-  .ticker-link { text-decoration: none; cursor: pointer; }
-  .ticker-link:hover { text-decoration: underline; text-underline-offset: 3px; }
-
-  header { padding: 26px 32px 0; max-width: 1440px; margin: 0 auto; }
-  .title-row { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
-  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 25px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
-  h1 .dot { color: var(--amber); }
-  .timestamp { color: var(--text-muted); font-size: 11.5px; font-family: 'JetBrains Mono', monospace; }
-
-  main { max-width: 1440px; margin: 0 auto; padding: 20px 32px 40px; }
-
-  /* Market pulse strip */
-  .pulse-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-  @media (max-width: 700px) { .pulse-strip { grid-template-columns: repeat(2, 1fr); } }
-  .pulse-cell { background: var(--bg-panel); padding: 12px 16px; }
-  .pulse-name { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); }
-  .pulse-price { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 700; margin-top: 2px; }
-  .pulse-chg { font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-top: 1px; }
-  .pulse-chg.up { color: var(--bull); }
-  .pulse-chg.down { color: var(--bear); }
-  .pulse-chg.flat { color: var(--text-muted); }
-
-  section.block { margin-top: 30px; }
-  .block-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
-  .block-title { font-family: 'Space Grotesk', sans-serif; font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
-  .block-title.amber { color: var(--amber); }
-  .block-title.bull { color: var(--bull); }
-  .block-title.bear { color: var(--bear); }
-  .block-sub { color: var(--text-muted); font-size: 12px; margin: 0 0 14px; }
-  .empty-state { color: var(--text-muted); font-size: 13px; padding: 20px 0; text-align: center; border: 1px dashed var(--border); border-radius: 6px; }
-
-  /* Sector heatmap */
-  .heatmap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
-  .heat-tile { border-radius: 7px; padding: 11px 13px; border: 1px solid var(--border); }
-  .heat-name { font-size: 10.5px; color: var(--text-primary); opacity: 0.85; }
-  .heat-chg { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; margin-top: 3px; }
-
-  /* Signals */
-  .signal-list { display: flex; flex-direction: column; gap: 8px; }
-  .signal-card { display: flex; gap: 12px; align-items: flex-start; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; }
-  .signal-card.bullish_dip { border-left: 3px solid var(--bull); }
-  .signal-card.bearish_rally { border-left: 3px solid var(--bear); }
-  .signal-card.volume_spike { border-left: 3px solid var(--amber); }
-  .signal-icon { font-family: 'JetBrains Mono', monospace; font-size: 16px; margin-top: 1px; }
-  .signal-icon.bullish_dip { color: var(--bull); }
-  .signal-icon.bearish_rally { color: var(--bear); }
-  .signal-icon.volume_spike { color: var(--amber); }
-  .signal-headline { font-size: 13.5px; font-weight: 600; }
-  .signal-detail { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
-
-  /* Leader panels */
-  .leader-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-  @media (max-width: 800px) { .leader-grid { grid-template-columns: 1fr; } }
-  .leader-panel { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
-  .leader-panel.bull-panel { border-top: 2px solid var(--bull); }
-  .leader-panel.bear-panel { border-top: 2px solid var(--bear); }
-  .leader-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
-  .leader-row:last-child { border-bottom: none; }
-  .leader-rank { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint); width: 14px; }
-  .leader-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13.5px; width: 52px; }
-  .leader-price-col { font-family: 'JetBrains Mono', monospace; font-size: 11px; width: 74px; text-align: right; line-height: 1.3; }
-  .leader-price-col .px { color: var(--text-primary); display: block; }
-  .leader-price-col .chg { display: block; }
-  .leader-price-col .chg.up { color: var(--bull); }
-  .leader-price-col .chg.down { color: var(--bear); }
-  .leader-price-col .chg.na { color: var(--text-faint); }
-  .leader-bar-wrap { flex: 1; }
-  .leader-bar-track { height: 5px; background: var(--bg-panel-raised); border-radius: 3px; overflow: hidden; display: flex; }
-  .leader-bar-seg.bull-seg { background: var(--bull); height: 100%; }
-  .leader-bar-seg.bear-seg { background: var(--bear); height: 100%; }
-  .leader-bar-seg.neutral-seg { background: var(--text-faint); height: 100%; }
-  .leader-meta { font-size: 9.5px; color: var(--text-muted); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
-  .leader-mentions { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-muted); width: 44px; text-align: right; }
-  .leader-delta { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; width: 44px; text-align: right; }
-  .leader-delta.up { color: var(--bull); }
-  .leader-delta.down { color: var(--bear); }
-  .leader-delta.flat { color: var(--text-faint); }
-
-  /* Most discussed table */
-  table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 500; padding: 0 8px 10px; border-bottom: 1px solid var(--border); }
-  td { padding: 9px 8px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
-  tr:last-child td { border-bottom: none; }
-  .ticker-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13.5px; }
-  .wl-badge { display: inline-block; font-size: 9px; color: var(--amber); border: 1px solid var(--amber-dim); border-radius: 3px; padding: 1px 4px; margin-left: 6px; vertical-align: middle; }
-  .label-pill { display: inline-block; font-size: 10.5px; font-weight: 500; padding: 3px 9px; border-radius: 20px; }
-  .label-bullish { background: var(--bull-soft); color: var(--bull); }
-  .label-bearish { background: var(--bear-soft); color: var(--bear); }
-  .label-neutral { background: rgba(118,124,136,0.15); color: var(--text-muted); }
-  .price-cell .px { font-family: 'JetBrains Mono', monospace; }
-  .price-cell .chg { font-family: 'JetBrains Mono', monospace; font-size: 11px; margin-left: 6px; }
-  .price-cell .chg.up { color: var(--bull); }
-  .price-cell .chg.down { color: var(--bear); }
-  .price-cell .chg.na { color: var(--text-faint); }
-
-  /* Watchlist grid */
-  .watchlist-controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-  .wl-filter-btn {
-    font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 20px;
-    border: 1px solid var(--border); background: var(--bg-panel); color: var(--text-muted); cursor: pointer;
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; color: var(--text-primary); font-family: 'Public Sans', sans-serif;
+    background:
+      radial-gradient(1000px 560px at 12% -6%, rgba(44,95,240,0.06), transparent 60%),
+      radial-gradient(800px 520px at 100% 4%, rgba(184,134,47,0.05), transparent 55%),
+      linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-void) 100%);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
-  .wl-filter-btn.active { border-color: var(--amber-dim); color: var(--amber); background: var(--amber-soft); }
-  .watchlist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-  .wl-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
-  .wl-card.has-bull { border-left: 3px solid var(--bull); }
-  .wl-card.has-bear { border-left: 3px solid var(--bear); }
-  .wl-card.no-data { opacity: 0.45; }
-  .wl-card-top { display: flex; justify-content: space-between; align-items: baseline; }
-  .wl-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13.5px; }
-  .wl-chg { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
-  .wl-chg.up { color: var(--bull); }
-  .wl-chg.down { color: var(--bear); }
-  .wl-chg.na { color: var(--text-faint); }
-  .wl-label { font-size: 10.5px; margin-top: 6px; }
-  .wl-label.bull-text { color: var(--bull); }
-  .wl-label.bear-text { color: var(--bear); }
-  .wl-label.muted-text { color: var(--text-faint); }
+  a { color: inherit; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .wrap { max-width: 1220px; margin: 0 auto; padding: 0 32px; }
 
-  /* News */
-  .news-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
-  @media (max-width: 800px) { .news-grid { grid-template-columns: 1fr; } }
-  .news-item { padding: 11px 0; border-bottom: 1px solid var(--border); }
-  .news-source { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--amber); font-family: 'JetBrains Mono', monospace; }
-  .news-title { font-size: 12.5px; margin: 4px 0 0; line-height: 1.4; }
-  .news-title a { text-decoration: none; }
-  .news-title a:hover { color: var(--amber); }
+  /* Nav */
+  .nav-wrap { position: sticky; top: 0; z-index: 30; background: rgba(243,245,250,0.85); backdrop-filter: blur(16px) saturate(140%); border-bottom: 1px solid var(--glass-border); }
+  nav.topnav { max-width: 1220px; margin: 0 auto; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(155deg, #16345B, #0B2038); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px -6px rgba(15,42,74,0.45); flex-shrink: 0; }
+  .brand-word { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+  .brand-word .dot { background: linear-gradient(135deg, var(--brand), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .nav-links { display: flex; align-items: center; gap: 4px; }
+  .nav-links a { font-size: 13.5px; font-weight: 600; color: var(--text-secondary); text-decoration: none; padding: 9px 15px; border-radius: 20px; transition: color .15s ease, background-color .15s ease; }
+  .nav-links a:hover { color: var(--text-primary); background: var(--bg-panel-2); }
+  .nav-links a.active { color: var(--brand); background: rgba(44,95,240,0.08); }
+  .nav-cta { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff !important; font-weight: 700 !important; box-shadow: 0 8px 20px -8px rgba(44,95,240,0.45); }
+  .nav-cta:hover { filter: brightness(1.08); background: linear-gradient(135deg, var(--brand), var(--brand-2)) !important; }
+  @media (max-width: 780px) { .nav-links a:not(.nav-cta) { display: none; } }
 
-  footer { text-align: center; padding: 24px; color: var(--text-muted); font-size: 10.5px; font-family: 'JetBrains Mono', monospace; }
+  /* Reveal-on-scroll */
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal-1 { transition-delay: .05s; } .reveal-2 { transition-delay: .12s; }
+  .reveal-3 { transition-delay: .19s; } .reveal-4 { transition-delay: .26s; }
+
+  /* Hero */
+  .hero { padding: 96px 0 70px; position: relative; text-align: center; }
+  .hero-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brand-2); background: rgba(44,95,240,0.08); border: 1px solid rgba(44,95,240,0.2); display: inline-flex; padding: 6px 16px; border-radius: 20px; }
+  .hero h1 { font-family: 'Fraunces', serif; font-size: clamp(36px, 5.6vw, 62px); line-height: 1.1; font-weight: 600; letter-spacing: -0.02em; margin: 26px auto 0; max-width: 900px; }
+  .hero h1 .grad { background: linear-gradient(100deg, var(--brand), var(--gold) 85%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero-sub { font-size: 17.5px; color: var(--text-secondary); max-width: 620px; margin: 22px auto 0; line-height: 1.6; }
+  .hero-ctas { display: flex; gap: 14px; justify-content: center; margin-top: 36px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 700; padding: 14px 26px; border-radius: 12px; text-decoration: none; transition: transform .15s ease, filter .15s ease, box-shadow .15s ease; }
+  .btn-primary { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff; box-shadow: 0 12px 28px -10px rgba(44,95,240,0.45); }
+  .btn-primary:hover { transform: translateY(-2px); filter: brightness(1.08); }
+  .btn-ghost { background: var(--bg-panel); color: var(--text-primary); border: 1px solid var(--glass-border); box-shadow: var(--shadow-card); }
+  .btn-ghost:hover { border-color: var(--glass-border-hover); transform: translateY(-2px); }
+
+  /* Animated pulse line visual */
+  .pulse-visual { max-width: 760px; margin: 56px auto 0; position: relative; }
+  .pulse-visual svg { width: 100%; height: auto; display: block; }
+  .pulse-draw { stroke-dasharray: 900; stroke-dashoffset: 900; animation: draw 3.2s ease-out forwards, glow-pulse 3s ease-in-out 3.2s infinite; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @keyframes glow-pulse { 0%,100% { filter: drop-shadow(0 0 5px rgba(44,95,240,.35)); } 50% { filter: drop-shadow(0 0 12px rgba(44,95,240,.6)); } }
+  .pulse-dot { animation: dot-fade 3s ease-in-out infinite; }
+  @keyframes dot-fade { 0%,100% { opacity: .4; } 50% { opacity: 1; } }
+
+  section.section { padding: 84px 0; position: relative; }
+  .section-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--teal); text-align: center; display: block; }
+  .section-title { font-family: 'Fraunces', serif; font-size: clamp(26px, 3.6vw, 38px); font-weight: 600; letter-spacing: -0.01em; text-align: center; margin: 12px auto 0; max-width: 700px; }
+  .section-sub { text-align: center; color: var(--text-muted); font-size: 15px; max-width: 560px; margin: 14px auto 0; line-height: 1.6; }
+
+  /* Cards */
+  .surface { background: linear-gradient(165deg, var(--bg-panel) 0%, var(--bg-panel-2) 100%); border: 1px solid var(--glass-border); box-shadow: var(--shadow-card); }
+  .surface-hover { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+  .surface-hover:hover { transform: translateY(-4px); box-shadow: var(--shadow-card-hover); border-color: var(--glass-border-hover); }
+
+  .source-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 48px; }
+  @media (max-width: 980px) { .source-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .source-grid { grid-template-columns: 1fr; } }
+  .source-card { border-radius: 16px; padding: 26px 22px; }
+  .source-icon { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 16px; }
+  .source-card h3 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 16px; margin: 0 0 8px; }
+  .source-card p { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin: 0; }
+  .tag-badge { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; padding: 3px 8px; border-radius: 5px; margin-top: 12px; }
+
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 48px; }
+  @media (max-width: 900px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .feature-grid { grid-template-columns: 1fr; } }
+  .feature-card { border-radius: 16px; padding: 24px; }
+  .feature-card .emoji { font-size: 22px; }
+  .feature-card h3 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 15.5px; margin: 12px 0 6px; }
+  .feature-card p { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin: 0; }
+
+  /* Philosophy */
+  .philosophy { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; margin-top: 48px; }
+  @media (max-width: 860px) { .philosophy { grid-template-columns: 1fr; } }
+  .philosophy p { color: var(--text-secondary); font-size: 15px; line-height: 1.75; margin: 0 0 16px; }
+  .value-list { display: flex; flex-direction: column; gap: 14px; }
+  .value-row { display: flex; gap: 14px; align-items: flex-start; border-radius: 14px; padding: 16px 18px; }
+  .value-row .num { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--brand); flex-shrink: 0; margin-top: 2px; }
+  .value-row h4 { margin: 0 0 4px; font-size: 14px; font-family: 'Fraunces', serif; font-weight: 600; }
+  .value-row p { margin: 0; font-size: 12.5px; color: var(--text-muted); line-height: 1.55; }
+
+  /* CTA band */
+  .cta-band { border-radius: 24px; padding: 64px 40px; text-align: center; position: relative; overflow: hidden; background: linear-gradient(135deg, rgba(44,95,240,0.07), rgba(184,134,47,0.06)); border: 1px solid rgba(44,95,240,0.16); }
+  .cta-band h2 { font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(24px, 3.4vw, 34px); margin: 0; letter-spacing: -0.01em; }
+  .cta-band p { color: var(--text-secondary); margin: 14px 0 0; font-size: 15px; }
+  .cta-band .hero-ctas { margin-top: 30px; }
+
+  footer { border-top: 1px solid var(--glass-border); margin-top: 40px; }
+  .footer-grid { max-width: 1220px; margin: 0 auto; padding: 56px 32px 28px; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; }
+  @media (max-width: 780px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
+  .footer-brand p { color: var(--text-muted); font-size: 13px; line-height: 1.6; max-width: 280px; margin-top: 14px; }
+  .footer-col h5 { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-faint); margin: 0 0 14px; }
+  .footer-col a { display: block; font-size: 13.5px; color: var(--text-secondary); text-decoration: none; margin-bottom: 10px; }
+  .footer-col a:hover { color: var(--brand); }
+  .footer-bottom { max-width: 1220px; margin: 0 auto; padding: 20px 32px 32px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
 </style>
 </head>
 <body>
 
-<div class="tape-wrap"><div class="tape" id="tape"></div></div>
+<div class="nav-wrap">
+  <nav class="topnav">
+    <a class="brand" href="index.html">
+      <div class="brand-mark">
+        <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+          <path d="M3,20 C7,10 11,10 16,17 C21,24 25,24 29,12" stroke="url(#g1)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs><linearGradient id="g1" x1="0" y1="0" x2="32" y2="0"><stop offset="0" stop-color="#2C5FF0"/><stop offset="1" stop-color="#B8862F"/></linearGradient></defs>
+        </svg>
+      </div>
+      <span class="brand-word"><span class="dot">U</span>ndertow</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="active">Home</a>
+      <a href="about.html">About</a>
+      <a href="careers.html">Careers</a>
+      <a href="dashboard.html" class="nav-cta">Live Dashboard →</a>
+    </div>
+  </nav>
+</div>
 
-<header>
-  <div class="title-row">
-    <h1>STOCK<span class="dot">·</span>PULSE</h1>
-    <span class="timestamp" id="timestamp"></span>
+<header class="hero">
+  <div class="wrap">
+    <span class="hero-kicker reveal visible">RETAIL SENTIMENT &middot; MARKET INTELLIGENCE</span>
+    <h1 class="reveal visible">The crowd's read on every stock,<br><span class="grad">cross-checked against reality.</span></h1>
+    <p class="hero-sub reveal visible reveal-1">Undertow pulls bullish and bearish chatter from four independent sources, scores it, and checks it against real price action — so you're never trading on one noisy feed pretending to be the whole picture.</p>
+    <div class="hero-ctas reveal visible reveal-2">
+      <a class="btn btn-primary" href="dashboard.html">Open the live dashboard →</a>
+      <a class="btn btn-ghost" href="#how-it-works">See how it works</a>
+    </div>
+
+    <div class="pulse-visual reveal visible reveal-3">
+      <svg viewBox="0 0 760 160" fill="none">
+        <path class="pulse-draw" d="M0,80 C60,40 120,40 180,80 C240,120 300,120 360,80 C420,40 480,40 540,80 C600,120 660,120 720,90 L760,84"
+          stroke="#2C5FF0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle class="pulse-dot" cx="270" cy="118" r="5" fill="#DC2626"/>
+        <circle class="pulse-dot" cx="90" cy="42" r="5" fill="#0E9F6E" style="animation-delay:.6s"/>
+        <circle class="pulse-dot" cx="450" cy="42" r="5" fill="#B8862F" style="animation-delay:1.2s"/>
+      </svg>
+    </div>
   </div>
 </header>
 
-<main>
-  <section class="block" style="margin-top:16px;">
-    <div class="pulse-strip" id="pulse-strip"></div>
-  </section>
+<section class="section" id="how-it-works">
+  <div class="wrap">
+    <span class="section-kicker reveal">METHODOLOGY</span>
+    <h2 class="section-title reveal reveal-1">Four sources. One confidence score.</h2>
+    <p class="section-sub reveal reveal-2">Most sentiment tools read one feed and call it the crowd's opinion. Undertow corroborates across sources that don't agree with each other by default — so when they do agree, that means something.</p>
 
-  <section class="block">
-    <div class="block-header"><span class="block-title amber">Sector Heatmap</span></div>
-    <p class="block-sub">Day performance across the 11 S&amp;P sectors</p>
-    <div class="heatmap-grid" id="heatmap-grid"></div>
-  </section>
-
-  <section class="block" id="signals-block">
-    <div class="block-header"><span class="block-title amber">Signals</span></div>
-    <p class="block-sub">Where retail chatter and price action disagree, or where volume is abnormal — the calls worth a second look</p>
-    <div class="signal-list" id="signal-list"></div>
-    <div id="signals-empty" class="empty-state" style="display:none;">No notable divergences or volume spikes today.</div>
-  </section>
-
-  <section class="block">
-    <div class="leader-grid">
-      <div class="leader-panel bull-panel">
-        <div class="block-header"><span class="block-title bull">Bullish Leaders</span></div>
-        <p class="block-sub">Highest net-positive sentiment</p>
-        <div id="bullish-rows"></div>
-        <div id="bullish-empty" class="empty-state" style="display:none;">No tickers cleared the bullish threshold today.</div>
+    <div class="source-grid">
+      <div class="source-card surface surface-hover reveal reveal-1">
+        <div class="source-icon" style="background:rgba(44,95,240,.10);">💬</div>
+        <h3>StockTwits</h3>
+        <p>Public message streams per ticker. Users self-tag posts Bullish or Bearish — a direct signal, not an inference — blended with lexicon scoring for untagged posts.</p>
+        <span class="tag-badge" style="background:rgba(44,95,240,.10);color:var(--brand);">Direct sentiment</span>
       </div>
-      <div class="leader-panel bear-panel">
-        <div class="block-header"><span class="block-title bear">Bearish Leaders</span></div>
-        <p class="block-sub">Highest net-negative sentiment</p>
-        <div id="bearish-rows"></div>
-        <div id="bearish-empty" class="empty-state" style="display:none;">No tickers cleared the bearish threshold today.</div>
+      <div class="source-card surface surface-hover reveal reveal-2">
+        <div class="source-icon" style="background:rgba(232,72,28,.10);">🧵</div>
+        <h3>Reddit</h3>
+        <p>Official read-only API across r/wallstreetbets, r/stocks, r/investing, r/StockMarket — posts and comments on tickers you're watching.</p>
+        <span class="tag-badge" style="background:rgba(232,72,28,.10);color:#C0421A;">Official API</span>
+      </div>
+      <div class="source-card surface surface-hover reveal reveal-3">
+        <div class="source-icon" style="background:rgba(109,91,208,.12);">📈</div>
+        <h3>ApeWisdom</h3>
+        <p>Independent mention-volume tracking across Reddit stock communities — a second, unrelated measure of attention that corroborates or contradicts the others.</p>
+        <span class="tag-badge" style="background:rgba(109,91,208,.12);color:var(--violet);">Volume cross-check</span>
+      </div>
+      <div class="source-card surface surface-hover reveal reveal-4">
+        <div class="source-icon" style="background:rgba(14,143,128,.12);">📰</div>
+        <h3>Market News</h3>
+        <p>Financial headlines scored for sentiment, kept distinct from retail chatter — because press narrative and crowd mood diverging is itself a signal.</p>
+        <span class="tag-badge" style="background:rgba(14,143,128,.12);color:var(--teal);">Media sentiment</span>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section class="block">
-    <div class="block-header"><span class="block-title amber">Most Discussed</span></div>
-    <p class="block-sub">Ranked by message volume regardless of direction — where the chatter is loudest</p>
-    <table>
-      <thead><tr><th>Ticker</th><th>Price</th><th>Mentions</th><th>Bull / Bear Split</th><th>Overall</th></tr></thead>
-      <tbody id="discussed-body"></tbody>
-    </table>
-    <div id="discussed-empty" class="empty-state" style="display:none;">Nothing met the mention threshold today.</div>
-  </section>
+<section class="section">
+  <div class="wrap">
+    <span class="section-kicker reveal">ON THE DASHBOARD</span>
+    <h2 class="section-title reveal reveal-1">Everything you need, nothing you have to dig for.</h2>
+    <p class="section-sub reveal reveal-2">A daily-refreshed read of your watchlist, the market, and where the crowd and the tape disagree.</p>
 
-  <section class="block">
-    <div class="block-header"><span class="block-title amber">Your Watchlist</span></div>
-    <p class="block-sub">Every ticker you're tracking, whether or not it made noise today</p>
-    <div class="watchlist-controls" id="watchlist-controls"></div>
-    <div class="watchlist-grid" id="watchlist-grid"></div>
-  </section>
+    <div class="feature-grid">
+      <div class="feature-card surface surface-hover reveal reveal-1"><div class="emoji">⚡</div><h3>Signals</h3><p>Auto-flagged divergences — price vs. chatter, volume spikes, media vs. retail — so you scan five callouts, not fifty rows.</p></div>
+      <div class="feature-card surface surface-hover reveal reveal-2"><div class="emoji">🧠</div><h3>AI Analysis</h3><p>A reasoned score, verdict, and bullish/bearish factors per stock — synthesized from fundamentals, sentiment, and news, not a fixed formula.</p></div>
+      <div class="feature-card surface surface-hover reveal reveal-3"><div class="emoji">📊</div><h3>Bullish / Bearish Leaders</h3><p>Ranked by net sentiment, with bull/bear split, price, and day-over-day sentiment shift.</p></div>
+      <div class="feature-card surface surface-hover reveal reveal-1"><div class="emoji">🔊</div><h3>Most Discussed</h3><p>Pure volume ranking kept separate from sentiment — loud and bullish are not the same thing.</p></div>
+      <div class="feature-card surface surface-hover reveal reveal-2"><div class="emoji">👁️</div><h3>Your Watchlist</h3><p>Every ticker you track, whether or not it made noise today, filterable in one click.</p></div>
+      <div class="feature-card surface surface-hover reveal reveal-3"><div class="emoji">🗞️</div><h3>Scored News</h3><p>Headlines from your configured feeds, each tagged with its own sentiment lean.</p></div>
+    </div>
+  </div>
+</section>
 
-  <section class="block">
-    <div class="block-header"><span class="block-title amber">Market News</span></div>
-    <p class="block-sub">Latest headlines from your configured feeds</p>
-    <div class="news-grid" id="news-list"></div>
-  </section>
-</main>
+<section class="section">
+  <div class="wrap">
+    <div class="philosophy">
+      <div class="reveal">
+        <span class="section-kicker" style="text-align:left;">PHILOSOPHY</span>
+        <h2 class="section-title" style="text-align:left;margin-left:0;">Built on one simple idea</h2>
+        <p style="margin-top:20px;">Sentiment tools that read a single feed and call it "the crowd" are guessing. We wanted a tool that shows its work — every ticker's mention count is broken down by source, right there in the UI, so you can see exactly how much data a read is built on.</p>
+        <p>No paywalled black box, no single point of failure. Free, public data sources, stitched together transparently, refreshed once a day for free on GitHub's own infrastructure — because an honest sentiment read shouldn't require a subscription.</p>
+      </div>
+      <div class="value-list">
+        <div class="value-row surface reveal reveal-1"><span class="num">01</span><div><h4>Transparency</h4><p>Every number shows its source mix — hover any mention count to see the breakdown.</p></div></div>
+        <div class="value-row surface reveal reveal-2"><span class="num">02</span><div><h4>Independence</h4><p>Four sources that don't share a bias by construction — corroboration means something here.</p></div></div>
+        <div class="value-row surface reveal reveal-3"><span class="num">03</span><div><h4>Signal over noise</h4><p>Auto-generated signals surface the handful of tickers worth a second look — not a wall of numbers.</p></div></div>
+        <div class="value-row surface reveal reveal-4"><span class="num">04</span><div><h4>Free &amp; open</h4><p>No hosting bill, no ads, no dark patterns — runs on free infrastructure by design.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
 
-<footer>Generated locally &middot; Sentiment reflects retail chatter, not financial advice &middot; Prices via Yahoo Finance, may be delayed</footer>
+<section class="section" style="padding-top:0;">
+  <div class="wrap">
+    <div class="cta-band reveal">
+      <h2>See today's read.</h2>
+      <p>Fresh every day — bullish leaders, bearish leaders, and the signals that disagree with the tape.</p>
+      <div class="hero-ctas"><a class="btn btn-primary" href="dashboard.html">Open the live dashboard →</a></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <a class="brand" href="index.html">
+        <div class="brand-mark">
+          <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+            <path d="M3,20 C7,10 11,10 16,17 C21,24 25,24 29,12" stroke="url(#g2)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs><linearGradient id="g2" x1="0" y1="0" x2="32" y2="0"><stop offset="0" stop-color="#2C5FF0"/><stop offset="1" stop-color="#B8862F"/></linearGradient></defs>
+          </svg>
+        </div>
+        <span class="brand-word"><span class="dot">U</span>ndertow</span>
+      </a>
+      <p>Retail sentiment, cross-checked against reality. An independent project, built in the open.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Product</h5>
+      <a href="dashboard.html">Live Dashboard</a>
+      <a href="dashboard.html#signals-block">Signals</a>
+      <a href="dashboard.html#watchlist">Watchlist</a>
+    </div>
+    <div class="footer-col">
+      <h5>Company</h5>
+      <a href="about.html">About</a>
+      <a href="careers.html">Careers</a>
+    </div>
+    <div class="footer-col">
+      <h5>Notes</h5>
+      <a href="about.html#disclaimer">Disclaimer</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© Undertow — personal, non-commercial project</span>
+    <span>Sentiment reflects retail chatter, not financial advice</span>
+  </div>
+</footer>
 
 <script>
-const DATA = {
-  "generated_at": "2026-08-12 01:59 PM UTC",
-  "total_messages": 1410,
-  "total_tickers": 47,
-  "market_pulse": [
-    {
-      "symbol": "SPY",
-      "name": "S&P 500",
-      "price": 772.67,
-      "change_pct": 0.27
-    },
-    {
-      "symbol": "QQQ",
-      "name": "Nasdaq 100",
-      "price": 725.12,
-      "change_pct": 0.93
-    },
-    {
-      "symbol": "DIA",
-      "name": "Dow Jones",
-      "price": 537.41,
-      "change_pct": 0.02
-    },
-    {
-      "symbol": "^VIX",
-      "name": "VIX",
-      "price": 14.89,
-      "change_pct": -2.55
-    }
-  ],
-  "sector_heatmap": [
-    {
-      "symbol": "XLK",
-      "name": "Technology",
-      "price": 188.98,
-      "change_pct": 1.55
-    },
-    {
-      "symbol": "XLF",
-      "name": "Financials",
-      "price": 57.71,
-      "change_pct": -0.16
-    },
-    {
-      "symbol": "XLE",
-      "name": "Energy",
-      "price": 60.81,
-      "change_pct": -0.19
-    },
-    {
-      "symbol": "XLV",
-      "name": "Health Care",
-      "price": 166.94,
-      "change_pct": -0.64
-    },
-    {
-      "symbol": "XLI",
-      "name": "Industrials",
-      "price": 186.33,
-      "change_pct": 0.34
-    },
-    {
-      "symbol": "XLY",
-      "name": "Consumer Disc.",
-      "price": 118.17,
-      "change_pct": -0.9
-    },
-    {
-      "symbol": "XLP",
-      "name": "Consumer Staples",
-      "price": 84.58,
-      "change_pct": -0.13
-    },
-    {
-      "symbol": "XLU",
-      "name": "Utilities",
-      "price": 43.81,
-      "change_pct": 0.41
-    },
-    {
-      "symbol": "XLB",
-      "name": "Materials",
-      "price": 52.9,
-      "change_pct": -0.65
-    },
-    {
-      "symbol": "XLRE",
-      "name": "Real Estate",
-      "price": 44.25,
-      "change_pct": 0.38
-    },
-    {
-      "symbol": "XLC",
-      "name": "Communication",
-      "price": 110.37,
-      "change_pct": -0.81
-    }
-  ],
-  "signals": [
-    {
-      "type": "bullish_dip",
-      "ticker": "LQDA",
-      "headline": "LQDA down 4.29% but chatter stays bullish",
-      "detail": "67% of 30 messages are bullish while the stock fell 4.29% today \u2014 could be dip-buying conviction or complacency into weakness.",
-      "magnitude": 1.3770900000000001
-    },
-    {
-      "type": "bullish_dip",
-      "ticker": "NOW",
-      "headline": "NOW down 4.2% but chatter stays bullish",
-      "detail": "57% of 30 messages are bullish while the stock fell 4.2% today \u2014 could be dip-buying conviction or complacency into weakness.",
-      "magnitude": 0.8946000000000001
-    },
-    {
-      "type": "bullish_dip",
-      "ticker": "RDDT",
-      "headline": "RDDT down 2.04% but chatter stays bullish",
-      "detail": "57% of 30 messages are bullish while the stock fell 2.04% today \u2014 could be dip-buying conviction or complacency into weakness.",
-      "magnitude": 0.40800000000000003
-    }
-  ],
-  "top_bullish": [
-    {
-      "ticker": "JMIA",
-      "mentions": 30,
-      "avg_sentiment": 0.425,
-      "label": "Bullish",
-      "bullish_count": 24,
-      "bearish_count": 1,
-      "neutral_count": 5,
-      "bullish_pct": 80,
-      "bearish_pct": 3,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": null,
-      "price": 6.26,
-      "change_pct": 7.75,
-      "examples": [
-        {
-          "title": "$JMIA 09:12 on Aug. 12 2026\n\nJumia Reports Second Quarter 2026 Results and Announces Capital Raise #tradeideas"
-        },
-        {
-          "title": "$JMIA also, china is going to have call an audible now that the US is not allowing their tech.  Which continent would yo"
-        },
-        {
-          "title": "$JMIA  Good ER, but not exactly the market response I was hoping for. Would have loved a $8-$12 response."
-        }
-      ]
-    },
-    {
-      "ticker": "CBRS",
-      "mentions": 30,
-      "avg_sentiment": 0.419,
-      "label": "Bullish",
-      "bullish_count": 23,
-      "bearish_count": 1,
-      "neutral_count": 6,
-      "bullish_pct": 77,
-      "bearish_pct": 3,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": null,
-      "price": 248.69,
-      "change_pct": 5.93,
-      "examples": [
-        {
-          "title": "$CBRS what are you guys planning to do with this ticker? I have a 190 base."
-        },
-        {
-          "title": "$CBRS nice base , very volatile ER after bell"
-        },
-        {
-          "title": "$CBRS best way to short this?"
-        }
-      ]
-    },
-    {
-      "ticker": "ONDS",
-      "mentions": 30,
-      "avg_sentiment": 0.388,
-      "label": "Bullish",
-      "bullish_count": 27,
-      "bearish_count": 2,
-      "neutral_count": 1,
-      "bullish_pct": 90,
-      "bearish_pct": 7,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": 0.135,
-      "price": 9.77,
-      "change_pct": 0.29,
-      "examples": [
-        {
-          "title": "$ONDS trying so hard to pin it. More devastating it will be tomorrow.."
-        },
-        {
-          "title": "$ONDS sitting on 100 K invested in the stock I\u2019m up for a pretty good profit. I just need this thing to break 10 so I ha"
-        },
-        {
-          "title": "$ONDS Expecting a push to $10+ by EOD as short pressure begins to break."
-        }
-      ]
-    },
-    {
-      "ticker": "WYFI",
-      "mentions": 30,
-      "avg_sentiment": 0.364,
-      "label": "Bullish",
-      "bullish_count": 23,
-      "bearish_count": 1,
-      "neutral_count": 6,
-      "bullish_pct": 77,
-      "bearish_pct": 3,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": null,
-      "price": 27.51,
-      "change_pct": 13.58,
-      "examples": [
-        {
-          "title": "$WYFI $DFTX $CANF $ATHE $STRO \ud83d\ude43\u2728"
-        },
-        {
-          "title": "$WYFI if they cancel convertable this can rip through 50% short \u26fd\ufe0f"
-        },
-        {
-          "title": "$WYFI"
-        }
-      ]
-    },
-    {
-      "ticker": "BE",
-      "mentions": 30,
-      "avg_sentiment": 0.34,
-      "label": "Leaning Bullish",
-      "bullish_count": 21,
-      "bearish_count": 2,
-      "neutral_count": 7,
-      "bullish_pct": 70,
-      "bearish_pct": 7,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": null,
-      "price": 239.32,
-      "change_pct": 13.31,
-      "examples": [
-        {
-          "title": "$RETO  \n- Extremely tiny float      \n- Very low market cap     \n- Just did a RS recently     \n- Very low RSI   \n- NANO c"
-        },
-        {
-          "title": "$BE down from here - only talking daily"
-        },
-        {
-          "title": "$BE , $CRWV, $NBIS And $OKLO: What The Second Quarter Actually Revealed About The AI Power Boom https://www.merlintrader"
-        }
-      ]
-    },
-    {
-      "ticker": "QUBT",
-      "mentions": 30,
-      "avg_sentiment": 0.329,
-      "label": "Leaning Bullish",
-      "bullish_count": 23,
-      "bearish_count": 2,
-      "neutral_count": 5,
-      "bullish_pct": 77,
-      "bearish_pct": 7,
-      "in_watchlist": true,
-      "is_trending": true,
-      "delta": 0.204,
-      "price": 8.95,
-      "change_pct": 0.0,
-      "examples": [
-        {
-          "title": "$QUBT short squeeze this to $25"
-        },
-        {
-          "title": "$QUBT We all know is about to moon, the question here is how much more pain are stubborn bears willing to tolerate? \ud83e\udd14"
-        },
-        {
-          "title": "$QUBT \ud83d\udcc8"
-        }
-      ]
-    },
-    {
-      "ticker": "LQDA",
-      "mentions": 30,
-      "avg_sentiment": 0.321,
-      "label": "Leaning Bullish",
-      "bullish_count": 20,
-      "bearish_count": 3,
-      "neutral_count": 7,
-      "bullish_pct": 67,
-      "bearish_pct": 10,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": null,
-      "price": 84.28,
-      "change_pct": -4.29,
-      "examples": [
-        {
-          "title": "$LQDA buying into the dip!! Time to add!"
-        },
-        {
-          "title": "$LQDA great earnings and good call. Still down ???"
-        },
-        {
-          "title": "$LQDA"
-        }
-      ]
-    },
-    {
-      "ticker": "LUNR",
-      "mentions": 30,
-      "avg_sentiment": 0.313,
-      "label": "Leaning Bullish",
-      "bullish_count": 23,
-      "bearish_count": 4,
-      "neutral_count": 3,
-      "bullish_pct": 77,
-      "bearish_pct": 13,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": null,
-      "price": 16.98,
-      "change_pct": 3.0,
-      "examples": [
-        {
-          "title": "$LUNR The 0.o says &#39;to the moon,&#39; but your wallet says please stop. \nAnd the face says stupid."
-        },
-        {
-          "title": "$LUNR 0.o i expect to be buying more Thursday morning"
-        },
-        {
-          "title": "$LUNR Here we come!!! Today? Tomorrow? This week?"
-        }
-      ]
-    }
-  ],
-  "top_bearish": [],
-  "most_discussed": [
-    {
-      "ticker": "NBIS",
-      "mentions": 30,
-      "avg_sentiment": 0.232,
-      "label": "Leaning Bullish",
-      "bullish_count": 20,
-      "bearish_count": 3,
-      "neutral_count": 7,
-      "bullish_pct": 67,
-      "bearish_pct": 10,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": null,
-      "price": 226.5,
-      "change_pct": 17.22,
-      "examples": [
-        {
-          "title": "$NBIS higher lows"
-        },
-        {
-          "title": "$NBIS 230 still a tough spot. Think it cracks soon though"
-        },
-        {
-          "title": "$NBIS and there it is\ud83d\ude0e\ud83e\udd19\ud83e\udef5buy"
-        }
-      ]
-    },
-    {
-      "ticker": "CRWV",
-      "mentions": 30,
-      "avg_sentiment": 0.149,
-      "label": "Leaning Bullish",
-      "bullish_count": 16,
-      "bearish_count": 7,
-      "neutral_count": 7,
-      "bullish_pct": 53,
-      "bearish_pct": 23,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": -0.065,
-      "price": 106.82,
-      "change_pct": 18.26,
-      "examples": [
-        {
-          "title": "@IronCondorWhore \n\nCheck a heat map bud. $SNDK up 8% \n\n$CRWV up 18% Magoo"
-        },
-        {
-          "title": "*August 12, 2026 Opening Bell Rundown*\n\n- July CPI came in at +3.4% YoY / +0.1% MoM, matching expectations, while core C"
-        },
-        {
-          "title": "$RETO  \n- Extremely tiny float      \n- Very low market cap     \n- Just did a RS recently     \n- Very low RSI   \n- NANO c"
-        }
-      ]
-    },
-    {
-      "ticker": "SMCI",
-      "mentions": 30,
-      "avg_sentiment": 0.307,
-      "label": "Leaning Bullish",
-      "bullish_count": 21,
-      "bearish_count": 5,
-      "neutral_count": 4,
-      "bullish_pct": 70,
-      "bearish_pct": 17,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": 0.011,
-      "price": 35.77,
-      "change_pct": 13.19,
-      "examples": [
-        {
-          "title": "$SMCI falling knife"
-        },
-        {
-          "title": "$SMCI It is a little sad that this is exactly what it sounded like at the last ER\ud83e\udd11\ud83d\ude02"
-        },
-        {
-          "title": "$SMCI Easily going north of 40..."
-        }
-      ]
-    },
-    {
-      "ticker": "SPY",
-      "mentions": 30,
-      "avg_sentiment": 0.021,
-      "label": "Neutral",
-      "bullish_count": 10,
-      "bearish_count": 10,
-      "neutral_count": 10,
-      "bullish_pct": 33,
-      "bearish_pct": 33,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": null,
-      "price": 772.67,
-      "change_pct": 0.27,
-      "examples": [
-        {
-          "title": "$SPY 21% gain since mays low, 18 weeks of non stop pumping...bulls really believing this"
-        },
-        {
-          "title": "$SPY disapointing"
-        },
-        {
-          "title": "$SPY Theta takes too much"
-        }
-      ]
-    },
-    {
-      "ticker": "UAMY",
-      "mentions": 30,
-      "avg_sentiment": 0.072,
-      "label": "Neutral",
-      "bullish_count": 13,
-      "bearish_count": 9,
-      "neutral_count": 8,
-      "bullish_pct": 43,
-      "bearish_pct": 30,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": null,
-      "price": 5.15,
-      "change_pct": -21.67,
-      "examples": [
-        {
-          "title": "$UAMY cmon 5 flat"
-        },
-        {
-          "title": "$UAMY damn might go under $5"
-        },
-        {
-          "title": "$UAMY Hang in there bulls https://www.prnewswire.com/news-releases/bank-of-america-launches-250-billion-18-month-critica"
-        }
-      ]
-    },
-    {
-      "ticker": "FLY",
-      "mentions": 30,
-      "avg_sentiment": 0.086,
-      "label": "Neutral",
-      "bullish_count": 11,
-      "bearish_count": 4,
-      "neutral_count": 15,
-      "bullish_pct": 37,
-      "bearish_pct": 13,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": -0.02,
-      "price": 27.08,
-      "change_pct": 2.75,
-      "examples": [
-        {
-          "title": "Why won&#39;t $FLY pass $28?"
-        },
-        {
-          "title": "$FLY miserable market manipulation we beat earnings BIG and we have a miserable 2,6%? if this were MU with same beat ear"
-        },
-        {
-          "title": "$FLY here we gooo!!!"
-        }
-      ]
-    },
-    {
-      "ticker": "VELO",
-      "mentions": 30,
-      "avg_sentiment": 0.21,
-      "label": "Leaning Bullish",
-      "bullish_count": 19,
-      "bearish_count": 3,
-      "neutral_count": 8,
-      "bullish_pct": 63,
-      "bearish_pct": 10,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": null,
-      "price": 15.38,
-      "change_pct": 12.34,
-      "examples": [
-        {
-          "title": "$VELO Analyst upgrades on deck"
-        },
-        {
-          "title": "$VELO keep an eye on it"
-        },
-        {
-          "title": "$VELO gonna recoil and snap again"
-        }
-      ]
-    },
-    {
-      "ticker": "WYFI",
-      "mentions": 30,
-      "avg_sentiment": 0.364,
-      "label": "Bullish",
-      "bullish_count": 23,
-      "bearish_count": 1,
-      "neutral_count": 6,
-      "bullish_pct": 77,
-      "bearish_pct": 3,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": null,
-      "price": 27.51,
-      "change_pct": 13.58,
-      "examples": [
-        {
-          "title": "$WYFI $DFTX $CANF $ATHE $STRO \ud83d\ude43\u2728"
-        },
-        {
-          "title": "$WYFI if they cancel convertable this can rip through 50% short \u26fd\ufe0f"
-        },
-        {
-          "title": "$WYFI"
-        }
-      ]
-    },
-    {
-      "ticker": "CAVA",
-      "mentions": 30,
-      "avg_sentiment": 0.162,
-      "label": "Leaning Bullish",
-      "bullish_count": 15,
-      "bearish_count": 7,
-      "neutral_count": 8,
-      "bullish_pct": 50,
-      "bearish_pct": 23,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": null,
-      "price": 69.05,
-      "change_pct": 13.55,
-      "examples": [
-        {
-          "title": "*August 12, 2026 Opening Bell Rundown*\n\n- July CPI came in at +3.4% YoY / +0.1% MoM, matching expectations, while core C"
-        },
-        {
-          "title": "$CAVA everyone rotate to $CMG for similar run now"
-        },
-        {
-          "title": "$CAVA triple digits ahead"
-        }
-      ]
-    },
-    {
-      "ticker": "QS",
-      "mentions": 30,
-      "avg_sentiment": 0.256,
-      "label": "Leaning Bullish",
-      "bullish_count": 17,
-      "bearish_count": 2,
-      "neutral_count": 11,
-      "bullish_pct": 57,
-      "bearish_pct": 7,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": null,
-      "price": 6.39,
-      "change_pct": 0.79,
-      "examples": [
-        {
-          "title": "$QS"
-        },
-        {
-          "title": "$QS  100 free shares on that flip... TASTY !"
-        },
-        {
-          "title": "$QS tottaly normal price action this morning"
-        }
-      ]
-    },
-    {
-      "ticker": "CBRS",
-      "mentions": 30,
-      "avg_sentiment": 0.419,
-      "label": "Bullish",
-      "bullish_count": 23,
-      "bearish_count": 1,
-      "neutral_count": 6,
-      "bullish_pct": 77,
-      "bearish_pct": 3,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": null,
-      "price": 248.69,
-      "change_pct": 5.93,
-      "examples": [
-        {
-          "title": "$CBRS what are you guys planning to do with this ticker? I have a 190 base."
-        },
-        {
-          "title": "$CBRS nice base , very volatile ER after bell"
-        },
-        {
-          "title": "$CBRS best way to short this?"
-        }
-      ]
-    },
-    {
-      "ticker": "LITE",
-      "mentions": 30,
-      "avg_sentiment": 0.135,
-      "label": "Leaning Bullish",
-      "bullish_count": 14,
-      "bearish_count": 7,
-      "neutral_count": 9,
-      "bullish_pct": 47,
-      "bearish_pct": 23,
-      "in_watchlist": false,
-      "is_trending": true,
-      "delta": null,
-      "price": 876.91,
-      "change_pct": 6.86,
-      "examples": [
-        {
-          "title": "$AAOI $LITE $COHR the photonics is the group with best technicals, above 50SMA. ACCUMULATE"
-        },
-        {
-          "title": "$LITE profit taking complete. Up from here until the next set of profit taking."
-        },
-        {
-          "title": "$AAOI building in this range  - $COHR after bell, $LITE was positive"
-        }
-      ]
-    }
-  ],
-  "watchlist_grid": [
-    {
-      "ticker": "AAPL",
-      "mentions": 30,
-      "avg_sentiment": 0.154,
-      "label": "Leaning Bullish",
-      "bullish_count": 18,
-      "bearish_count": 7,
-      "neutral_count": 5,
-      "bullish_pct": 60,
-      "bearish_pct": 23,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": -0.046,
-      "price": 303.35,
-      "change_pct": -0.51,
-      "examples": [
-        {
-          "title": "$SPY $CRWV runners running, profits locked, \n\n#pivotgroup\ud83d\udd10\ud83c\udfac\n$QQQ $AAPL"
-        },
-        {
-          "title": "$AAPL Guys if you think this is bad look at software lol, that being said this probably lags as usual"
-        },
-        {
-          "title": "$AAPL $QQQ  I ain\u2019t selling odte on my appl , unless it see 300 area. Im not scare , my avg low easy $ ahahahahahaha . B"
-        }
-      ]
-    },
-    {
-      "ticker": "AMD",
-      "mentions": 30,
-      "avg_sentiment": 0.135,
-      "label": "Leaning Bullish",
-      "bullish_count": 17,
-      "bearish_count": 6,
-      "neutral_count": 7,
-      "bullish_pct": 57,
-      "bearish_pct": 20,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": 0.07,
-      "price": 485.79,
-      "change_pct": 2.42,
-      "examples": [
-        {
-          "title": "$AMD 1D % CHOP"
-        },
-        {
-          "title": "$AMD needs more juice to reclaim trend"
-        },
-        {
-          "title": "$AMD"
-        }
-      ]
-    },
-    {
-      "ticker": "AMZN",
-      "mentions": 30,
-      "avg_sentiment": 0.125,
-      "label": "Leaning Bullish",
-      "bullish_count": 14,
-      "bearish_count": 8,
-      "neutral_count": 8,
-      "bullish_pct": 47,
-      "bearish_pct": 27,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": 0.127,
-      "price": 270.76,
-      "change_pct": -0.56,
-      "examples": [
-        {
-          "title": "$AMZN absolute piece of shit"
-        },
-        {
-          "title": "$AMZN how can people be bearish on this? I\u2019d love to know."
-        },
-        {
-          "title": "$AMZN get a clue bubba \n\nBezos\u2019s sale was executed under a pre-arranged trading plan established more than eight months "
-        }
-      ]
-    },
-    {
-      "ticker": "COIN",
-      "mentions": 30,
-      "avg_sentiment": 0.096,
-      "label": "Neutral",
-      "bullish_count": 15,
-      "bearish_count": 10,
-      "neutral_count": 5,
-      "bullish_pct": 50,
-      "bearish_pct": 33,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": 0.04,
-      "price": 149.33,
-      "change_pct": 0.5,
-      "examples": [
-        {
-          "title": "$COIN Just let it break to 100 and see who is standing"
-        },
-        {
-          "title": "$COIN Jesus literally nothing can save this"
-        },
-        {
-          "title": "$COIN obvious the fraudstreet  fucks pinning this until clarity act buy 146-147 sell 162"
-        }
-      ]
-    },
-    {
-      "ticker": "GOOGL",
-      "mentions": 30,
-      "avg_sentiment": -0.025,
-      "label": "Neutral",
-      "bullish_count": 7,
-      "bearish_count": 12,
-      "neutral_count": 11,
-      "bullish_pct": 23,
-      "bearish_pct": 40,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": 0.182,
-      "price": 343.64,
-      "change_pct": -0.05,
-      "examples": [
-        {
-          "title": "$GOOGL has not looked this bearish all year. \nReady to tank"
-        },
-        {
-          "title": "$GOOGL Pop back up 355 go baby go"
-        },
-        {
-          "title": "$GOOGL technical bounce day"
-        }
-      ]
-    },
-    {
-      "ticker": "HTZ",
-      "mentions": 30,
-      "avg_sentiment": 0.296,
-      "label": "Leaning Bullish",
-      "bullish_count": 21,
-      "bearish_count": 5,
-      "neutral_count": 4,
-      "bullish_pct": 70,
-      "bearish_pct": 17,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": 0.009,
-      "price": 2.48,
-      "change_pct": 1.22,
-      "examples": [
-        {
-          "title": "$HTZ Cute bear. Meanwhile HTZ ripped from $1.45 to $2.90 while diluting. If that\u2019s bearish, then I guess bulls are doing"
-        },
-        {
-          "title": "$HTZ here we go, little momentum coming our way.  Fear not today folks!  It\u2019s be great to see it take off but if not, re"
-        },
-        {
-          "title": "$HTZ \ud83d\udc4b\ud83d\udc4b shorty!"
-        }
-      ]
-    },
-    {
-      "ticker": "IONQ",
-      "mentions": 30,
-      "avg_sentiment": 0.161,
-      "label": "Leaning Bullish",
-      "bullish_count": 16,
-      "bearish_count": 8,
-      "neutral_count": 6,
-      "bullish_pct": 53,
-      "bearish_pct": 27,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": 0.144,
-      "price": 43.65,
-      "change_pct": 0.48,
-      "examples": [
-        {
-          "title": "$IONQ \ud83d\ude80\ud83d\ude80\ud83d\ude80"
-        },
-        {
-          "title": "$IONQ #RGTI #INFQ you can bet your bottom dollar these dump on the bell and then fight back all day."
-        },
-        {
-          "title": "$IONQ $STUDY Always learning something from @ChristopherBrecher!"
-        }
-      ]
-    },
-    {
-      "ticker": "META",
-      "mentions": 30,
-      "avg_sentiment": -0.008,
-      "label": "Neutral",
-      "bullish_count": 10,
-      "bearish_count": 8,
-      "neutral_count": 12,
-      "bullish_pct": 33,
-      "bearish_pct": 27,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": -0.22,
-      "price": 590.88,
-      "change_pct": -1.38,
-      "examples": [
-        {
-          "title": "$META in $589.75"
-        },
-        {
-          "title": "$META Meta being Meta"
-        },
-        {
-          "title": "$META $588 buy some here"
-        }
-      ]
-    },
-    {
-      "ticker": "MSFT",
-      "mentions": 30,
-      "avg_sentiment": 0.16,
-      "label": "Leaning Bullish",
-      "bullish_count": 16,
-      "bearish_count": 6,
-      "neutral_count": 8,
-      "bullish_pct": 53,
-      "bearish_pct": 20,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": -0.047,
-      "price": 493.35,
-      "change_pct": -2.08,
-      "examples": [
-        {
-          "title": "$MSFT going balls deep into calls now"
-        },
-        {
-          "title": "$MSFT why"
-        },
-        {
-          "title": "$MSFT GOING BACK TO 390"
-        }
-      ]
-    },
-    {
-      "ticker": "MSTR",
-      "mentions": 30,
-      "avg_sentiment": 0.131,
-      "label": "Leaning Bullish",
-      "bullish_count": 17,
-      "bearish_count": 7,
-      "neutral_count": 6,
-      "bullish_pct": 57,
-      "bearish_pct": 23,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": 0.257,
-      "price": 97.1,
-      "change_pct": 1.05,
-      "examples": [
-        {
-          "title": "$MSTR scam lol"
-        },
-        {
-          "title": "$MSTR Michael won&#39;t let this run until $STRC at 100$. Just the nature of the game bro"
-        },
-        {
-          "title": "$MSTR SHORTS GETTIN REKT!!!!!"
-        }
-      ]
-    },
-    {
-      "ticker": "NOW",
-      "mentions": 30,
-      "avg_sentiment": 0.213,
-      "label": "Leaning Bullish",
-      "bullish_count": 17,
-      "bearish_count": 3,
-      "neutral_count": 10,
-      "bullish_pct": 57,
-      "bearish_pct": 10,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": -0.165,
-      "price": 122.18,
-      "change_pct": -4.2,
-      "examples": [
-        {
-          "title": "$NOW 5 USD down? 3000 shares, do the math!"
-        },
-        {
-          "title": "$NOW buying more tmrw"
-        },
-        {
-          "title": "$NOW is more than just a software stock\u2026"
-        }
-      ]
-    },
-    {
-      "ticker": "NVDA",
-      "mentions": 30,
-      "avg_sentiment": 0.093,
-      "label": "Neutral",
-      "bullish_count": 13,
-      "bearish_count": 8,
-      "neutral_count": 9,
-      "bullish_pct": 43,
-      "bearish_pct": 27,
-      "in_watchlist": true,
-      "is_trending": true,
-      "delta": -0.075,
-      "price": 223.69,
-      "change_pct": 2.85,
-      "examples": [
-        {
-          "title": "$NVDA hope you booked profits, MMs won\u2019t let this go beyond 224"
-        },
-        {
-          "title": "$NVDA"
-        },
-        {
-          "title": "$IREN \n$NVDA thinks\nIt\u2019s worth $70."
-        }
-      ]
-    },
-    {
-      "ticker": "PLTR",
-      "mentions": 30,
-      "avg_sentiment": -0.072,
-      "label": "Neutral",
-      "bullish_count": 10,
-      "bearish_count": 14,
-      "neutral_count": 6,
-      "bullish_pct": 33,
-      "bearish_pct": 47,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": -0.276,
-      "price": 169.23,
-      "change_pct": -3.27,
-      "examples": [
-        {
-          "title": "$PLTR where\u2019s the bulls at? My puts are up more than your 50% run up\ud83d\ude02\ud83d\ude02\ud83d\ude02"
-        },
-        {
-          "title": "$PLTR this is done bro..rate cut hold already priced in no hjustifcation for 150x..if its regualr market this will cut i"
-        },
-        {
-          "title": "$PLTR hope you guys listened to me!!!!"
-        }
-      ]
-    },
-    {
-      "ticker": "QBTS",
-      "mentions": 30,
-      "avg_sentiment": 0.27,
-      "label": "Leaning Bullish",
-      "bullish_count": 22,
-      "bearish_count": 4,
-      "neutral_count": 4,
-      "bullish_pct": 73,
-      "bearish_pct": 13,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": 0.076,
-      "price": 20.4,
-      "change_pct": 0.84,
-      "examples": [
-        {
-          "title": "$QBTS"
-        },
-        {
-          "title": "$QBTS am I getting a buy back today!?!?"
-        },
-        {
-          "title": "$QBTS she&#39;s gonna get this back over the course of the day.  Going long on QBTX again if she hits around 19.80."
-        }
-      ]
-    },
-    {
-      "ticker": "QUBT",
-      "mentions": 30,
-      "avg_sentiment": 0.329,
-      "label": "Leaning Bullish",
-      "bullish_count": 23,
-      "bearish_count": 2,
-      "neutral_count": 5,
-      "bullish_pct": 77,
-      "bearish_pct": 7,
-      "in_watchlist": true,
-      "is_trending": true,
-      "delta": 0.204,
-      "price": 8.95,
-      "change_pct": 0.0,
-      "examples": [
-        {
-          "title": "$QUBT short squeeze this to $25"
-        },
-        {
-          "title": "$QUBT We all know is about to moon, the question here is how much more pain are stubborn bears willing to tolerate? \ud83e\udd14"
-        },
-        {
-          "title": "$QUBT \ud83d\udcc8"
-        }
-      ]
-    },
-    {
-      "ticker": "RDDT",
-      "mentions": 30,
-      "avg_sentiment": 0.2,
-      "label": "Leaning Bullish",
-      "bullish_count": 17,
-      "bearish_count": 6,
-      "neutral_count": 7,
-      "bullish_pct": 57,
-      "bearish_pct": 20,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": -0.136,
-      "price": 153.0,
-      "change_pct": -2.04,
-      "examples": [
-        {
-          "title": "$RDDT friday gains deleted, nice. Don&#39;t know why I&#39;m holding anymore, really. We need about 10 more breakout ear"
-        },
-        {
-          "title": "$RDDT $FIG"
-        },
-        {
-          "title": "$RDDT well deserved, 90% of users are fake bots."
-        }
-      ]
-    },
-    {
-      "ticker": "RGTI",
-      "mentions": 30,
-      "avg_sentiment": 0.106,
-      "label": "Leaning Bullish",
-      "bullish_count": 13,
-      "bearish_count": 7,
-      "neutral_count": 10,
-      "bullish_pct": 43,
-      "bearish_pct": 23,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": -0.056,
-      "price": 18.08,
-      "change_pct": -0.06,
-      "examples": [
-        {
-          "title": "$RGTI remember alot will depend on volume"
-        },
-        {
-          "title": "$RGTI today is the day for near term trends"
-        },
-        {
-          "title": "$RGTI $18.94 ? \nTwo days of sideways consolation! \nPossible given"
-        }
-      ]
-    },
-    {
-      "ticker": "SOFI",
-      "mentions": 30,
-      "avg_sentiment": 0.018,
-      "label": "Neutral",
-      "bullish_count": 15,
-      "bearish_count": 11,
-      "neutral_count": 4,
-      "bullish_pct": 50,
-      "bearish_pct": 37,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": -0.136,
-      "price": 17.89,
-      "change_pct": -0.49,
-      "examples": [
-        {
-          "title": "$SOFI i said it would go straight down and look.  what garbage"
-        },
-        {
-          "title": "$SOFI  \u201cRelax, the whole market is down\u201d\u2026 oh, wait."
-        },
-        {
-          "title": "$SOFI During Sofi\u2019s first day of trading  as a public company at its IPO in June 2021 it closed at $23 per share."
-        }
-      ]
-    },
-    {
-      "ticker": "TSLA",
-      "mentions": 30,
-      "avg_sentiment": 0.016,
-      "label": "Neutral",
-      "bullish_count": 12,
-      "bearish_count": 11,
-      "neutral_count": 7,
-      "bullish_pct": 40,
-      "bearish_pct": 37,
-      "in_watchlist": true,
-      "is_trending": false,
-      "delta": -0.223,
-      "price": 327.66,
-      "change_pct": -1.55,
-      "examples": [
-        {
-          "title": "$TSLA"
-        },
-        {
-          "title": "$TSLA i\u2019ll keep adding"
-        },
-        {
-          "title": "$TSLA reclaim 330+ to think about calls..super weak high selling pressure"
-        }
-      ]
-    }
-  ],
-  "news": [
-    {
-      "source": "Yahoo Finance",
-      "title": "Tech leads sectors higher in early trading as chip stocks gain: AlphaCheck",
-      "link": "https://finance.yahoo.com/markets/article/tech-leads-sectors-higher-in-early-trading-as-chip-stocks-gain-alphacheck-134443200.html",
-      "published": "2026-08-12T13:44:43Z",
-      "summary": ""
-    },
-    {
-      "source": "Yahoo Finance",
-      "title": "Supermicro stock jumps on Q4 results, strong Q1 outlook",
-      "link": "https://finance.yahoo.com/technology/article/supermicro-stock-jumps-on-q4-results-strong-q1-outlook-210004983.html",
-      "published": "2026-08-10T21:00:04Z",
-      "summary": ""
-    },
-    {
-      "source": "Yahoo Finance",
-      "title": "Stock market today: Dow, S&P 500, Nasdaq rise after CPI data cools slightly",
-      "link": "https://finance.yahoo.com/markets/live/stock-market-today-wednesday-august-12-dow-sp-500-nasdaq-cpi-report-091555133.html",
-      "published": "2026-08-12T09:15:55Z",
-      "summary": ""
-    },
-    {
-      "source": "Yahoo Finance",
-      "title": "Stock Market Today: Dow Rises On Key Inflation Data; Nvidia Partner CoreWeave Soars On Results (Live Coverage)",
-      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-july-cpi-inflation-nvidia-partner-coreweave/?src=A00220&yptr=yahoo",
-      "published": "2026-08-12T13:39:17Z",
-      "summary": ""
-    },
-    {
-      "source": "Yahoo Finance",
-      "title": "ASML Holding N.V. (ASML) vs. Taiwan Semiconductor Manufacturing Company Limited (TSM): A Key Supplier Says it Can Keep Up With the AI Boom",
-      "link": "https://finance.yahoo.com/markets/stocks/articles/asml-holding-n-v-asml-133846677.html",
-      "published": "2026-08-12T13:38:46Z",
-      "summary": ""
-    },
-    {
-      "source": "Yahoo Finance",
-      "title": "Daily Spotlight: Profit Margins Widening",
-      "link": "https://finance.yahoo.com/research/reports/ARGUS_47893_MarketOutlook_1786535027000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
-      "published": "2026-08-12T11:43:47Z",
-      "summary": ""
-    },
-    {
-      "source": "Yahoo Finance",
-      "title": "MarginEdge raises $80m in Series D round",
-      "link": "https://finance.yahoo.com/small-business/articles/marginedge-raises-80m-series-d-133835789.html",
-      "published": "2026-08-12T13:38:35Z",
-      "summary": ""
-    },
-    {
-      "source": "Yahoo Finance",
-      "title": "Dollar slips as in-line CPI tempers rate-hike bets",
-      "link": "https://finance.yahoo.com/news/dollar-drifts-markets-await-us-014351710.html",
-      "published": "2026-08-12T13:38:29Z",
-      "summary": ""
-    },
-    {
-      "source": "Yahoo Finance",
-      "title": "CoreWeave Earnings Beat Amid Operating Margin Upside. AI Stock Jumps.",
-      "link": "https://www.investors.com/news/technology/coreweave-stock-crwv-coreweave-earnings-q22026/?src=A00220&yptr=yahoo",
-      "published": "2026-08-12T13:37:52Z",
-      "summary": ""
-    },
-    {
-      "source": "Yahoo Finance",
-      "title": "July inflation eased up, despite recent energy shocks",
-      "link": "https://finance.yahoo.com/economy/article/july-inflation-eased-up-despite-recent-energy-shocks-182926153.html",
-      "published": "2026-08-11T18:29:26Z",
-      "summary": ""
-    },
-    {
-      "source": "MarketWatch Top Stories",
-      "title": "Citadel Securities called the stock-market reset. Now it sees a leverage buildup on the horizon.",
-      "link": "https://www.marketwatch.com/story/citadel-securities-called-the-stock-market-reset-now-it-says-leverage-may-build-up-again-988eec86?mod=mw_rss_topstories",
-      "published": "Wed, 12 Aug 2026 13:55:00 GMT",
-      "summary": "Strategist Scott Rubner says a growing list of stock-market buyers are pushing it in a positive direction, notably big hedge funds and institutional managers."
-    },
-    {
-      "source": "MarketWatch Top Stories",
-      "title": "CoreWeave\u2019s stock is rocketing after earnings lead to praise from bulls and bears alike",
-      "link": "https://www.marketwatch.com/story/coreweaves-stock-is-rocketing-after-earnings-lead-to-praise-from-bulls-and-bears-alike-46c831e7?mod=mw_rss_topstories",
-      "published": "Wed, 12 Aug 2026 13:34:00 GMT",
-      "summary": "CoreWeave is broadening its customer base and benefiting from upbeat pricing dynamics, analysts say."
-    },
-    {
-      "source": "MarketWatch Top Stories",
-      "title": "Nebius adds to the excitement around neocloud stocks with upbeat earnings of its own",
-      "link": "https://www.marketwatch.com/story/nebius-adds-to-the-excitement-around-neocloud-stocks-with-upbeat-earnings-of-its-own-cd2aa36e?mod=mw_rss_topstories",
-      "published": "Wed, 12 Aug 2026 13:33:00 GMT",
-      "summary": "Investors are reacting positively to earnings results and demand signals from neocloud companies CoreWeave and Nebius."
-    },
-    {
-      "source": "MarketWatch Top Stories",
-      "title": "Eli Lilly is suing pharmacies and peptide vendors over sale of its next big weight-loss drug: retatrutide",
-      "link": "https://www.marketwatch.com/story/eli-lilly-is-suing-pharmacies-and-peptide-vendors-over-sales-of-the-next-big-weight-loss-drug-retatrutide-22434cce?mod=mw_rss_topstories",
-      "published": "Wed, 12 Aug 2026 13:07:00 GMT",
-      "summary": "Some Americans have turned to medical spas and pharmacies that sell peptides for health and wellness benefits for access to compounded versions of retatrutide."
-    },
-    {
-      "source": "MarketWatch Top Stories",
-      "title": "The $30 trillion Treasury market is facing a painful reckoning. How rising yields could squeeze your portfolio.",
-      "link": "https://www.marketwatch.com/story/the-30-trillion-treasury-market-is-facing-a-painful-reckoning-how-rising-yields-could-squeeze-your-portfolio-8fa9edd8?mod=mw_rss_topstories",
-      "published": "Wed, 12 Aug 2026 12:58:00 GMT",
-      "summary": "The roughly $30 trillion Treasury market \u2014 widely seen as the bedrock of the global financial system \u2014 is facing a dangerous reckoning driven by a perfect storm of rising risks."
-    },
-    {
-      "source": "MarketWatch Top Stories",
-      "title": "\u2018The market is obviously on fire\u2019: Should I take $1,000 from my brokerage account to pay off my car loan?",
-      "link": "https://www.marketwatch.com/story/the-market-is-obviously-on-fire-is-it-a-mistake-to-take-1-000-from-my-brokerage-account-to-pay-my-car-loan-65800d1f?mod=mw_rss_topstories",
-      "published": "Wed, 12 Aug 2026 11:30:00 GMT",
-      "summary": "\u201cI\u2019m curious whether there\u2019s a downside.\u201d"
-    },
-    {
-      "source": "MarketWatch Top Stories",
-      "title": "This week\u2019s solar eclipse could make stocks go down. No, really. Here\u2019s why.",
-      "link": "https://www.marketwatch.com/story/this-weeks-solar-eclipse-could-make-stocks-go-down-no-really-heres-why-76121065?mod=mw_rss_topstories",
-      "published": "Wed, 12 Aug 2026 11:30:00 GMT",
-      "summary": "The eclipse on Wednesday is unlikely to lead to the end of the bull market. But could have some impact on investors."
-    },
-    {
-      "source": "MarketWatch Top Stories",
-      "title": "My wife can claim $900 at 62. Should she take it now \u2014 or wait for her spousal benefit?",
-      "link": "https://www.marketwatch.com/story/i-want-her-to-choose-the-best-strategy-my-wifes-social-security-is-just-900-should-she-claim-spousal-benefit-at-62-e3ef621d?mod=mw_rss_topstories",
-      "published": "Wed, 12 Aug 2026 11:00:00 GMT",
-      "summary": "\u201cShe was a teacher at a school district, so didn\u2019t put much into Social Security.\u201d"
-    },
-    {
-      "source": "MarketWatch Top Stories",
-      "title": "Super Micro stock is rallying after results. Here\u2019s what Wall Street is saying.",
-      "link": "https://www.marketwatch.com/story/super-micro-stock-is-rallying-after-results-heres-what-wall-street-is-saying-631e9253?mod=mw_rss_topstories",
-      "published": "Wed, 12 Aug 2026 10:34:00 GMT",
-      "summary": "Here\u2019s what analysts are saying about Super Micro."
-    },
-    {
-      "source": "MarketWatch Top Stories",
-      "title": "I found a $100 bill in the communal washer at my Airbnb. What should I do?",
-      "link": "https://www.marketwatch.com/story/im-dreaming-of-cocktails-at-chateau-marmont-i-found-100-in-my-airbnbs-communal-washer-what-should-i-do-9694ecca?mod=mw_rss_topstories",
-      "published": "Wed, 12 Aug 2026 10:30:00 GMT",
-      "summary": "\u201cThe landlord has not been here in months, so I assume it was a previous tenant.\u201d"
-    },
-    {
-      "source": "MarketWatch Market Pulse",
-      "title": "Jobless claims fall to lowest level since mid-May",
-      "link": "https://www.marketwatch.com/story/jobless-claims-fall-to-lowest-level-since-mid-may-bda58e3b?mod=mw_rss_marketpulse",
-      "published": "Thu, 03 Jul 2025 12:36:00 GMT",
-      "summary": ""
-    },
-    {
-      "source": "MarketWatch Market Pulse",
-      "title": "Jobless claims stay low in latest week",
-      "link": "https://www.marketwatch.com/story/jobless-claims-stay-low-in-latest-week-27b4b50b?mod=mw_rss_marketpulse",
-      "published": "Thu, 13 Feb 2025 13:33:00 GMT",
-      "summary": ""
-    },
-    {
-      "source": "MarketWatch Market Pulse",
-      "title": "Consumer credit growth soars in December",
-      "link": "https://www.marketwatch.com/story/consumer-credit-growth-soars-in-december-d405d18e?mod=mw_rss_marketpulse",
-      "published": "Fri, 07 Feb 2025 20:26:00 GMT",
-      "summary": ""
-    },
-    {
-      "source": "MarketWatch Market Pulse",
-      "title": "U.S. productivity slows down in fourth quarter while unit labor costs accelerate",
-      "link": "https://www.marketwatch.com/story/u-s-productivity-slows-down-in-fourth-quarter-while-unit-labor-costs-accelerate-3c2b9092?mod=mw_rss_marketpulse",
-      "published": "Thu, 06 Feb 2025 13:34:00 GMT",
-      "summary": ""
-    },
-    {
-      "source": "MarketWatch Market Pulse",
-      "title": "Beyond to buy rights to Buy Buy Baby brand and reunite it with Bed Bath & Beyond",
-      "link": "https://www.marketwatch.com/story/beyond-to-buy-rights-to-buy-buy-baby-brand-and-reunite-it-with-bed-bath-beyond-4383c6be?mod=mw_rss_marketpulse",
-      "published": "Mon, 03 Feb 2025 13:46:00 GMT",
-      "summary": ""
-    },
-    {
-      "source": "MarketWatch Market Pulse",
-      "title": "Trump asks Supreme Court to pause TikTok ban",
-      "link": "https://www.marketwatch.com/story/trump-asks-supreme-court-to-pause-tiktok-ban-2b724ae6?mod=mw_rss_marketpulse",
-      "published": "Sat, 28 Dec 2024 00:32:00 GMT",
-      "summary": ""
-    },
-    {
-      "source": "MarketWatch Market Pulse",
-      "title": "Amazon says it had best-ever Thanksgiving Holiday week with record sales and number of items sold",
-      "link": "https://www.marketwatch.com/story/amazon-says-it-had-best-ever-thanksgiving-holiday-week-with-record-sales-and-number-of-items-sold-786e0143?mod=mw_rss_marketpulse",
-      "published": "Tue, 03 Dec 2024 14:05:00 GMT",
-      "summary": ""
-    },
-    {
-      "source": "MarketWatch Market Pulse",
-      "title": "U.S. stock futures and bond yields drop on reports Putin has updated nuclear doctrine",
-      "link": "https://www.marketwatch.com/story/u-s-stock-futures-and-bond-yields-drop-on-reports-putin-has-updated-nuclear-doctrine-4b9792c4?mod=mw_rss_marketpulse",
-      "published": "Tue, 19 Nov 2024 08:55:00 GMT",
-      "summary": ""
-    },
-    {
-      "source": "MarketWatch Market Pulse",
-      "title": "Charter Communications announces buyout deal for Liberty Broadband at terms above its previous proposal",
-      "link": "https://www.marketwatch.com/story/charter-communications-announces-buyout-deal-for-liberty-broadband-at-terms-above-its-previous-proposal-552f7acd?mod=mw_rss_marketpulse",
-      "published": "Wed, 13 Nov 2024 13:52:00 GMT",
-      "summary": ""
-    },
-    {
-      "source": "MarketWatch Market Pulse",
-      "title": "General Motors unveils new all-electric Cadillac called the Vistiq with 300-mile range",
-      "link": "https://www.marketwatch.com/story/general-motors-unveils-new-all-electric-cadillac-called-the-vistiq-with-300-mile-range-c16fb8a6?mod=mw_rss_marketpulse",
-      "published": "Tue, 12 Nov 2024 13:53:00 GMT",
-      "summary": ""
-    },
-    {
-      "source": "CNBC Top News",
-      "title": "Consumer prices rose 0.1% in July, as expected, putting the annual rate at 3.4%",
-      "link": "https://www.cnbc.com/2026/08/12/cpi-inflation-report-july-2026.html",
-      "published": "Wed, 12 Aug 2026 13:29:29 GMT",
-      "summary": "The consumer price index was expected to increase 0.1% in July, with an annual rate of 3.4%."
-    },
-    {
-      "source": "CNBC Top News",
-      "title": "Mortgage rates finally stop rising, causing demand to trickle back",
-      "link": "https://www.cnbc.com/2026/08/12/mortgage-rates-finally-stop-rising-causing-demand-to-trickle-back-.html",
-      "published": "Wed, 12 Aug 2026 12:13:45 GMT",
-      "summary": "Mortgage rates finally eased a tiny bit, but it was enough to bring some demand back to a very beleaguered mortgage market."
-    },
-    {
-      "source": "CNBC Top News",
-      "title": "CoreWeave surges 23% after a 'cleaner quarter.' Here's what's happening",
-      "link": "https://www.cnbc.com/2026/08/12/coreweave-q2-earnings-ai-demand.html",
-      "published": "Wed, 12 Aug 2026 13:40:53 GMT",
-      "summary": "AI cloud giant CoreWeave jumped in premarket trading after reporting that its second-quarter revenue doubled on surging AI demand from hyperscalers."
-    },
-    {
-      "source": "CNBC Top News",
-      "title": "Stocks rise after tame inflation data; AI-related shares jump: Live updates",
-      "link": "https://www.cnbc.com/2026/08/11/stock-market-today-live-updates.html",
-      "published": "Wed, 12 Aug 2026 13:58:53 GMT",
-      "summary": "Investors are bracing for an important inflation report that could determine the near-term direction for interest rates."
-    },
-    {
-      "source": "CNBC Top News",
-      "title": "Houthi attack kills six in first fatalities in Red Sea in over a year; U.S. strikes container ship",
-      "link": "https://www.cnbc.com/2026/08/12/us-iran-war-trump-hormuz-houthi-attack-blockade-.html",
-      "published": "Wed, 12 Aug 2026 12:28:39 GMT",
-      "summary": "A cargoship and containership have been hit in the Red Sea and Gulf of Oman as the war inflicts a toll on the world's critical shipping lanes."
-    },
-    {
-      "source": "CNBC Top News",
-      "title": "Solar eclipse drives Europe hotel prices to over $1,000 a night",
-      "link": "https://www.cnbc.com/2026/08/12/solar-eclipse-europe-hotel-prices.html",
-      "published": "Wed, 12 Aug 2026 13:40:40 GMT",
-      "summary": "Eclipse demand pushed some Spain and Iceland stays above $1,000 a night, while Iceland hotels cut prices sharply closer to Aug. 12."
-    },
-    {
-      "source": "CNBC Top News",
-      "title": "Here are Wednesday's biggest analyst calls: Nvidia, SpaceX, Tesla, CoreWeave, Dell, Intel & more",
-      "link": "https://www.cnbc.com/2026/08/12/wednesdays-biggest-analyst-calls-like-nvidia.html",
-      "published": "Wed, 12 Aug 2026 12:26:20 GMT",
-      "summary": "Here are the biggest calls on Wall Street on Wednesday."
-    },
-    {
-      "source": "CNBC Top News",
-      "title": "Meta and Nvidia plant 'very firm flag' in open-weight AI race led by Chinese Labs",
-      "link": "https://www.cnbc.com/2026/08/12/meta-nvidia-open-weight-ai-race-china.html",
-      "published": "Wed, 12 Aug 2026 12:00:01 GMT",
-      "summary": "With China way ahead in the market for open-weight models, Meta and Nvidia are both doing what they can to put the U.S. on the map."
-    },
-    {
-      "source": "CNBC Top News",
-      "title": "Home Depot CEO taking temporary medical leave, two top execs to run the retailer",
-      "link": "https://www.cnbc.com/2026/08/12/home-depot-ceo-ted-decker-medical-leave.html",
-      "published": "Wed, 12 Aug 2026 13:42:45 GMT",
-      "summary": "Home Depot's CEO Ted Decker is taking a temporary medical leave of absence that's expected to last a few months."
-    },
-    {
-      "source": "CNBC Top News",
-      "title": "New York City Council announces probe into prediction market platforms\u2019 marketing strategies",
-      "link": "https://www.cnbc.com/2026/08/12/new-york-city-council-probes-prediction-markets-marketing-strategies.html",
-      "published": "Wed, 12 Aug 2026 12:08:39 GMT",
-      "summary": "In letters to four prediction market platforms, City Council Speaker Julie Menin said the council was also actively considering legislation to address concerns."
-    }
-  ]
-};
-
-document.getElementById('timestamp').textContent = 'Updated ' + DATA.generated_at;
-
-function tickerUrl(sym) { return `https://finance.yahoo.com/quote/${encodeURIComponent(sym)}`; }
-function tickerLink(sym, innerHtml) {
-  return `<a class="ticker-link" href="${tickerUrl(sym)}" target="_blank" rel="noopener" title="View ${sym} on Yahoo Finance">${innerHtml}</a>`;
-}
-function labelClass(label) {
-  if (label.includes('Bullish')) return 'label-bullish';
-  if (label.includes('Bearish')) return 'label-bearish';
-  return 'label-neutral';
-}
-function chgClass(chg) {
-  if (chg === null || chg === undefined) return 'na';
-  return chg >= 0 ? 'up' : 'down';
-}
-function fmtChg(chg) {
-  if (chg === null || chg === undefined) return '—';
-  const sign = chg >= 0 ? '+' : '';
-  return `${sign}${chg.toFixed(2)}%`;
-}
-function fmtPrice(px) {
-  if (px === null || px === undefined) return '—';
-  return px < 5 ? `$${px.toFixed(2)}` : `$${px.toFixed(2)}`;
-}
-function deltaHtml(delta) {
-  if (delta === null || delta === undefined) return '<span class="leader-delta flat">new</span>';
-  if (delta > 0.03) return `<span class="leader-delta up">▲${delta.toFixed(2)}</span>`;
-  if (delta < -0.03) return `<span class="leader-delta down">▼${Math.abs(delta).toFixed(2)}</span>`;
-  return '<span class="leader-delta flat">flat</span>';
-}
-
-// Market pulse
-const pulseStrip = document.getElementById('pulse-strip');
-if (DATA.market_pulse.length === 0) {
-  pulseStrip.innerHTML = '<div class="pulse-cell"><div class="pulse-name">Market data unavailable</div></div>';
-} else {
-  pulseStrip.innerHTML = DATA.market_pulse.map(m => `
-    <div class="pulse-cell">
-      <div class="pulse-name">${m.name}</div>
-      <div class="pulse-price">${fmtPrice(m.price)}</div>
-      <div class="pulse-chg ${chgClass(m.change_pct)}">${fmtChg(m.change_pct)}</div>
-    </div>
-  `).join('');
-}
-
-// Sector heatmap
-const heatmapGrid = document.getElementById('heatmap-grid');
-function heatBg(chg) {
-  const intensity = Math.min(Math.abs(chg) / 2.5, 1);
-  const alpha = 0.10 + 0.55 * intensity;
-  return chg >= 0 ? `rgba(53,212,140,${alpha})` : `rgba(255,92,108,${alpha})`;
-}
-if (DATA.sector_heatmap.length === 0) {
-  heatmapGrid.innerHTML = '<div class="empty-state">Sector data unavailable.</div>';
-} else {
-  heatmapGrid.innerHTML = DATA.sector_heatmap.map(s => `
-    <div class="heat-tile" style="background:${heatBg(s.change_pct)};">
-      <div class="heat-name">${s.name}</div>
-      <div class="heat-chg ${chgClass(s.change_pct)}">${fmtChg(s.change_pct)}</div>
-    </div>
-  `).join('');
-}
-
-// Signals
-const signalIcons = { bullish_dip: '▲', bearish_rally: '▼', volume_spike: '◆' };
-const signalList = document.getElementById('signal-list');
-if (DATA.signals.length === 0) {
-  document.getElementById('signals-empty').style.display = 'block';
-} else {
-  signalList.innerHTML = DATA.signals.map(s => `
-    <div class="signal-card ${s.type}">
-      <span class="signal-icon ${s.type}">${signalIcons[s.type] || '•'}</span>
-      <div>
-        <div class="signal-headline">${tickerLink(s.ticker, s.headline)}</div>
-        <div class="signal-detail">${s.detail}</div>
-      </div>
-    </div>
-  `).join('');
-}
-
-// Bullish / Bearish leader panels
-function leaderRow(t, rank) {
-  const bullPct = t.bullish_pct || 0;
-  const bearPct = t.bearish_pct || 0;
-  const neutralPct = Math.max(0, 100 - bullPct - bearPct);
-  return `<div class="leader-row">
-    <span class="leader-rank">${rank}</span>
-    ${tickerLink(t.ticker, `<span class="leader-sym">${t.ticker}</span>`)}
-    <div class="leader-bar-wrap">
-      <div class="leader-bar-track">
-        <div class="leader-bar-seg bull-seg" style="width:${bullPct}%"></div>
-        <div class="leader-bar-seg neutral-seg" style="width:${neutralPct}%"></div>
-        <div class="leader-bar-seg bear-seg" style="width:${bearPct}%"></div>
-      </div>
-      <div class="leader-meta">${bullPct}% bull &middot; ${bearPct}% bear</div>
-    </div>
-    <span class="leader-mentions">${t.mentions}</span>
-    <span class="leader-price-col">
-      <span class="px">${fmtPrice(t.price)}</span>
-      <span class="chg ${chgClass(t.change_pct)}">${fmtChg(t.change_pct)}</span>
-    </span>
-    ${deltaHtml(t.delta)}
-  </div>`;
-}
-
-const bullishRows = document.getElementById('bullish-rows');
-if (DATA.top_bullish.length === 0) {
-  document.getElementById('bullish-empty').style.display = 'block';
-} else {
-  bullishRows.innerHTML = DATA.top_bullish.map((t, i) => leaderRow(t, i + 1)).join('');
-}
-
-const bearishRows = document.getElementById('bearish-rows');
-if (DATA.top_bearish.length === 0) {
-  document.getElementById('bearish-empty').style.display = 'block';
-} else {
-  bearishRows.innerHTML = DATA.top_bearish.map((t, i) => leaderRow(t, i + 1)).join('');
-}
-
-// Most discussed table
-const discussedBody = document.getElementById('discussed-body');
-if (DATA.most_discussed.length === 0) {
-  document.getElementById('discussed-empty').style.display = 'block';
-} else {
-  discussedBody.innerHTML = DATA.most_discussed.map(t => {
-    const bullPct = t.bullish_pct || 0;
-    const bearPct = t.bearish_pct || 0;
-    const neutralPct = Math.max(0, 100 - bullPct - bearPct);
-    const badge = t.in_watchlist ? '<span class="wl-badge">WL</span>' : '';
-    return `<tr>
-      <td>${tickerLink(t.ticker, `<span class="ticker-sym">${t.ticker}</span>`)}${badge}</td>
-      <td class="price-cell"><span class="px">${fmtPrice(t.price)}</span><span class="chg ${chgClass(t.change_pct)}">${fmtChg(t.change_pct)}</span></td>
-      <td class="mono">${t.mentions}</td>
-      <td style="min-width:150px;">
-        <div class="leader-bar-track">
-          <div class="leader-bar-seg bull-seg" style="width:${bullPct}%"></div>
-          <div class="leader-bar-seg neutral-seg" style="width:${neutralPct}%"></div>
-          <div class="leader-bar-seg bear-seg" style="width:${bearPct}%"></div>
-        </div>
-      </td>
-      <td><span class="label-pill ${labelClass(t.label)}">${t.label}</span></td>
-    </tr>`;
-  }).join('');
-}
-
-// Watchlist grid with filter
-let currentFilter = 'all';
-function renderWatchlist() {
-  const wlGrid = document.getElementById('watchlist-grid');
-  let items = DATA.watchlist_grid;
-  if (currentFilter === 'bullish') items = items.filter(t => t.avg_sentiment >= 0.1);
-  if (currentFilter === 'bearish') items = items.filter(t => t.avg_sentiment <= -0.1);
-  if (currentFilter === 'active') items = items.filter(t => t.mentions > 0);
-
-  wlGrid.innerHTML = items.map(t => {
-    let cls = 'wl-card no-data';
-    let labelCls = 'muted-text';
-    let labelText = 'No chatter today';
-    if (t.mentions > 0) {
-      if (t.avg_sentiment >= 0.1) { cls = 'wl-card has-bull'; labelCls = 'bull-text'; }
-      else if (t.avg_sentiment <= -0.1) { cls = 'wl-card has-bear'; labelCls = 'bear-text'; }
-      else { cls = 'wl-card'; labelCls = 'muted-text'; }
-      labelText = `${t.label} &middot; ${t.mentions} msgs`;
-    }
-    return `<div class="${cls}">
-      <div class="wl-card-top">
-        ${tickerLink(t.ticker, `<span class="wl-sym">${t.ticker}</span>`)}
-        <span class="wl-chg ${chgClass(t.change_pct)}">${fmtChg(t.change_pct)}</span>
-      </div>
-      <div class="wl-label ${labelCls}">${labelText}</div>
-    </div>`;
-  }).join('');
-}
-
-const filters = [
-  { key: 'all', label: 'All' },
-  { key: 'active', label: 'Active only' },
-  { key: 'bullish', label: 'Bullish' },
-  { key: 'bearish', label: 'Bearish' },
-];
-document.getElementById('watchlist-controls').innerHTML = filters.map(f =>
-  `<button class="wl-filter-btn${f.key === 'all' ? ' active' : ''}" data-filter="${f.key}">${f.label}</button>`
-).join('');
-document.querySelectorAll('.wl-filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    currentFilter = btn.dataset.filter;
-    document.querySelectorAll('.wl-filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    renderWatchlist();
-  });
-});
-renderWatchlist();
-
-// News
-const newsList = document.getElementById('news-list');
-if (DATA.news.length === 0) {
-  newsList.innerHTML = '<div class="empty-state">No headlines fetched.</div>';
-} else {
-  newsList.innerHTML = DATA.news.slice(0, 20).map(n => `
-    <div class="news-item">
-      <div class="news-source">${n.source}</div>
-      <p class="news-title"><a href="${n.link}" target="_blank" rel="noopener">${n.title}</a></p>
-    </div>
-  `).join('');
-}
-
-// Ticker tape — pulled from most_discussed so it reflects true mixed sentiment
-const tapeEl = document.getElementById('tape');
-const tapeItems = DATA.most_discussed.slice(0, 15);
-if (tapeItems.length > 0) {
-  const html = tapeItems.map(t => {
-    const cls = t.avg_sentiment >= 0.1 ? 'up' : (t.avg_sentiment <= -0.1 ? 'down' : '');
-    const arrow = t.avg_sentiment >= 0.1 ? '▲' : (t.avg_sentiment <= -0.1 ? '▼' : '—');
-    const px = t.change_pct !== null && t.change_pct !== undefined ? ` ${fmtChg(t.change_pct)}` : '';
-    return `<span class="tape-item">${tickerLink(t.ticker, `<span class="sym">${t.ticker}</span>`)} <span class="${cls}">${arrow}${px}</span></span>`;
-  }).join('');
-  tapeEl.innerHTML = html + html;
-} else {
-  tapeEl.innerHTML = '<span class="tape-item">No trending tickers yet — run the tool to populate this.</span>';
-}
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal:not(.visible)').forEach(el => obs.observe(el));
 </script>
 
 </body>

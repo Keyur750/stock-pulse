@@ -1,12 +1,21 @@
 {
   "watchlist": [
-    "AMZN", "META", "NOW", "RDDT", "IONQ", "RGTI", "HTZ",
-    "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "PLTR", "AMD",
-    "QBTS", "QUBT", "SOFI", "COIN", "MSTR"
+    "META", "AMZN", "NOW", "NVDA", "RDDT", "NBIS", "SOFI", "IONQ", "PANW", "TEAM",
+    "INTC", "BA", "NKE", "SBUX", "PTON"
   ],
 
-  "trending_limit": 30,
-  "messages_per_symbol": 30,
+  "trending_limit": 0,
+  "messages_per_symbol": 60,
+
+  "flagship_tickers": [
+    "META", "AMZN", "NOW", "NVDA", "RDDT", "NBIS", "SOFI", "IONQ", "PANW", "TEAM",
+    "INTC", "BA", "NKE", "SBUX", "PTON"
+  ],
+
+  "reddit_subreddits": ["wallstreetbets", "stocks", "investing", "StockMarket"],
+  "reddit_post_limit": 75,
+  "reddit_comments_per_watchlist_post": 15,
+  "apewisdom_max_pages": 5,
 
   "news_feeds": {
     "Yahoo Finance": "https://finance.yahoo.com/news/rssindex",
@@ -16,5 +25,7 @@
   },
 
   "min_mentions_to_show": 2,
-  "history_days_to_keep": 30
+  "history_days_to_keep": 30,
+  "chart_history_period": "3mo",
+  "analyst_call_sleep_seconds": 7
 }

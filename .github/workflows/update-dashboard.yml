@@ -1,4 +1,4 @@
-name: Update Stock Pulse Dashboard
+name: Update Undertow Dashboard
 
 on:
   schedule:
@@ -26,13 +26,18 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run Stock Pulse
+      - name: Run Undertow
+        env:
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python main.py
 
       - name: Commit and push updated dashboard
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/index.html docs/.nojekyll data/history.json
+          git add docs/dashboard.html docs/.nojekyll data/history.json data/analyst_history.json
           git diff --staged --quiet || git commit -m "Update dashboard $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push

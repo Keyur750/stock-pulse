@@ -45,14 +45,31 @@ def fetch_trending_symbols(limit: int = 30):
     return [s["symbol"] for s in symbols if s.get("symbol")]
 
 
-def fetch_symbol_stream(symbol: str, limit: int = 30):
+def fetch_symbol_stream(symbol: str, limit: int = 30, page_sleep: float = 0.3):
     """Returns list of recent messages for a ticker symbol. Each message
     includes 'body' text and, when the author tagged it, 'entities.sentiment.basic'
-    ('Bullish' or 'Bearish')."""
-    data = _get(f"{BASE}/streams/symbol/{symbol}.json")
-    if not data:
-        return []
-    return data.get("messages", [])[:limit]
+    ('Bullish' or 'Bearish'). StockTwits caps each request at 30 messages, so
+    for limits above that we page backwards using the `max` param (return
+    messages older than a given message id) until we hit the limit or run
+    out of history."""
+    messages = []
+    max_id = None
+    while len(messages) < limit:
+        url = f"{BASE}/streams/symbol/{symbol}.json"
+        if max_id is not None:
+            url += f"?max={max_id}"
+        data = _get(url)
+        if not data:
+            break
+        batch = data.get("messages", [])
+        if not batch:
+            break
+        messages.extend(batch)
+        if len(batch) < 30:
+            break  # fewer than a full page means no more history
+        max_id = batch[-1]["id"] - 1
+        time.sleep(page_sleep)
+    return messages[:limit]
 
 
 def collect_all(watchlist: list, trending_limit: int = 30,
