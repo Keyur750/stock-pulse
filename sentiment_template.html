@@ -221,6 +221,10 @@
     width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
     font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
   }
+  .ticker-logo {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; object-fit: contain;
+    background: #fff; padding: 3px; box-sizing: border-box; vertical-align: middle;
+  }
   .sec-sym-cell { display: flex; align-items: center; gap: 10px; }
   .sec-sym-text { display: flex; flex-direction: column; gap: 1px; }
   .sec-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
@@ -784,8 +788,20 @@ function avatarColor(ticker) {
   for (let i = 0; i < ticker.length; i++) hash = (hash * 31 + ticker.charCodeAt(i)) >>> 0;
   return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
 }
+// Real company logos, cached locally by the batch pipeline (see logos.py)
+// — not hotlinked from a third party at page-view time. Falls back to the
+// colored-letter avatar for any ticker without a cached logo (a brand-new
+// addition to the watchlist before its first pipeline run, for example),
+// swapped in via onerror rather than ever showing a broken image.
+function handleLogoError(img, ticker) {
+  const span = document.createElement('span');
+  span.className = 'ticker-avatar';
+  span.style.background = avatarColor(ticker);
+  span.textContent = ticker.charAt(0);
+  img.replaceWith(span);
+}
 function avatarHtml(ticker) {
-  return `<span class="ticker-avatar" style="background:${avatarColor(ticker)}">${ticker.charAt(0)}</span>`;
+  return `<img class="ticker-logo" src="logos/${ticker}.png" alt="${ticker} logo" loading="lazy" onerror="handleLogoError(this,'${ticker}')">`;
 }
 
 function confidenceCellHtml(confidence) {

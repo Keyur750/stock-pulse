@@ -28,6 +28,7 @@ from sentiment import (
 from reddit import extract_tickers
 from market_data import fetch_quotes
 from fundamentals import fetch_fundamentals, score_fundamentals
+from logos import ensure_logo
 from wallstreet import fetch_analyst_data, score_wallstreet
 from market import fetch_market_data, score_market
 from trends import fetch_search_interest
@@ -684,8 +685,11 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     pillar_scores = {}
     fundamentals_data = {}
 
+    logo_results = {}
     for i, ticker in enumerate(flagship_tickers):
         print(f"  [analyst] analyzing {ticker} ({i + 1}/{len(flagship_tickers)})...")
+
+        logo_results[ticker] = ensure_logo(ticker)
 
         f = fetch_fundamentals(ticker)
         fscore = score_fundamentals(f) if f else None
@@ -739,6 +743,8 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
             time.sleep(sleep_seconds)
 
     print(f"  [analyst] {len(analyst_results)}/{len(flagship_tickers)} tickers analyzed successfully")
+    print(f"  [logos] {sum(logo_results.values())}/{len(logo_results)} tickers have a real cached logo "
+          f"(rest fall back to the letter avatar)")
     return analyst_results, pillar_scores, fundamentals_data
 
 
