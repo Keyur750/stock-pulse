@@ -44,6 +44,8 @@ DASHBOARD_PATH = os.path.join(ROOT, "docs", "dashboard.html")
 TEMPLATE_PATH = os.path.join(ROOT, "dashboard_template.html")
 SENTIMENT_PAGE_PATH = os.path.join(ROOT, "docs", "sentiment.html")
 SENTIMENT_TEMPLATE_PATH = os.path.join(ROOT, "sentiment_template.html")
+FUNDAMENTALS_PAGE_PATH = os.path.join(ROOT, "docs", "fundamentals.html")
+FUNDAMENTALS_TEMPLATE_PATH = os.path.join(ROOT, "fundamentals_template.html")
 
 
 def load_config():
@@ -667,13 +669,19 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     pipeline touches, since every AI call costs quota (and eventually
     money). Feeds the AI analyst real fundamentals, sentiment, Wall
     Street data, market context, and matched news — never empty
-    placeholders. Returns (analyst_results, pillar_scores): the latter
-    is computed independently of whether the AI call itself succeeds,
-    so the Divergence Engine always has real pillar numbers to compare
-    even on a day the LLM call fails for a ticker."""
+    placeholders. Returns (analyst_results, pillar_scores, fundamentals_data):
+    pillar_scores is computed independently of whether the AI call itself
+    succeeds, so the Divergence Engine always has real pillar numbers to
+    compare even on a day the LLM call fails for a ticker.
+    fundamentals_data carries the raw metrics + per-category coverage
+    that fundamentals.py already computes — previously this was fed to
+    the AI prompt and then discarded, leaving only a single blended
+    0-100 score reachable by the dashboard. The Fundamental Intelligence
+    page needs the real numbers, not just the score derived from them."""
     by_ticker = {r["ticker"]: r for r in ticker_results}
     analyst_results = {}
     pillar_scores = {}
+    fundamentals_data = {}
 
     for i, ticker in enumerate(flagship_tickers):
         print(f"  [analyst] analyzing {ticker} ({i + 1}/{len(flagship_tickers)})...")
@@ -695,6 +703,15 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
             "business": fscore.get("overall") if fscore else None,
             "market": mscore.get("overall") if mscore else None,
         }
+
+        if f:
+            fundamentals_data[ticker] = {
+                "name": f.get("name"),
+                "sector": f.get("sector"),
+                "metrics": {k: v for k, v in f.items() if k not in ("name", "sector")},
+                "coverage": fscore.get("coverage") if fscore else None,
+                "missing_categories": [k for k, v in (fscore.get("categories") or {}).items() if v is None] if fscore else [],
+            }
 
         q = quotes.get(ticker, {})
         period_chg, period_days = _period_change(hist)
@@ -721,7 +738,7 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
             time.sleep(sleep_seconds)
 
     print(f"  [analyst] {len(analyst_results)}/{len(flagship_tickers)} tickers analyzed successfully")
-    return analyst_results, pillar_scores
+    return analyst_results, pillar_scores, fundamentals_data
 
 
 def render_dashboard(payload):
@@ -742,6 +759,17 @@ def render_sentiment_page(payload):
     html = template.replace("/*__DATA__*/", json.dumps(payload, indent=2))
     os.makedirs(os.path.dirname(SENTIMENT_PAGE_PATH), exist_ok=True)
     with open(SENTIMENT_PAGE_PATH, "w", encoding="utf-8") as f:
+        f.write(html)
+
+
+def render_fundamentals_page(payload):
+    """Same pattern again — the Fundamental Intelligence page reads the
+    same payload's `fundamentals` key, no separate data source."""
+    with open(FUNDAMENTALS_TEMPLATE_PATH, encoding="utf-8") as f:
+        template = f.read()
+    html = template.replace("/*__DATA__*/", json.dumps(payload, indent=2))
+    os.makedirs(os.path.dirname(FUNDAMENTALS_PAGE_PATH), exist_ok=True)
+    with open(FUNDAMENTALS_PAGE_PATH, "w", encoding="utf-8") as f:
         f.write(html)
 
 
@@ -851,9 +879,10 @@ def main():
 
     analyst_results = {}
     pillar_scores = {}
+    fundamentals_data = {}
     if flagship_tickers:
         print(f"Running the 4-pillar engine + AI analyst on {len(flagship_tickers)} flagship tickers...")
-        analyst_results, pillar_scores = run_analyst_pipeline(
+        analyst_results, pillar_scores, fundamentals_data = run_analyst_pipeline(
             flagship_tickers, ticker_results, news_items, price_history, quotes,
             sleep_seconds=config.get("analyst_call_sleep_seconds", 7),
         )
@@ -884,11 +913,13 @@ def main():
         "sentiment_history": sentiment_history,
         "analyst": analyst_results,
         "pillar_scores": pillar_scores,
+        "fundamentals": fundamentals_data,
         "material_events": material_events,
         "company_news": company_news,
     }
     render_dashboard(payload)
     render_sentiment_page(payload)
+    render_fundamentals_page(payload)
 
     save_history(history, {
         "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),

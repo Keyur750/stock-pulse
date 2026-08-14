@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Undertow — Market Intelligence</title>
+<title>Fundamental Intelligence — Undertow</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B1626'/%3E%3Cpath d='M4,20 C8,11 12,11 16,17.5 C20,24 24,24 28,13' fill='none' stroke='%233B82F6' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -56,20 +56,13 @@
   .mono { font-family: 'JetBrains Mono', monospace; }
   a { color: inherit; }
   ::selection { background: var(--accent-soft); }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; } }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .bull-text { color: var(--bull); }
+  .bear-text { color: var(--bear); }
 
-  /* Ticker tape */
-  .tape-wrap { background: var(--bg-secondary); border-bottom: 1px solid var(--border); overflow: hidden; white-space: nowrap; padding: 8px 0; }
-  .tape { display: inline-block; padding-left: 100%; animation: scroll-left 55s linear infinite; }
-  .tape-wrap:hover .tape { animation-play-state: paused; }
-  @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-  .tape-item { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-right: 32px; letter-spacing: 0.2px; color: var(--text-secondary); }
-  .tape-item .sym { color: var(--text-primary); font-weight: 600; }
-  .tape-item .up { color: var(--bull); }
-  .tape-item .down { color: var(--bear); }
-  .ticker-link { text-decoration: none; cursor: pointer; }
-  .ticker-link:hover { color: var(--accent); }
-
-  /* Site nav */
+  /* Site nav — identical to the other pages */
   .site-nav-wrap { position: sticky; top: 0; z-index: 30; background: rgba(11,22,38,0.92); backdrop-filter: blur(14px) saturate(140%); border-bottom: 1px solid var(--border); }
   .site-nav { max-width: 1520px; margin: 0 auto; padding: 12px 28px; display: flex; align-items: center; gap: 28px; }
   .site-brand { display: flex; align-items: center; gap: 9px; text-decoration: none; flex-shrink: 0; }
@@ -79,203 +72,160 @@
   .site-nav-links a { font-size: 13px; font-weight: 500; color: var(--text-secondary); text-decoration: none; padding: 7px 12px; border-radius: var(--radius-sm); white-space: nowrap; transition: color .15s ease, background-color .15s ease; }
   .site-nav-links a:hover { color: var(--text-primary); background: var(--surface-2); }
   .site-nav-links a.active { color: var(--accent); background: var(--accent-dim); }
-  .site-nav-links a.has-signal::after { content: ''; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--amber); margin-left: 6px; vertical-align: middle; }
-  .nav-search { position: relative; width: 240px; flex-shrink: 0; }
-  .nav-search input {
-    width: 100%; background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-sm);
-    color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 13px; padding: 7px 12px 7px 30px;
-    outline: none; transition: border-color .15s ease, background-color .15s ease;
+  .nav-auth { flex-shrink: 0; }
+  .nav-auth-btn { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; padding: 7px 15px; border-radius: var(--radius-sm); border: 1px solid var(--accent-border); background: var(--accent-dim); color: var(--accent); cursor: pointer; transition: background-color .15s ease; }
+  .nav-auth-btn:hover { background: var(--accent-soft); }
+  .nav-user { display: flex; align-items: center; gap: 10px; }
+  .nav-user-email { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-logout-btn { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: var(--text-faint); background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 11px; cursor: pointer; }
+  .nav-logout-btn:hover { color: var(--text-primary); border-color: var(--border-hover); }
+
+  main { max-width: 1180px; margin: 0 auto; padding: 32px 28px 64px; }
+
+  .page-header { margin-bottom: 22px; }
+  .page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; margin: 0; }
+  .page-sub { color: var(--text-faint); font-size: 13px; margin: 5px 0 0; }
+  .coverage-strip {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint);
+    padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-md);
+    background: var(--surface-1); margin-top: 18px;
   }
-  .nav-search input::placeholder { color: var(--text-faint); }
-  .nav-search input:focus { border-color: var(--accent-border); background: var(--surface-2); }
-  .nav-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-faint); font-size: 13px; pointer-events: none; }
-  .nav-search-results { position: absolute; top: calc(100% + 6px); right: 0; width: 320px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-md); display: none; overflow: hidden; z-index: 40; }
-  .search-result { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background-color .12s ease; }
-  .search-result:last-child { border-bottom: none; }
-  .search-result:hover { background: var(--surface-3); }
-  .search-result-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
-  .search-result-meta { display: flex; align-items: center; gap: 10px; }
-  .search-result-score { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; }
-  .search-empty { padding: 14px; font-size: 12.5px; color: var(--text-faint); text-align: center; }
-  @media (max-width: 900px) { .nav-search { width: 160px; } .site-nav-links a:not(.active) { display: none; } }
+  .coverage-strip .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border-hover); flex-shrink: 0; }
+  .coverage-strip button.methodology-link {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); background: none; border: none;
+    cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 2px;
+  }
+  .methodology-panel {
+    display: none; margin-top: 8px; padding: 16px 18px; font-size: 12.5px; color: var(--text-secondary); line-height: 1.65;
+    border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-1);
+  }
+  .methodology-panel.open { display: block; }
+  .methodology-panel p { margin: 0 0 10px; }
+  .methodology-panel p:last-child { margin-bottom: 0; }
 
-  main { max-width: 1520px; margin: 0 auto; padding: 24px 28px 56px; }
+  /* At a Glance — real facts derived from the data, deliberately not a
+     score. Plain stat items, not cards; nothing here is an opinion. */
+  .glance-bar { display: flex; flex-wrap: wrap; gap: 30px; padding: 18px 20px; margin-top: 14px; border-radius: var(--radius-lg); border: 1px solid var(--border); background: var(--surface-1); }
+  .glance-stat { min-width: 130px; }
+  .glance-val { font-family: 'JetBrains Mono', monospace; font-size: 19px; font-weight: 700; }
+  .glance-val-sub { font-size: 12px; color: var(--text-faint); font-weight: 600; margin-left: 2px; }
+  .glance-label { font-size: 10.5px; color: var(--text-faint); margin-top: 4px; line-height: 1.4; max-width: 170px; }
 
-  section.block { margin-top: 36px; scroll-margin-top: 68px; }
-  .block-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; gap: 12px; }
+  section.block { margin-top: 34px; }
+  .block-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
   .block-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); }
-  .block-title.accent { color: var(--accent); }
-  .block-title.bull { color: var(--bull); }
-  .block-title.bear { color: var(--bear); }
   .block-sub { color: var(--text-faint); font-size: 12.5px; margin: 3px 0 14px; }
-  .empty-state { color: var(--text-faint); font-size: 13px; padding: 20px 0; text-align: center; border: 1px dashed var(--border); border-radius: var(--radius-md); }
+  .empty-state { color: var(--text-faint); font-size: 13px; padding: 22px 0; text-align: center; border: 1px dashed var(--border); border-radius: var(--radius-md); }
 
-  .surface { background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-sm); border-radius: var(--radius-lg); }
-  .surface-hover { transition: border-color .15s ease, background-color .15s ease; }
-  .surface-hover:hover { border-color: var(--border-hover); background: var(--surface-2); }
-
-  /* Market read hero */
-  .market-read { border-radius: var(--radius-lg); border: 1px solid var(--border); background: linear-gradient(160deg, var(--surface-2) 0%, var(--surface-1) 100%); padding: 22px 26px; }
-  .market-read-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
-  .market-read-line { font-size: 18px; font-weight: 600; line-height: 1.45; margin: 8px 0 0; max-width: 820px; color: var(--text-primary); }
-  .market-read-line strong { color: var(--accent); font-weight: 700; }
-  .market-read-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border-radius: var(--radius-md); overflow: hidden; margin-top: 20px; border: 1px solid var(--border); }
-  @media (max-width: 760px) { .market-read-stats { grid-template-columns: repeat(2, 1fr); } }
-  .stat-cell { background: var(--surface-1); padding: 14px 16px; }
-  .stat-value { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; line-height: 1; }
-  .stat-value.accent { color: var(--accent); }
-  .stat-value.bull { color: var(--bull); }
-  .stat-value.bear { color: var(--bear); }
-  .stat-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); font-weight: 600; margin-top: 6px; }
-  .stat-sub { font-size: 11px; color: var(--text-secondary); margin-top: 5px; }
-
-  /* Signal cards */
-  .signal-list { display: flex; flex-direction: column; gap: 8px; }
-  .signal-card { border-radius: var(--radius-lg); padding: 16px 18px; border: 1px solid var(--border); background: var(--surface-1); border-left: 3px solid var(--gray); transition: border-color .15s ease, background-color .15s ease; }
-  .signal-card:hover { background: var(--surface-2); }
-  .signal-card.up { border-left-color: var(--bull); }
-  .signal-card.down { border-left-color: var(--bear); }
-  .signal-card.warn { border-left-color: var(--amber); }
-  .signal-card.info { border-left-color: var(--accent); }
-  .signal-top-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .signal-chip { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 9px; border-radius: 5px; }
-  .signal-chip.up { background: var(--bull-soft); color: var(--bull); }
-  .signal-chip.down { background: var(--bear-soft); color: var(--bear); }
-  .signal-chip.warn { background: var(--amber-soft); color: var(--amber); }
-  .signal-chip.info { background: var(--accent-dim); color: var(--accent); }
-  .signal-ticker { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: var(--text-primary); }
-  .signal-headline { font-size: 14.5px; font-weight: 600; margin-top: 9px; line-height: 1.4; }
-  .signal-detail { font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; line-height: 1.55; max-width: 760px; }
-  .signal-pillars { display: flex; gap: 18px; margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--border); flex-wrap: wrap; }
-  .mini-pillar { display: flex; align-items: center; gap: 6px; }
-  .mini-pillar-label { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); font-weight: 600; }
-  .mini-pillar-val { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 700; }
-  .signal-footer { display: flex; justify-content: flex-end; margin-top: 10px; }
-  .signal-view-link { font-size: 12px; font-weight: 600; color: var(--accent); text-decoration: none; }
-  .signal-view-link:hover { text-decoration: underline; }
-
-  /* Leader panels */
-  .leader-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  @media (max-width: 800px) { .leader-grid { grid-template-columns: 1fr; } }
-  .leader-panel { border-radius: var(--radius-lg); padding: 18px 20px; }
-  .leader-panel.bull-panel { border-top: 2px solid var(--bull); }
-  .leader-panel.bear-panel { border-top: 2px solid var(--bear); }
-  .leader-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
-  .leader-row:last-child { border-bottom: none; }
-  .leader-rank { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint); width: 14px; }
-  .leader-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; width: 50px; color: var(--text-primary); }
-  .leader-price-col { font-family: 'JetBrains Mono', monospace; font-size: 11px; width: 72px; text-align: right; line-height: 1.3; }
-  .leader-price-col .px { color: var(--text-primary); display: block; }
-  .leader-price-col .chg { display: block; }
-  .leader-price-col .chg.up { color: var(--bull); }
-  .leader-price-col .chg.down { color: var(--bear); }
-  .leader-price-col .chg.na { color: var(--text-faint); }
-  .leader-bar-wrap { flex: 1; min-width: 60px; }
-  .leader-bar-track { height: 5px; background: var(--surface-3); border-radius: 3px; overflow: hidden; display: flex; }
-  .leader-bar-seg { height: 100%; }
-  .leader-bar-seg.bull-seg { background: var(--bull); }
-  .leader-bar-seg.bear-seg { background: var(--bear); }
-  .leader-bar-seg.neutral-seg { background: var(--gray); }
-  .leader-meta { font-size: 9.5px; color: var(--text-faint); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
-  .leader-mentions { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-secondary); width: 40px; text-align: right; cursor: default; }
-  .leader-delta { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; width: 42px; text-align: right; }
-  .leader-delta.up { color: var(--bull); }
-  .leader-delta.down { color: var(--bear); }
-  .leader-delta.flat { color: var(--text-faint); }
-  .split-legend { font-size: 10.5px; color: var(--text-faint); margin: 12px 2px 0; display: flex; gap: 14px; }
-  .split-legend .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; }
-  .split-legend .dot.bull { background: var(--bull); }
-  .split-legend .dot.bear { background: var(--bear); }
-  .split-legend .dot.neutral { background: var(--gray); }
-
-  /* Tables */
-  .table-card { border-radius: var(--radius-lg); padding: 4px 18px; overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); font-weight: 700; padding: 12px 8px 9px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-  td { padding: 10px 8px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
-  tr:last-child td { border-bottom: none; }
-  .ticker-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: var(--text-primary); }
-  .wl-badge { display: inline-block; font-size: 9px; color: var(--accent); border: 1px solid var(--accent-border); background: var(--accent-dim); border-radius: 4px; padding: 1px 4px; margin-left: 6px; vertical-align: middle; font-weight: 700; }
-  .label-pill { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 3px 9px; border-radius: 5px; }
-  .label-bullish { background: var(--bull-soft); color: var(--bull); }
-  .label-bearish { background: var(--bear-soft); color: var(--bear); }
-  .label-neutral { background: var(--gray-soft); color: var(--text-secondary); }
-  .price-cell .px { font-family: 'JetBrains Mono', monospace; }
-  .price-cell .chg { font-family: 'JetBrains Mono', monospace; font-size: 11px; margin-left: 6px; }
-  .price-cell .chg.up { color: var(--bull); }
-  .price-cell .chg.down { color: var(--bear); }
-  .price-cell .chg.na { color: var(--text-faint); }
-
-  /* Watchlist */
-  .watchlist-controls { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
-  .wl-filter-btn {
-    font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 6px 13px; border-radius: var(--radius-sm);
-    border: 1px solid var(--border); background: var(--surface-1); color: var(--text-secondary); cursor: pointer;
-    transition: color .15s ease, background-color .15s ease, border-color .15s ease;
+  .sec-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-1); }
+  table.sec-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 760px; }
+  .sec-table thead th {
+    position: sticky; top: 0; z-index: 2; background: var(--surface-2); text-align: left; font-weight: 600;
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint);
+    padding: 11px 14px; border-bottom: 1px solid var(--border); white-space: nowrap;
   }
-  .wl-filter-btn:hover { color: var(--text-primary); border-color: var(--border-hover); }
-  .wl-filter-btn.active { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
-  .watchlist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
-  .wl-card { border-radius: var(--radius-md); padding: 12px 14px; border: 1px solid var(--border); background: var(--surface-1); border-left: 3px solid var(--gray); }
-  .wl-card.has-bull { border-left-color: var(--bull); }
-  .wl-card.has-bear { border-left-color: var(--bear); }
-  .wl-card.no-data { opacity: 0.55; }
-  .wl-card-top { display: flex; justify-content: space-between; align-items: baseline; }
-  .wl-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
-  .wl-chg { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
-  .wl-chg.up { color: var(--bull); }
-  .wl-chg.down { color: var(--bear); }
-  .wl-chg.na { color: var(--text-faint); }
-  .wl-label { font-size: 10.5px; margin-top: 7px; cursor: default; font-weight: 600; }
-  .wl-label.bull-text { color: var(--bull); }
-  .wl-label.bear-text { color: var(--bear); }
-  .wl-label.muted-text { color: var(--text-faint); }
+  .sec-table th.sortable { cursor: pointer; user-select: none; transition: color .12s ease; }
+  .sec-table th.sortable:hover { color: var(--text-secondary); }
+  .sec-table th.sortable .sort-arrow { display: inline-block; margin-left: 3px; opacity: 0.4; }
+  .sec-table th.sortable.active-sort { color: var(--accent); }
+  .sec-table th.sortable.active-sort .sort-arrow { opacity: 1; }
+  .sec-table td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
+  .sec-table tbody tr.sec-row:last-child > td { border-bottom: none; }
+  .sec-table th:first-child, .sec-table td:first-child { position: sticky; left: 0; background: var(--surface-1); z-index: 1; font-family: 'Inter', sans-serif; }
+  .sec-table thead th:first-child { background: var(--surface-2); z-index: 3; }
+  .sec-row { cursor: pointer; transition: background-color .12s ease; }
+  .sec-row:hover { background: var(--surface-2); }
+  .sec-row:hover td:first-child { background: var(--surface-2); }
+  .sec-row.selected { background: var(--accent-dim); }
+  .sec-row.selected td:first-child { background: var(--accent-dim); }
+  .sec-row.selected .sec-sym { color: var(--accent); }
 
-  /* News */
-  .news-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; }
-  @media (max-width: 800px) { .news-grid { grid-template-columns: 1fr; } }
-  .news-item { padding: 12px 0; border-bottom: 1px solid var(--border); }
-  .news-source-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-  .news-source { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; font-weight: 700; }
-  .news-title { font-size: 12.5px; margin: 5px 0 0; line-height: 1.45; color: var(--text-secondary); }
-  .news-title a { text-decoration: none; color: var(--text-secondary); }
-  .news-title a:hover { color: var(--accent); }
-  .news-item-ticker { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 11px; color: var(--accent); }
-  .news-importance { display: inline-flex; gap: 2px; vertical-align: middle; margin-left: 4px; }
-  .imp-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--border); }
-  .imp-dot.filled { background: var(--amber); }
+  .sec-sym-cell { display: flex; flex-direction: column; gap: 1px; }
+  .sec-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
+  .sec-subtext { font-size: 10px; color: var(--text-faint); }
+  .sec-subtext.gap { color: var(--amber); }
+  .sec-price-cell { }
+  .sec-price-chg { font-size: 11px; margin-top: 1px; }
+  .sec-price-chg.up { color: var(--bull); }
+  .sec-price-chg.down { color: var(--bear); }
+  .sec-price-chg.na { color: var(--text-faint); }
+  .sec-spark-cell { width: 76px; }
+  .col-earn, .col-fcf, .col-de { }
+  @media (max-width: 720px) {
+    .col-earn, .col-fcf, .col-de { display: none; }
+  }
 
-  .material-events-list { display: flex; flex-direction: column; gap: 6px; }
-  .material-event-row { display: flex; align-items: center; gap: 14px; padding: 11px 16px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface-1); flex-wrap: wrap; }
-  .material-event-date { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-faint); flex-shrink: 0; width: 72px; }
-  .material-event-labels { font-size: 12.5px; color: var(--text-secondary); flex: 1; min-width: 160px; }
-  .material-event-link { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--accent); text-decoration: none; font-weight: 700; white-space: nowrap; }
-  .material-event-link:hover { text-decoration: underline; }
+  /* Detail pane — expands inline, same interaction as Sentiment Intelligence */
+  .detail-row td { padding: 0; border-bottom: 1px solid var(--border); background: var(--bg-secondary); }
+  .detail-pane { padding: 0; max-height: 0; overflow: hidden; opacity: 0; transition: max-height .28s ease, opacity .22s ease; }
+  .detail-pane.open { max-height: 2000px; opacity: 1; padding: 20px 22px 24px; }
+  .detail-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 30px; }
+  @media (max-width: 780px) { .detail-grid { grid-template-columns: 1fr; } }
+
+  .fund-category { margin-bottom: 18px; }
+  .fund-category:last-child { margin-bottom: 0; }
+  .fund-category-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 8px; }
+  .fund-metric-row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+  .fund-metric-row:last-child { border-bottom: none; }
+  .fund-metric-name { font-size: 12.5px; color: var(--text-secondary); }
+  .fund-metric-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; white-space: nowrap; }
+
+  .detail-narrative-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--accent); margin-bottom: 7px; display: block; }
+  .detail-narrative { font-size: 13.5px; line-height: 1.6; color: var(--text-primary); }
+  .evidence-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--accent); margin-bottom: 9px; display: block; margin-top: 20px; }
+  .events-list { display: flex; flex-direction: column; gap: 8px; }
+  .event-item { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 12px; background: var(--surface-1); font-size: 12px; }
+  .event-date { font-family: 'JetBrains Mono', monospace; color: var(--text-faint); font-size: 10.5px; }
+  .event-title { color: var(--text-secondary); margin-top: 3px; line-height: 1.5; }
+  .event-title a { color: var(--accent); text-decoration: none; }
+  .event-title a:hover { text-decoration: underline; }
+  .events-empty { font-size: 12px; color: var(--text-faint); }
+
+  .detail-context { font-size: 12px; color: var(--text-faint); margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); line-height: 1.6; }
+  .detail-actions { margin-top: 16px; display: flex; gap: 10px; }
+  .detail-btn { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: var(--text-primary); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 13px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .detail-btn:hover { border-color: var(--border-hover); background: var(--surface-3); }
 
   footer { text-align: center; padding: 30px 28px; color: var(--text-faint); font-size: 10.5px; font-family: 'JetBrains Mono', monospace; border-top: 1px solid var(--border); margin-top: 20px; }
   .footer-links { display: flex; justify-content: center; gap: 18px; margin-bottom: 12px; }
   .footer-links a { color: var(--text-secondary); text-decoration: none; font-size: 11px; }
   .footer-links a:hover { color: var(--accent); }
 
-  .leader-spark { width: 56px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-  .table-spark, .wl-spark { display: block; }
-  .wl-spark { margin-top: 8px; }
-  .spark-empty { font-size: 9px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
+  /* Auth modal — identical to the other pages */
+  .auth-modal-backdrop { position: fixed; inset: 0; background: rgba(4,8,16,0.7); backdrop-filter: blur(6px); z-index: 110; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .auth-modal-card { position: relative; width: 100%; max-width: 380px; border-radius: var(--radius-lg); padding: 28px 26px; background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-md); }
+  .auth-modal-close { position: absolute; top: 14px; right: 14px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-secondary); font-size: 16px; cursor: pointer; line-height: 1; }
+  .auth-modal-close:hover { color: var(--text-primary); background: var(--surface-3); }
+  .auth-modal-title { font-size: 17px; font-weight: 800; margin: 0 0 4px; }
+  .auth-modal-sub { font-size: 12px; color: var(--text-faint); margin: 0 0 20px; }
+  .auth-tabs { display: flex; gap: 6px; margin-bottom: 18px; background: var(--surface-2); padding: 4px; border-radius: var(--radius-md); }
+  .auth-tab-btn { flex: 1; background: transparent; border: none; color: var(--text-secondary); font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; padding: 7px; border-radius: 7px; cursor: pointer; }
+  .auth-tab-btn.active { background: var(--accent); color: #fff; }
+  .google-oauth-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: var(--text-primary); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 9px; cursor: pointer; transition: border-color .15s ease, background-color .15s ease; }
+  .google-oauth-btn:hover { border-color: var(--border-hover); background: var(--surface-3); }
+  .auth-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--text-faint); font-size: 11px; }
+  .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .auth-form { display: none; flex-direction: column; gap: 11px; }
+  .auth-form.active { display: flex; }
+  .auth-field { display: flex; flex-direction: column; gap: 5px; }
+  .auth-field label { font-size: 11.5px; color: var(--text-secondary); font-weight: 600; }
+  .auth-field input { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 13.5px; padding: 9px 11px; outline: none; }
+  .auth-field input:focus { border-color: var(--accent-border); }
+  .auth-submit-btn { margin-top: 4px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-md); font-size: 13.5px; font-weight: 700; padding: 10px; cursor: pointer; }
+  .auth-submit-btn:hover { filter: brightness(1.1); }
+  .auth-message { font-size: 12px; padding: 9px 11px; border-radius: var(--radius-sm); margin-top: 12px; line-height: 1.5; display: none; }
+  .auth-message.show { display: block; }
+  .auth-message.success, .auth-message.info { background: var(--accent-dim); color: var(--accent); }
+  .auth-message.error { background: var(--bear-soft); color: var(--bear); }
 
-  /* Chart modal */
+  /* Chart modal — identical to the other pages */
   .chart-modal-backdrop { position: fixed; inset: 0; background: rgba(4,8,16,0.7); backdrop-filter: blur(6px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
   .chart-modal-card { position: relative; width: 100%; max-width: 740px; max-height: 88vh; overflow-y: auto; border-radius: var(--radius-lg); padding: 24px 26px 20px; background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-md); }
   .chart-modal-close { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-secondary); font-size: 17px; cursor: pointer; line-height: 1; transition: color .15s ease, background-color .15s ease; }
   .chart-modal-close:hover { color: var(--text-primary); background: var(--surface-3); }
   .chart-modal-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-right: 30px; }
   .chart-modal-sym { font-size: 21px; font-weight: 700; letter-spacing: -0.01em; }
-  .chart-modal-sym-row { display: flex; align-items: center; gap: 9px; }
-  .cm-watchlist-star {
-    background: none; border: none; cursor: pointer; padding: 0; line-height: 1;
-    font-size: 20px; color: var(--text-faint); transition: color .15s ease, transform .1s ease;
-  }
-  .cm-watchlist-star:hover { color: var(--amber); transform: scale(1.12); }
-  .cm-watchlist-star.active { color: var(--amber); }
   .chart-modal-meta { font-size: 11.5px; color: var(--text-faint); margin-top: 5px; max-width: 380px; }
   .chart-modal-price { text-align: right; flex-shrink: 0; }
   .chart-modal-px { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; }
@@ -297,9 +247,6 @@
   .chart-modal-footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
   .chart-modal-footer a:hover { text-decoration: underline; }
   body.modal-open { overflow: hidden; }
-
-  /* Four-pillar row */
-  .pillar-row { margin-top: 20px; }
   .pillar-divergence-badge { display: inline-flex; align-items: center; gap: 7px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .02em; padding: 6px 13px; border-radius: var(--radius-sm); margin-bottom: 14px; }
   .pillar-divergence-badge.up { background: var(--bull-soft); color: var(--bull); border: 1px solid var(--bull-border); }
   .pillar-divergence-badge.down { background: var(--bear-soft); color: var(--bear); border: 1px solid var(--bear-border); }
@@ -312,9 +259,7 @@
   .pillar-dial circle { transition: stroke-dasharray .6s ease; }
   .pillar-dial text { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px; fill: var(--text-primary); }
   .pillar-dial-label { font-size: 9.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); margin-top: 8px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
-  .pillar-read { font-size: 10.5px; color: var(--text-secondary); margin-top: 7px; line-height: 1.45; }
-
-  /* AI analyst section */
+  .pillar-read { font-size: 10.5px; color: var(--text-secondary); margin-top: 7px; line-height: 1.4; }
   .cm-ai { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); }
   .cm-ai-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
   .cm-ai-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: var(--accent-dim); border: 1px solid var(--accent-border); padding: 3px 9px; border-radius: var(--radius-sm); font-weight: 700; }
@@ -337,111 +282,9 @@
   .cm-ai-col li { font-size: 12px; color: var(--text-secondary); line-height: 1.55; margin-bottom: 6px; }
   .cm-ai-disclaimer { font-size: 10.5px; color: var(--text-faint); margin-top: 4px; }
   .cm-ai-empty { font-size: 12px; color: var(--text-faint); margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
-
-  /* Auth — contextual, never blocking. A guest sees the exact same
-     dashboard as before; this only changes what the nav and the new
-     "My Watchlist" section show. */
-  .nav-auth { flex-shrink: 0; }
-  .nav-auth-btn {
-    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; padding: 7px 15px; border-radius: var(--radius-sm);
-    border: 1px solid var(--accent-border); background: var(--accent-dim); color: var(--accent); cursor: pointer;
-    transition: background-color .15s ease;
-  }
-  .nav-auth-btn:hover { background: var(--accent-soft); }
-  .nav-user { display: flex; align-items: center; gap: 10px; }
-  .nav-user-email { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .nav-logout-btn { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: var(--text-faint); background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 11px; cursor: pointer; }
-  .nav-logout-btn:hover { color: var(--text-primary); border-color: var(--border-hover); }
-
-  .auth-modal-backdrop { position: fixed; inset: 0; background: rgba(4,8,16,0.7); backdrop-filter: blur(6px); z-index: 110; display: none; align-items: center; justify-content: center; padding: 20px; }
-  .auth-modal-card { position: relative; width: 100%; max-width: 380px; border-radius: var(--radius-lg); padding: 28px 26px; background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-md); }
-  .auth-modal-close { position: absolute; top: 14px; right: 14px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-secondary); font-size: 16px; cursor: pointer; line-height: 1; }
-  .auth-modal-close:hover { color: var(--text-primary); background: var(--surface-3); }
-  .auth-modal-title { font-size: 17px; font-weight: 800; margin: 0 0 4px; }
-  .auth-modal-sub { font-size: 12px; color: var(--text-faint); margin: 0 0 20px; }
-  .auth-tabs { display: flex; gap: 6px; margin-bottom: 18px; background: var(--surface-2); padding: 4px; border-radius: var(--radius-md); }
-  .auth-tab-btn { flex: 1; background: transparent; border: none; color: var(--text-secondary); font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; padding: 7px; border-radius: 7px; cursor: pointer; }
-  .auth-tab-btn.active { background: var(--accent); color: #fff; }
-  .google-oauth-btn {
-    width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px;
-    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: var(--text-primary);
-    background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md);
-    padding: 9px; cursor: pointer; transition: border-color .15s ease, background-color .15s ease;
-  }
-  .google-oauth-btn:hover { border-color: var(--border-hover); background: var(--surface-3); }
-  .auth-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--text-faint); font-size: 11px; }
-  .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-  .auth-form { display: none; flex-direction: column; gap: 11px; }
-  .auth-form.active { display: flex; }
-  .auth-field { display: flex; flex-direction: column; gap: 5px; }
-  .auth-field label { font-size: 11.5px; color: var(--text-secondary); font-weight: 600; }
-  .auth-field input {
-    width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md);
-    color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 13.5px; padding: 9px 11px; outline: none;
-  }
-  .auth-field input:focus { border-color: var(--accent-border); }
-  .auth-submit-btn { margin-top: 4px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-md); font-size: 13.5px; font-weight: 700; padding: 10px; cursor: pointer; }
-  .auth-submit-btn:hover { filter: brightness(1.1); }
-  .auth-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-  .auth-message { font-size: 12px; padding: 9px 11px; border-radius: var(--radius-sm); margin-top: 12px; line-height: 1.5; display: none; }
-  .auth-message.show { display: block; }
-  .auth-message.success, .auth-message.info { background: var(--accent-dim); color: var(--accent); }
-  .auth-message.error { background: var(--bear-soft); color: var(--bear); }
-
-  /* My Watchlist — a personal pick from the 15 flagship tickers,
-     distinct from "Flagship Coverage" below it (everything Undertow
-     tracks, unchanged, no login needed). */
-  /* Two-column layout: sticky watchlist sidebar + main content column */
-  .page-layout { display: grid; grid-template-columns: 296px 1fr; align-items: start; gap: 28px; }
-  .sidebar { position: sticky; top: 78px; }
-  .main-col { min-width: 0; }
-  @media (max-width: 1080px) {
-    .page-layout { display: block; }
-    .sidebar { position: static; margin-bottom: 32px; }
-  }
-
-  .sidebar-card { border-radius: var(--radius-lg); border: 1px solid var(--border); background: linear-gradient(165deg, var(--surface-2) 0%, var(--surface-1) 65%); box-shadow: var(--shadow-sm); overflow: hidden; }
-  .sidebar-card-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--border); }
-  .sidebar-title { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); }
-  .sidebar-count { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-dim); border: 1px solid var(--accent-border); border-radius: 999px; padding: 2px 9px; }
-
-  .sidebar-login { padding: 24px 18px; text-align: center; }
-  .sidebar-login p { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 14px; line-height: 1.55; }
-
-  .sidebar-empty { padding: 30px 18px; text-align: center; color: var(--text-faint); font-size: 12px; line-height: 1.65; }
-
-  .watchlist-rows { display: flex; flex-direction: column; }
-  .watchlist-row {
-    position: relative; display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 10px;
-    padding: 11px 18px; border-bottom: 1px solid var(--border); border-left: 2px solid transparent;
-    cursor: pointer; transition: background-color .15s ease, border-left-color .15s ease;
-  }
-  .watchlist-row:last-child { border-bottom: none; }
-  .watchlist-row:hover { background: var(--surface-2); }
-  .watchlist-row.up { border-left-color: var(--bull); }
-  .watchlist-row.down { border-left-color: var(--bear); }
-  .watchlist-row-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12px; }
-  .watchlist-row-spark { height: 22px; }
-  .watchlist-row-right { position: relative; min-width: 56px; }
-  .watchlist-row-price-wrap { text-align: right; transition: opacity .12s ease; }
-  .watchlist-row-price { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; }
-  .watchlist-row-chg { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; margin-top: 2px; }
-  .watchlist-row-chg.up { color: var(--bull); }
-  .watchlist-row-chg.down { color: var(--bear); }
-  .watchlist-row-chg.na { color: var(--text-faint); }
-  .watchlist-row-remove {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-end;
-    background: none; border: none; color: var(--text-faint); font-size: 17px; cursor: pointer;
-    opacity: 0; pointer-events: none; transition: opacity .12s ease, color .12s ease;
-  }
-  .watchlist-row:hover .watchlist-row-price-wrap { opacity: 0; }
-  .watchlist-row:hover .watchlist-row-remove { opacity: 1; pointer-events: auto; }
-  .watchlist-row-remove:hover { color: var(--bear); }
 </style>
 </head>
 <body>
-
-<div class="tape-wrap"><div class="tape" id="tape"></div></div>
 
 <div class="site-nav-wrap">
   <nav class="site-nav">
@@ -453,119 +296,60 @@
       </div>
       <span class="site-brand-word">UNDERTOW</span>
     </a>
-    <div class="site-nav-links" id="quicknav">
-      <a href="#signals-block" id="nav-signals">Signals</a>
-      <a href="#leaders">Leaders</a>
-      <a href="#discussed">Discussed</a>
-      <a href="#watchlist">Watchlist</a>
-      <a href="#news">Events</a>
-      <a href="#company-news">Company News</a>
-      <a href="#market-news">Market News</a>
+    <div class="site-nav-links">
+      <a href="dashboard.html">Dashboard</a>
       <a href="sentiment.html">Sentiment Intelligence</a>
-      <a href="fundamentals.html">Fundamental Intelligence</a>
-    </div>
-    <div class="nav-search">
-      <span class="nav-search-icon">⌕</span>
-      <input type="text" id="nav-search-input" placeholder="Search ticker or company..." autocomplete="off">
-      <div class="nav-search-results" id="nav-search-results"></div>
+      <a href="fundamentals.html" class="active" aria-current="page">Fundamental Intelligence</a>
     </div>
     <div class="nav-auth" id="nav-auth"></div>
   </nav>
 </div>
 
 <main>
-<div class="page-layout">
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-card">
-      <div class="sidebar-card-header">
-        <span class="sidebar-title">My Watchlist</span>
-        <span class="sidebar-count" id="sidebar-watchlist-count" style="display:none;">0</span>
-      </div>
-      <div class="sidebar-login" id="watchlist-login-prompt" style="display:none;">
-        <p>Log in to build your own watchlist from the tickers we cover.</p>
-        <button class="nav-auth-btn" id="watchlist-login-btn" type="button">Log in</button>
-      </div>
-      <div class="watchlist-rows" id="my-watchlist-grid" style="display:none;"></div>
+  <div class="page-header">
+    <h1 class="page-title">Fundamental Intelligence</h1>
+    <p class="page-sub">Real financial metrics across the securities we cover — revenue, earnings, margins, cash flow, debt, and valuation, as reported.</p>
+    <div class="coverage-strip">
+      <span id="coverage-count"></span>
+      <span class="dot"></span>
+      <span id="coverage-updated"></span>
+      <span class="dot"></span>
+      <button class="methodology-link" id="methodology-toggle" type="button" aria-expanded="false" aria-controls="methodology-panel">Methodology</button>
     </div>
-  </aside>
-
-  <div class="main-col">
-  <section class="block" style="margin-top:0;">
-    <div class="market-read">
-      <div class="market-read-eyebrow">Today's Market Read</div>
-      <p class="market-read-line" id="hero-line"></p>
-      <div class="market-read-stats" id="kpi-row"></div>
+    <div class="methodology-panel" id="methodology-panel">
+      <p>Every figure on this page is a real reported financial metric pulled from free structured data (yfinance) — revenue growth, earnings growth, margins, return on equity, free cash flow, debt, and valuation multiples. Nothing here is a synthesized score. Metrics are grouped into five categories (Growth, Profitability, Cash Flow, Balance Sheet, Valuation) purely to organize the numbers — the categories don't collapse into a single rating.</p>
+      <p>Not every company reports every metric cleanly — free cash flow in particular isn't always available for financial companies. When a metric is unavailable, it's shown as "—", not estimated or filled in. Data coverage (how many of the 5 categories have real data) is shown per company.</p>
+      <p>This is not financial advice. Figures reflect the most recently reported data available via the data source and may lag actual filings.</p>
     </div>
-  </section>
+  </div>
 
-  <section class="block" id="signals-block">
+  <div class="glance-bar" id="glance-bar"></div>
+
+  <section class="block">
     <div class="block-header">
-      <span class="block-title accent">Market Intelligence Feed</span>
-      <span class="timestamp mono" id="timestamp" style="font-size:11px;color:var(--text-faint);"></span>
+      <span class="block-title">Financial Metrics</span>
     </div>
-    <p class="block-sub">Where the crowd, Wall Street, the business, and the market agree — or don't</p>
-    <div class="signal-list" id="signal-list"></div>
-    <div id="signals-empty" class="empty-state" style="display:none;">No notable divergences or volume spikes today.</div>
-  </section>
-
-  <section class="block" id="leaders">
-    <div class="leader-grid">
-      <div class="leader-panel bull-panel surface">
-        <div class="block-header"><span class="block-title bull">Bullish Leaders</span></div>
-        <p class="block-sub">Highest net-positive sentiment</p>
-        <div id="bullish-rows"></div>
-        <div id="bullish-empty" class="empty-state" style="display:none;">No tickers cleared the bullish threshold today.</div>
-      </div>
-      <div class="leader-panel bear-panel surface">
-        <div class="block-header"><span class="block-title bear">Bearish Leaders</span></div>
-        <p class="block-sub">Highest net-negative sentiment</p>
-        <div id="bearish-rows"></div>
-        <div id="bearish-empty" class="empty-state" style="display:none;">No tickers cleared the bearish threshold today.</div>
-      </div>
-    </div>
-    <p class="split-legend"><span><span class="dot bull"></span>bullish share</span><span><span class="dot neutral"></span>neutral</span><span><span class="dot bear"></span>bearish share</span></p>
-  </section>
-
-  <section class="block" id="discussed">
-    <div class="block-header"><span class="block-title accent">Most Discussed</span></div>
-    <p class="block-sub">Ranked by message volume regardless of direction — where the chatter is loudest</p>
-    <div class="table-card surface">
-      <table>
-        <thead><tr><th>Ticker</th><th>Price</th><th>Trend</th><th>Mentions</th><th>Bull / Bear Split</th><th>Overall</th></tr></thead>
-        <tbody id="discussed-body"></tbody>
+    <p class="block-sub" id="securities-sub"></p>
+    <div class="sec-table-wrap">
+      <table class="sec-table" id="sec-table">
+        <caption class="sr-only">Financial metrics by security, sortable by column, select a row for the full detail</caption>
+        <thead>
+          <tr>
+            <th scope="col" class="sortable" data-sort="ticker" tabindex="0" role="button" aria-label="Sort by ticker">Security <span class="sort-arrow">↓</span></th>
+            <th scope="col" class="sortable" data-sort="revenue_growth" tabindex="0" role="button" aria-label="Sort by revenue growth">Revenue Growth <span class="sort-arrow">↓</span></th>
+            <th scope="col" class="sortable col-earn" data-sort="earnings_growth" tabindex="0" role="button" aria-label="Sort by earnings growth">Earnings Growth <span class="sort-arrow">↓</span></th>
+            <th scope="col" class="sortable" data-sort="profit_margin" tabindex="0" role="button" aria-label="Sort by net margin">Net Margin <span class="sort-arrow">↓</span></th>
+            <th scope="col" class="sortable col-fcf" data-sort="fcf_margin" tabindex="0" role="button" aria-label="Sort by FCF margin">FCF Margin <span class="sort-arrow">↓</span></th>
+            <th scope="col" class="sortable col-de" data-sort="debt_to_equity" tabindex="0" role="button" aria-label="Sort by debt to equity">Debt/Equity <span class="sort-arrow">↓</span></th>
+            <th scope="col" class="sortable" data-sort="forward_pe" tabindex="0" role="button" aria-label="Sort by forward P/E">Fwd P/E <span class="sort-arrow">↓</span></th>
+            <th scope="col" class="sortable" data-sort="price" tabindex="0" role="button" aria-label="Sort by price">Price <span class="sort-arrow">↓</span></th>
+            <th scope="col">7-Day</th>
+          </tr>
+        </thead>
+        <tbody id="sec-table-body"></tbody>
       </table>
     </div>
-    <div id="discussed-empty" class="empty-state" style="display:none;">Nothing met the mention threshold today.</div>
   </section>
-
-  <section class="block" id="watchlist">
-    <div class="block-header"><span class="block-title accent">Flagship Coverage</span></div>
-    <p class="block-sub">Every ticker you're tracking, whether or not it made noise today</p>
-    <div class="watchlist-controls" id="watchlist-controls"></div>
-    <div class="watchlist-grid" id="watchlist-grid"></div>
-  </section>
-
-  <section class="block" id="news">
-    <div class="block-header"><span class="block-title accent">Material Events</span></div>
-    <p class="block-sub">SEC 8-K filings — legally required disclosures, not a guess at what's important</p>
-    <div class="material-events-list" id="material-events-list"></div>
-    <div id="material-events-empty" class="empty-state" style="display:none;">No 8-K filings in the last few days.</div>
-  </section>
-
-  <section class="block" id="company-news">
-    <div class="block-header"><span class="block-title accent">Company News</span></div>
-    <p class="block-sub">Per-company headlines, filtered and ranked by importance — not generic advice or listicles</p>
-    <div class="news-grid" id="company-news-grid"></div>
-    <div id="company-news-empty" class="empty-state" style="display:none;">No ranked company news yet.</div>
-  </section>
-
-  <section class="block" id="market-news">
-    <div class="block-header"><span class="block-title accent">Market News</span></div>
-    <p class="block-sub">Broad headlines from your configured feeds — ambient context, not ranked against company news</p>
-    <div class="news-grid" id="news-list"></div>
-  </section>
-  </div>
-</div>
 </main>
 
 <div class="chart-modal-backdrop" id="chart-modal">
@@ -573,10 +357,7 @@
     <button class="chart-modal-close" id="chart-modal-close" aria-label="Close chart">&times;</button>
     <div class="chart-modal-header">
       <div>
-        <div class="chart-modal-sym-row">
-          <span class="chart-modal-sym" id="cm-sym"></span>
-          <button class="cm-watchlist-star" id="cm-watchlist-star" type="button" aria-label="Add to watchlist" title="Add to watchlist">☆</button>
-        </div>
+        <div class="chart-modal-sym" id="cm-sym"></div>
         <div class="chart-modal-meta" id="cm-meta"></div>
       </div>
       <div class="chart-modal-price">
@@ -655,7 +436,7 @@
     <a href="about.html">About</a>
     <a href="careers.html">Careers</a>
   </div>
-  Generated locally &middot; Sentiment reflects retail chatter, not financial advice &middot; Prices via Yahoo Finance, may be delayed
+  Generated locally &middot; Fundamentals reflect the most recent reported data available, not financial advice &middot; Prices via Yahoo Finance, may be delayed
 </footer>
 
 <script>
@@ -8391,47 +8172,49 @@ const DATA = {
   }
 };
 
-document.getElementById('timestamp').textContent = 'Updated ' + DATA.generated_at;
-
 function tickerUrl(sym) { return `https://finance.yahoo.com/quote/${encodeURIComponent(sym)}`; }
-function tickerLink(sym, innerHtml) {
-  return `<a class="ticker-link" href="#" data-ticker="${sym}" title="View ${sym} chart">${innerHtml}</a>`;
+function chgClass(chg) { if (chg === null || chg === undefined) return 'na'; return chg >= 0 ? 'up' : 'down'; }
+function fmtChg(chg) { if (chg === null || chg === undefined) return '—'; const sign = chg >= 0 ? '+' : ''; return `${sign}${chg.toFixed(2)}%`; }
+function fmtPrice(px) { if (px === null || px === undefined) return '—'; return `$${px.toFixed(2)}`; }
+function scoreClass(score) { if (score >= 65) return 'up'; if (score <= 40) return 'down'; return 'na'; }
+
+// Fundamentals-specific formatters — precision matched to what's
+// actually decision-useful (one decimal, not five), never inventing a
+// unit that isn't there.
+function fmtPct(v, signed) {
+  if (v === null || v === undefined) return '—';
+  const pct = v * 100;
+  const sign = signed && pct >= 0 ? '+' : '';
+  return `${sign}${pct.toFixed(1)}%`;
 }
-function labelClass(label) {
-  if (label.includes('Bullish')) return 'label-bullish';
-  if (label.includes('Bearish')) return 'label-bearish';
-  return 'label-neutral';
+function fmtMoney(v) {
+  if (v === null || v === undefined) return '—';
+  const sign = v < 0 ? '-' : '';
+  const abs = Math.abs(v);
+  if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(1)}B`;
+  if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(1)}M`;
+  if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(1)}K`;
+  return `${sign}$${abs.toFixed(0)}`;
 }
-function chgClass(chg) {
-  if (chg === null || chg === undefined) return 'na';
-  return chg >= 0 ? 'up' : 'down';
+function fmtRatio(v, digits) {
+  if (v === null || v === undefined) return '—';
+  return `${v.toFixed(digits === undefined ? 1 : digits)}x`;
 }
-function fmtChg(chg) {
-  if (chg === null || chg === undefined) return '—';
-  const sign = chg >= 0 ? '+' : '';
-  return `${sign}${chg.toFixed(2)}%`;
+// yfinance reports debt/equity already scaled as a percent-like number
+// (100 == debt equal to equity) — divide by 100 for a true "x" multiple,
+// consistent with how every other ratio on this page is expressed.
+function fmtDebtEquity(v) {
+  if (v === null || v === undefined) return '—';
+  return `${(v / 100).toFixed(2)}x`;
 }
-function importanceDots(n) {
-  return Array.from({ length: 5 }, (_, i) =>
-    `<span class="imp-dot${i < n ? ' filled' : ''}"></span>`
-  ).join('');
-}
-function fmtPrice(px) {
-  if (px === null || px === undefined) return '—';
-  return `$${px.toFixed(2)}`;
-}
-function deltaHtml(delta) {
-  if (delta === null || delta === undefined) return '<span class="leader-delta flat">new</span>';
-  if (delta > 0.03) return `<span class="leader-delta up">▲${delta.toFixed(2)}</span>`;
-  if (delta < -0.03) return `<span class="leader-delta down">▼${Math.abs(delta).toFixed(2)}</span>`;
-  return '<span class="leader-delta flat">flat</span>';
+function signClass(v) {
+  if (v === null || v === undefined) return '';
+  return v >= 0 ? 'bull-text' : 'bear-text';
 }
 
-// Self-hosted charts, built straight from price_history — no external
-// chart embed, no round-trip to Yahoo Finance just to see a trend.
 function sparklineSvg(history, cls, width, height) {
   width = width || 60; height = height || 24;
-  if (!history || history.length < 2) return `<span class="spark-empty">${cls === 'wl-spark' ? '' : '—'}</span>`;
+  if (!history || history.length < 2) return `<span class="spark-empty" style="color:var(--text-faint);font-size:11px;">—</span>`;
   const closes = history.map(h => h.close);
   const min = Math.min(...closes), max = Math.max(...closes);
   const range = (max - min) || (max * 0.01) || 1;
@@ -8442,13 +8225,9 @@ function sparklineSvg(history, cls, width, height) {
     `<polyline points="${pts}" fill="none" style="stroke:${up ? 'var(--bull)' : 'var(--bear)'}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 
-// Merge every list a ticker can appear in so the chart modal has whatever
-// sentiment/source context is available for it, regardless of which
-// section the click came from.
+// --- Chart modal (identical mechanics to the other pages) ---
 const tickerInfo = {};
-[...DATA.top_bullish, ...DATA.top_bearish, ...DATA.most_discussed, ...DATA.watchlist_grid].forEach(t => {
-  if (!tickerInfo[t.ticker]) tickerInfo[t.ticker] = t;
-});
+(DATA.watchlist_grid || []).forEach(t => { tickerInfo[t.ticker] = t; });
 
 let chartMeta = null;
 let currentModalTicker = null;
@@ -8483,11 +8262,6 @@ function buildLineChart(history, sentimentHistory) {
       `<text x="${xAt(n - 1)}" y="${height - 6}" text-anchor="end" class="chart-date-label">${dateLabel(history[n - 1].date)}</text>`
     : '';
 
-  // Sentiment overlay — plotted on the same time axis (each point snapped
-  // to its nearest price-history date) but a fixed -1..1 scale, not an
-  // autoscaled one. Sentiment naturally lives in a small range; autoscaling
-  // it would blow up ordinary noise into something that looks dramatic.
-  // Gaps (days with no chatter) are real and left as gaps, not interpolated.
   let sentimentSvg = '';
   let legendHtml = '';
   const hasSentiment = sentimentHistory && sentimentHistory.length >= 2;
@@ -8576,41 +8350,17 @@ function attachChartHover() {
   });
 }
 
-function scoreClass(score) {
-  if (score >= 65) return 'up';
-  if (score <= 40) return 'down';
-  return 'na';
-}
 function fillList(id, items) {
   const el = document.getElementById(id);
   el.innerHTML = (items || []).map(t => `<li>${t}</li>`).join('') || '<li style="color:var(--text-faint)">None flagged</li>';
 }
-// Four-pillar row — Crowd / Wall Street / Business / Market as radial
-// dials, plus the Divergence Engine's classification badge when one
-// fired for this ticker. This is the engine's actual output made
-// visible instead of staying backend-only data.
+
 const PILLAR_LABELS = { crowd: 'Crowd', wall_street: 'Wall Street', business: 'Business', market: 'Market' };
-// Strict semantic mapping: blue = intelligence/neutral insight, green =
-// bullish/aligned, red = bearish/deteriorating, amber = divergence or
-// warning. No decorative colors — every signal type maps to one of these
-// four plus gray for pure-attention (volume/search) signals.
 const DIVERGENCE_META = {
   emerging_consensus: { icon: '●', label: 'Emerging Consensus', cls: 'up' },
   retail_euphoria: { icon: '▲', label: 'Retail Euphoria', cls: 'warn' },
   fundamental_deterioration: { icon: '▼', label: 'Fundamental Deterioration', cls: 'down' },
   under_the_radar: { icon: '◆', label: 'Under-the-Radar', cls: 'info' },
-};
-const SIGNAL_META = {
-  bullish_dip: { chip: 'Price vs. Chatter', cls: 'up' },
-  bearish_rally: { chip: 'Price vs. Chatter', cls: 'down' },
-  volume_spike: { chip: 'StockTwits Volume', cls: 'info' },
-  reddit_spike: { chip: 'Reddit Volume', cls: 'info' },
-  search_spike: { chip: 'Google Trends', cls: 'info' },
-  media_divergence: { chip: 'Media vs. Retail', cls: 'warn' },
-  emerging_consensus: { chip: 'Emerging Consensus', cls: 'up' },
-  retail_euphoria: { chip: 'Retail Euphoria', cls: 'warn' },
-  fundamental_deterioration: { chip: 'Fundamental Deterioration', cls: 'down' },
-  under_the_radar: { chip: 'Under-the-Radar', cls: 'info' },
 };
 
 function pillarColorHex(score) {
@@ -8619,7 +8369,6 @@ function pillarColorHex(score) {
   if (score <= 35) return '#EF4444';
   return '#F59E0B';
 }
-
 function pillarDialSvg(score) {
   const r = 22, c = 2 * Math.PI * r;
   const pct = (score === null || score === undefined) ? 0 : Math.max(0, Math.min(100, score));
@@ -8633,15 +8382,14 @@ function pillarDialSvg(score) {
     <text x="28" y="33" text-anchor="middle">${valueText}</text>
   </svg>`;
 }
-
 function renderPillarRow(sym) {
   const el = document.getElementById('cm-pillar-row');
   const pillars = (DATA.pillar_scores || {})[sym];
   if (!pillars) { el.innerHTML = ''; return; }
 
-  const sig = DATA.signals.find(s => s.ticker === sym && DIVERGENCE_META[s.type]);
-  const badge = sig
-    ? `<div class="pillar-divergence-badge ${DIVERGENCE_META[sig.type].cls}">${DIVERGENCE_META[sig.type].icon} ${DIVERGENCE_META[sig.type].label}</div>`
+  const divKey = pillars.divergence;
+  const badge = (divKey && DIVERGENCE_META[divKey])
+    ? `<div class="pillar-divergence-badge ${DIVERGENCE_META[divKey].cls}">${DIVERGENCE_META[divKey].icon} ${DIVERGENCE_META[divKey].label}</div>`
     : '';
 
   const reads = ((DATA.analyst || {})[sym] || {}).pillar_reads;
@@ -8655,28 +8403,10 @@ function renderPillarRow(sym) {
 
   el.innerHTML = badge + `<div class="pillar-grid">${cards}</div>`;
 }
-
-// Compact inline pillar row for signal cards — same data, denser
-// presentation, no dials (dials are reserved for the focused chart view).
-function miniPillarRow(sym) {
-  const pillars = (DATA.pillar_scores || {})[sym];
-  if (!pillars) return '';
-  const items = Object.entries(PILLAR_LABELS).map(([key, label]) => {
-    const v = pillars[key];
-    const val = (v === null || v === undefined) ? '—' : Math.round(v);
-    return `<span class="mini-pillar"><span class="mini-pillar-label">${label}</span><span class="mini-pillar-val" style="color:${pillarColorHex(v)}">${val}</span></span>`;
-  }).join('');
-  return `<div class="signal-pillars">${items}</div>`;
-}
-
 function renderAiSection(result) {
   const aiEl = document.getElementById('cm-ai');
   const emptyEl = document.getElementById('cm-ai-empty');
-  if (!result) {
-    aiEl.style.display = 'none';
-    emptyEl.style.display = 'block';
-    return;
-  }
+  if (!result) { aiEl.style.display = 'none'; emptyEl.style.display = 'block'; return; }
   emptyEl.style.display = 'none';
   aiEl.style.display = 'block';
 
@@ -8696,7 +8426,6 @@ function openChartModal(sym) {
   const hist = (DATA.price_history || {})[sym];
 
   currentModalTicker = sym;
-  updateWatchlistStar();
   document.getElementById('cm-sym').textContent = sym;
   document.getElementById('cm-price').textContent = fmtPrice(info.price);
   const chgEl = document.getElementById('cm-chg');
@@ -8704,11 +8433,10 @@ function openChartModal(sym) {
   chgEl.className = 'chart-modal-chg ' + chgClass(info.change_pct);
 
   document.getElementById('cm-meta').textContent = info.label
-    ? `${info.label}${info.mentions ? ` · ${info.mentions} messages today` : ''}`
+    ? `${info.label}${info.mentions ? ` · ${info.mentions} messages (24h)` : ''}`
     : 'No chatter data for this ticker today';
 
-  const src = sourceTitle(info);
-  document.getElementById('cm-source').textContent = src ? `Based on ${src}` : '';
+  document.getElementById('cm-source').textContent = '';
   document.getElementById('cm-yahoo').href = tickerUrl(sym);
 
   const chartEl = document.getElementById('cm-chart');
@@ -8731,396 +8459,290 @@ function openChartModal(sym) {
   document.getElementById('chart-modal').style.display = 'flex';
   document.body.classList.add('modal-open');
 }
-
 function closeChartModal() {
   document.getElementById('chart-modal').style.display = 'none';
   document.body.classList.remove('modal-open');
   currentModalTicker = null;
 }
-
-function updateWatchlistStar() {
-  const star = document.getElementById('cm-watchlist-star');
-  const inList = !!(currentModalTicker && myWatchlistTickers.has(currentModalTicker));
-  star.textContent = inList ? '★' : '☆';
-  star.classList.toggle('active', inList);
-  star.title = inList ? 'Remove from watchlist' : 'Add to watchlist';
-}
-
-document.getElementById('cm-watchlist-star').addEventListener('click', async () => {
-  if (!currentModalTicker) return;
-  const { data: { session } } = await sbClient.auth.getSession();
-  if (!session) { openAuthModal(); return; }
-  await toggleWatchlistItem(currentModalTicker);
-});
-
 document.getElementById('chart-modal-close').addEventListener('click', closeChartModal);
-document.getElementById('chart-modal').addEventListener('click', (e) => {
-  if (e.target.id === 'chart-modal') closeChartModal();
+document.getElementById('chart-modal').addEventListener('click', (e) => { if (e.target.id === 'chart-modal') closeChartModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeChartModal(); });
+
+// --- Methodology disclosure ---
+const methodologyToggle = document.getElementById('methodology-toggle');
+const methodologyPanel = document.getElementById('methodology-panel');
+methodologyToggle.addEventListener('click', () => {
+  const open = methodologyPanel.classList.toggle('open');
+  methodologyToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
 });
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeChartModal();
+
+// --- Build the per-security dataset ---
+// DATA.fundamentals is real, previously-discarded data: fundamentals.py
+// already computed these raw metrics + category coverage every run, but
+// only a single blended 0-100 score used to survive into the payload.
+const CATEGORY_LABELS = { growth: 'Growth', profitability: 'Profitability', cash_flow: 'Cash Flow', balance_sheet: 'Balance Sheet', valuation: 'Valuation' };
+const allTickers = (DATA.watchlist_grid || []).map(t => t.ticker);
+const securities = allTickers.map(ticker => {
+  const fund = (DATA.fundamentals || {})[ticker] || null;
+  const priceInfo = tickerInfo[ticker] || {};
+  return {
+    ticker,
+    name: fund ? fund.name : null,
+    metrics: fund ? fund.metrics : {},
+    coverage: fund ? fund.coverage : null,
+    missing: fund ? (fund.missing_categories || []) : [],
+    price: priceInfo.price,
+    change_pct: priceInfo.change_pct,
+  };
 });
-document.addEventListener('click', (e) => {
-  const el = e.target.closest('[data-ticker]');
-  if (el) { e.preventDefault(); openChartModal(el.dataset.ticker); }
-});
 
-// Today's Market Read — a narrative summary instead of four unrelated
-// counters, still built entirely from real counts already computed.
-const signalTypeLabels = {
-  bullish_dip: 'price divergence', bearish_rally: 'price divergence',
-  volume_spike: 'StockTwits volume', reddit_spike: 'Reddit volume', search_spike: 'search interest',
-  media_divergence: 'media vs. retail', emerging_consensus: 'emerging consensus',
-  retail_euphoria: 'retail euphoria', fundamental_deterioration: 'fundamental deterioration',
-  under_the_radar: 'under-the-radar',
-};
-const signalTypesPresent = [...new Set(DATA.signals.map(s => signalTypeLabels[s.type] || s.type))];
-const bullCount = DATA.top_bullish.length;
-const bearCount = DATA.top_bearish.length;
-let leanText = 'mixed, with no clear lean';
-if (bullCount > bearCount * 1.5) leanText = 'leaning bullish';
-else if (bearCount > bullCount * 1.5) leanText = 'leaning bearish';
-const concentrationNote = (bullCount > 0 && DATA.signals.some(s => s.type === 'retail_euphoria'))
-  ? ' — though conviction on a few names is running ahead of what Wall Street and the fundamentals confirm'
-  : '';
-
-document.getElementById('hero-line').innerHTML =
-  `Retail sentiment across your watchlist is <strong>${leanText}</strong> today${concentrationNote}. ` +
-  `<strong>${DATA.signals.length}</strong> signal${DATA.signals.length === 1 ? '' : 's'} flagged` +
-  (signalTypesPresent.length ? ` — ${signalTypesPresent.join(', ')}.` : '.');
-
-if (DATA.signals.length > 0) {
-  document.getElementById('nav-signals').classList.add('has-signal');
-}
-
-const kpiRow = document.getElementById('kpi-row');
-kpiRow.innerHTML = `
-  <div class="stat-cell">
-    <div class="stat-value accent">${DATA.total_messages.toLocaleString()}</div>
-    <div class="stat-label">Messages analyzed</div>
-    <div class="stat-sub">across ${DATA.total_tickers} tickers</div>
-  </div>
-  <div class="stat-cell">
-    <div class="stat-value accent">${DATA.signals.length}</div>
-    <div class="stat-label">Signals today</div>
-    <div class="stat-sub">${signalTypesPresent.length ? signalTypesPresent.slice(0,2).join(', ') : 'nothing flagged'}</div>
-  </div>
-  <div class="stat-cell">
-    <div class="stat-value bull">${bullCount}</div>
-    <div class="stat-label">Bullish leaders</div>
-    <div class="stat-sub">cleared the sentiment threshold</div>
-  </div>
-  <div class="stat-cell">
-    <div class="stat-value bear">${bearCount}</div>
-    <div class="stat-label">Bearish leaders</div>
-    <div class="stat-sub">cleared the sentiment threshold</div>
-  </div>
-`;
-
-// Signals — the visual centerpiece: type, ticker, headline, AI detail,
-// inline four-pillar mini-row, and a link into the full analysis.
-const signalList = document.getElementById('signal-list');
-if (DATA.signals.length === 0) {
-  document.getElementById('signals-empty').style.display = 'block';
-} else {
-  signalList.innerHTML = DATA.signals.map(s => {
-    const meta = SIGNAL_META[s.type] || { chip: s.type, cls: 'info' };
-    return `
-    <div class="signal-card ${meta.cls}">
-      <div class="signal-top-row">
-        <span class="signal-chip ${meta.cls}">${meta.chip}</span>
-        ${tickerLink(s.ticker, `<span class="signal-ticker">${s.ticker}</span>`)}
-      </div>
-      <div class="signal-headline">${tickerLink(s.ticker, s.headline)}</div>
-      <div class="signal-detail">${s.detail}</div>
-      ${miniPillarRow(s.ticker)}
-      <div class="signal-footer">${tickerLink(s.ticker, '<span class="signal-view-link">View analysis →</span>')}</div>
-    </div>`;
-  }).join('');
-}
-
-// "98 StockTwits · 44 Reddit" style breakdown, shown as a tooltip on
-// mention counts so the source mix behind a sentiment read is visible.
-function sourceTitle(t) {
-  const sc = t.source_counts || {};
-  const parts = [];
-  if (sc.stocktwits) parts.push(`${sc.stocktwits} StockTwits`);
-  if (sc.reddit) parts.push(`${sc.reddit} Reddit`);
-  if (t.reddit_mentions) parts.push(`${t.reddit_mentions} Reddit mentions (ApeWisdom)`);
-  return parts.join(' · ');
-}
-
-// Bullish / Bearish leader panels
-function leaderRow(t, rank) {
-  const bullPct = t.bullish_pct || 0;
-  const bearPct = t.bearish_pct || 0;
-  const neutralPct = Math.max(0, 100 - bullPct - bearPct);
-  return `<div class="leader-row">
-    <span class="leader-rank">${rank}</span>
-    ${tickerLink(t.ticker, `<span class="leader-sym">${t.ticker}</span>`)}
-    <div class="leader-bar-wrap">
-      <div class="leader-bar-track">
-        <div class="leader-bar-seg bull-seg" style="width:${bullPct}%"></div>
-        <div class="leader-bar-seg neutral-seg" style="width:${neutralPct}%"></div>
-        <div class="leader-bar-seg bear-seg" style="width:${bearPct}%"></div>
-      </div>
-      <div class="leader-meta">${bullPct}% bull &middot; ${bearPct}% bear</div>
-    </div>
-    <span class="leader-mentions" title="${sourceTitle(t)}">${t.mentions}</span>
-    <span class="leader-spark">${sparklineSvg((DATA.price_history || {})[t.ticker])}</span>
-    <span class="leader-price-col">
-      <span class="px">${fmtPrice(t.price)}</span>
-      <span class="chg ${chgClass(t.change_pct)}">${fmtChg(t.change_pct)}</span>
-    </span>
-    ${deltaHtml(t.delta)}
-  </div>`;
-}
-
-// Wrapped in named functions (rather than one-shot inline code) so a
-// live price refresh can re-render these sections without touching
-// sentiment/chatter data, which only changes on the daily batch run.
-function renderLeaders() {
-  document.getElementById('bullish-empty').style.display = 'none';
-  document.getElementById('bearish-empty').style.display = 'none';
-
-  const bullishRows = document.getElementById('bullish-rows');
-  if (DATA.top_bullish.length === 0) {
-    document.getElementById('bullish-empty').style.display = 'block';
-  } else {
-    bullishRows.innerHTML = DATA.top_bullish.map((t, i) => leaderRow(t, i + 1)).join('');
-  }
-
-  const bearishRows = document.getElementById('bearish-rows');
-  if (DATA.top_bearish.length === 0) {
-    document.getElementById('bearish-empty').style.display = 'block';
-  } else {
-    bearishRows.innerHTML = DATA.top_bearish.map((t, i) => leaderRow(t, i + 1)).join('');
-  }
-}
-renderLeaders();
-
-// Most discussed table
-function renderDiscussed() {
-  document.getElementById('discussed-empty').style.display = 'none';
-  const discussedBody = document.getElementById('discussed-body');
-  if (DATA.most_discussed.length === 0) {
-    document.getElementById('discussed-empty').style.display = 'block';
-  } else {
-    discussedBody.innerHTML = DATA.most_discussed.map(t => {
-      const bullPct = t.bullish_pct || 0;
-      const bearPct = t.bearish_pct || 0;
-      const neutralPct = Math.max(0, 100 - bullPct - bearPct);
-      const badge = t.in_watchlist ? '<span class="wl-badge">WL</span>' : '';
-      return `<tr>
-        <td>${tickerLink(t.ticker, `<span class="ticker-sym">${t.ticker}</span>`)}${badge}</td>
-        <td class="price-cell"><span class="px">${fmtPrice(t.price)}</span><span class="chg ${chgClass(t.change_pct)}">${fmtChg(t.change_pct)}</span></td>
-        <td>${sparklineSvg((DATA.price_history || {})[t.ticker], 'table-spark', 56, 22)}</td>
-        <td class="mono" title="${sourceTitle(t)}">${t.mentions}</td>
-        <td style="min-width:150px;">
-          <div class="leader-bar-track">
-            <div class="leader-bar-seg bull-seg" style="width:${bullPct}%"></div>
-            <div class="leader-bar-seg neutral-seg" style="width:${neutralPct}%"></div>
-            <div class="leader-bar-seg bear-seg" style="width:${bearPct}%"></div>
-          </div>
-        </td>
-        <td><span class="label-pill ${labelClass(t.label)}">${t.label}</span></td>
-      </tr>`;
-    }).join('');
-  }
-}
-renderDiscussed();
-
-// Watchlist grid with filter — defaults to "Active only" so tickers with
-// zero chatter today (usually the majority) don't dominate the first view.
-let currentFilter = 'active';
-function renderWatchlist() {
-  const wlGrid = document.getElementById('watchlist-grid');
-  let items = DATA.watchlist_grid;
-  if (currentFilter === 'bullish') items = items.filter(t => t.avg_sentiment >= 0.1);
-  if (currentFilter === 'bearish') items = items.filter(t => t.avg_sentiment <= -0.1);
-  if (currentFilter === 'active') items = items.filter(t => t.mentions > 0);
-
-  if (items.length === 0) {
-    wlGrid.innerHTML = '<div class="empty-state">No tickers match this filter today.</div>';
+// --- At a Glance — real facts, no synthesized score ---
+function renderGlance() {
+  const el = document.getElementById('glance-bar');
+  const withFund = securities.filter(s => s.coverage !== null);
+  if (withFund.length === 0) {
+    el.innerHTML = '<div class="empty-state" style="border:none;padding:4px 0;">No fundamentals data available yet.</div>';
     return;
   }
 
-  wlGrid.innerHTML = items.map(t => {
-    let cls = 'wl-card no-data';
-    let labelCls = 'muted-text';
-    let labelText = 'No chatter today';
-    if (t.mentions > 0) {
-      if (t.avg_sentiment >= 0.1) { cls = 'wl-card has-bull'; labelCls = 'bull-text'; }
-      else if (t.avg_sentiment <= -0.1) { cls = 'wl-card has-bear'; labelCls = 'bear-text'; }
-      else { cls = 'wl-card'; labelCls = 'muted-text'; }
-      labelText = `${t.label} &middot; ${t.mentions} msgs`;
-    }
-    return `<div class="${cls}">
-      <div class="wl-card-top">
-        ${tickerLink(t.ticker, `<span class="wl-sym">${t.ticker}</span>`)}
-        <span class="wl-chg ${chgClass(t.change_pct)}">${fmtChg(t.change_pct)}</span>
-      </div>
-      <div class="wl-label ${labelCls}" title="${sourceTitle(t)}">${labelText}</div>
-      ${sparklineSvg((DATA.price_history || {})[t.ticker], 'wl-spark', 130, 26)}
-    </div>`;
-  }).join('');
+  const profitable = withFund.filter(s => s.metrics.profit_margin !== null && s.metrics.profit_margin !== undefined && s.metrics.profit_margin > 0);
+  const growthVals = withFund.map(s => s.metrics.revenue_growth).filter(v => v !== null && v !== undefined);
+  const avgGrowth = growthVals.length ? growthVals.reduce((a, b) => a + b, 0) / growthVals.length : null;
+  const withFcf = withFund.filter(s => s.metrics.free_cashflow !== null && s.metrics.free_cashflow !== undefined);
+  const positiveFcf = withFcf.filter(s => s.metrics.free_cashflow > 0);
+  const withFwdPe = withFund.filter(s => s.metrics.forward_pe !== null && s.metrics.forward_pe !== undefined);
+  const richValuation = withFwdPe.filter(s => s.metrics.forward_pe > 40);
+  const withGap = withFund.filter(s => s.coverage < 5);
+
+  const stats = [
+    { val: `${profitable.length}<span class="glance-val-sub">/${withFund.length}</span>`, label: 'Profitable on net margin' },
+    avgGrowth !== null ? { val: fmtPct(avgGrowth, true), label: `Average revenue growth (${growthVals.length} companies)` } : null,
+    withFcf.length ? { val: `${positiveFcf.length}<span class="glance-val-sub">/${withFcf.length}</span>`, label: 'Positive free cash flow (of those reporting it)' } : null,
+    withFwdPe.length ? { val: `${richValuation.length}<span class="glance-val-sub">/${withFwdPe.length}</span>`, label: 'Trading above 40x forward P/E' } : null,
+    { val: `${withGap.length}<span class="glance-val-sub">/${withFund.length}</span>`, label: 'Have a metric data gap' },
+  ].filter(Boolean);
+
+  el.innerHTML = stats.map(s => `<div class="glance-stat"><div class="glance-val">${s.val}</div><div class="glance-label">${s.label}</div></div>`).join('');
 }
 
-const filters = [
-  { key: 'active', label: 'Active only' },
-  { key: 'all', label: 'All' },
-  { key: 'bullish', label: 'Bullish' },
-  { key: 'bearish', label: 'Bearish' },
-];
-document.getElementById('watchlist-controls').innerHTML = filters.map(f =>
-  `<button class="wl-filter-btn${f.key === currentFilter ? ' active' : ''}" data-filter="${f.key}">${f.label}</button>`
-).join('');
-document.querySelectorAll('.wl-filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    currentFilter = btn.dataset.filter;
-    document.querySelectorAll('.wl-filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    renderWatchlist();
+// --- Metrics table ---
+let sortKey = 'ticker';
+let sortDir = 1; // neutral, intuitive default — no fabricated "momentum" ranking
+
+function sortedSecurities() {
+  const arr = securities.slice();
+  arr.sort((a, b) => {
+    let av, bv;
+    if (sortKey === 'ticker') { av = a.ticker; bv = b.ticker; }
+    else if (sortKey === 'price') { av = a.price; bv = b.price; }
+    else { av = a.metrics[sortKey]; bv = b.metrics[sortKey]; }
+
+    const aNull = av === null || av === undefined;
+    const bNull = bv === null || bv === undefined;
+    if (aNull && bNull) return a.ticker.localeCompare(b.ticker);
+    if (aNull) return 1;  // missing values always sort last, regardless of direction
+    if (bNull) return -1;
+
+    if (typeof av === 'string') return av.localeCompare(bv) * sortDir;
+    return (av - bv) * sortDir;
   });
-});
-renderWatchlist();
-
-// Material Events — SEC 8-K filings, factual and unranked (material by
-// regulatory definition, not by editorial judgment).
-const meList = document.getElementById('material-events-list');
-const meEntries = Object.entries(DATA.material_events || {})
-  .flatMap(([ticker, filings]) => filings.map(f => ({ ticker, ...f })))
-  .sort((a, b) => (a.date < b.date ? 1 : -1));
-if (meEntries.length === 0) {
-  document.getElementById('material-events-empty').style.display = 'block';
-} else {
-  meList.innerHTML = meEntries.map(f => `
-    <div class="material-event-row">
-      ${tickerLink(f.ticker, `<span class="ticker-sym">${f.ticker}</span>`)}
-      <span class="material-event-date">${f.date}</span>
-      <span class="material-event-labels">${f.labels.join(' · ')}</span>
-      <a class="material-event-link" href="${f.url}" target="_blank" rel="noopener">View filing ↗</a>
-    </div>
-  `).join('');
+  return arr;
 }
 
-// Company News — Tier 2, filtered and importance-ranked per ticker.
-const cnGrid = document.getElementById('company-news-grid');
-const cnEntries = Object.entries(DATA.company_news || {})
-  .flatMap(([ticker, items]) => items.map(it => ({ ticker, ...it })))
-  .sort((a, b) => (b.importance || 0) - (a.importance || 0));
-if (cnEntries.length === 0) {
-  document.getElementById('company-news-empty').style.display = 'block';
-} else {
-  cnGrid.innerHTML = cnEntries.slice(0, 24).map(n => `
-    <div class="news-item">
-      <div class="news-source-row">
-        ${tickerLink(n.ticker, `<span class="news-item-ticker">${n.ticker}</span>`)}
-        <span class="news-source">${n.publisher}</span>
-        ${n.importance ? `<span class="news-importance" title="${n.importance}/5 importance">${importanceDots(n.importance)}</span>` : ''}
-        ${n.sentiment_label && n.sentiment_label !== 'Neutral' ? `<span class="label-pill ${labelClass(n.sentiment_label)}">${n.sentiment_label}</span>` : ''}
+let selectedTicker = null;
+
+function renderTable() {
+  const tbody = document.getElementById('sec-table-body');
+  const rows = sortedSecurities();
+  const sortLabel = document.querySelector(`.sec-table th[data-sort="${sortKey}"]`)?.textContent.replace('↓', '').replace('↑', '').trim() || sortKey;
+
+  document.getElementById('securities-sub').textContent = selectedTicker
+    ? `${securities.length} covered securities, sorted by ${sortLabel} — showing the full breakdown for ${selectedTicker} below`
+    : `${securities.length} covered securities, sorted by ${sortLabel} — select a row for the full breakdown`;
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state">No securities to show.</div></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(s => {
+    const m = s.metrics || {};
+    const isSelected = s.ticker === selectedTicker;
+    const gapNote = s.coverage !== null && s.coverage < 5 ? `<span class="sec-subtext gap">Coverage ${s.coverage}/5</span>` : '';
+
+    const row = `<tr class="sec-row${isSelected ? ' selected' : ''}" data-ticker="${s.ticker}" tabindex="0" role="button"
+        aria-expanded="${isSelected ? 'true' : 'false'}" aria-label="${s.ticker}, select for full financial detail">
+      <td>
+        <div class="sec-sym-cell">
+          <span class="sec-sym">${s.ticker}</span>
+          ${gapNote}
+        </div>
+      </td>
+      <td class="${signClass(m.revenue_growth)}">${fmtPct(m.revenue_growth, true)}</td>
+      <td class="col-earn ${signClass(m.earnings_growth)}">${fmtPct(m.earnings_growth, true)}</td>
+      <td class="${signClass(m.profit_margin)}">${fmtPct(m.profit_margin, true)}</td>
+      <td class="col-fcf ${signClass(m.fcf_margin)}">${fmtPct(m.fcf_margin, true)}</td>
+      <td class="col-de">${fmtDebtEquity(m.debt_to_equity)}</td>
+      <td>${fmtRatio(m.forward_pe)}</td>
+      <td>
+        <div class="sec-price-cell">
+          ${fmtPrice(s.price)}
+          <div class="sec-price-chg ${chgClass(s.change_pct)}">${fmtChg(s.change_pct)}</div>
+        </div>
+      </td>
+      <td class="sec-spark-cell">${sparklineSvg(DATA.price_history ? DATA.price_history[s.ticker] : null, 'sec-spark', 60, 22)}</td>
+    </tr>`;
+
+    if (!isSelected) return row;
+    return row + `<tr class="detail-row" id="detail-row-${s.ticker}"><td colspan="9">${renderDetailPane(s)}</td></tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('.sec-row').forEach(tr => {
+    tr.addEventListener('click', () => selectTicker(tr.dataset.ticker));
+    tr.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectTicker(tr.dataset.ticker); }
+    });
+  });
+
+  setTimeout(() => {
+    const pane = document.querySelector('.detail-pane');
+    if (pane) pane.classList.add('open');
+  }, 10);
+}
+
+function selectTicker(ticker) {
+  selectedTicker = selectedTicker === ticker ? null : ticker;
+  renderTable();
+  if (selectedTicker) {
+    document.getElementById(`detail-row-${selectedTicker}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+document.querySelectorAll('.sec-table th.sortable').forEach(th => {
+  const activate = () => {
+    const key = th.dataset.sort;
+    if (sortKey === key) { sortDir *= -1; } else { sortKey = key; sortDir = key === 'ticker' ? 1 : -1; }
+    document.querySelectorAll('.sec-table th.sortable').forEach(h => h.classList.remove('active-sort'));
+    th.classList.add('active-sort');
+    th.querySelector('.sort-arrow').textContent = sortDir === -1 ? '↓' : '↑';
+    renderTable();
+  };
+  th.addEventListener('click', activate);
+  th.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } });
+});
+document.querySelector('.sec-table th.sortable[data-sort="ticker"]').classList.add('active-sort');
+document.querySelector('.sec-table th.sortable[data-sort="ticker"] .sort-arrow').textContent = '↑';
+
+// --- Detail pane: metrics first, AI read secondary, material events, coverage ---
+function metricRow(name, value) {
+  return `<div class="fund-metric-row"><span class="fund-metric-name">${name}</span><span class="fund-metric-val">${value}</span></div>`;
+}
+function metricRowSigned(name, value, raw) {
+  return `<div class="fund-metric-row"><span class="fund-metric-name">${name}</span><span class="fund-metric-val ${signClass(raw)}">${value}</span></div>`;
+}
+
+function renderDetailPane(s) {
+  const m = s.metrics || {};
+
+  const growthHtml = `<div class="fund-category">
+    <span class="fund-category-label">Growth</span>
+    ${metricRowSigned('Revenue Growth (YoY)', fmtPct(m.revenue_growth, true), m.revenue_growth)}
+    ${metricRowSigned('Earnings Growth (YoY)', fmtPct(m.earnings_growth, true), m.earnings_growth)}
+  </div>`;
+
+  const profitHtml = `<div class="fund-category">
+    <span class="fund-category-label">Profitability</span>
+    ${metricRowSigned('Gross Margin', fmtPct(m.gross_margin), m.gross_margin)}
+    ${metricRowSigned('Operating Margin', fmtPct(m.operating_margin), m.operating_margin)}
+    ${metricRowSigned('Net Margin', fmtPct(m.profit_margin), m.profit_margin)}
+    ${metricRowSigned('Return on Equity', fmtPct(m.return_on_equity), m.return_on_equity)}
+  </div>`;
+
+  const cashHtml = `<div class="fund-category">
+    <span class="fund-category-label">Cash Flow</span>
+    ${metricRowSigned('Free Cash Flow', fmtMoney(m.free_cashflow), m.free_cashflow)}
+    ${metricRowSigned('FCF Margin', fmtPct(m.fcf_margin), m.fcf_margin)}
+    ${metricRow('Operating Cash Flow', fmtMoney(m.operating_cashflow))}
+  </div>`;
+
+  const balanceHtml = `<div class="fund-category">
+    <span class="fund-category-label">Balance Sheet</span>
+    ${metricRow('Debt / Equity', fmtDebtEquity(m.debt_to_equity))}
+    ${metricRow('Current Ratio', fmtRatio(m.current_ratio, 2))}
+    ${metricRow('Total Cash', fmtMoney(m.total_cash))}
+    ${metricRow('Total Debt', fmtMoney(m.total_debt))}
+  </div>`;
+
+  const valuationHtml = `<div class="fund-category">
+    <span class="fund-category-label">Valuation</span>
+    ${metricRow('P/E (trailing)', fmtRatio(m.trailing_pe))}
+    ${metricRow('P/E (forward)', fmtRatio(m.forward_pe))}
+    ${metricRow('Price / Sales', fmtRatio(m.price_to_sales))}
+    ${metricRow('EV / EBITDA', fmtRatio(m.ev_to_ebitda))}
+  </div>`;
+
+  const narrative = ((DATA.analyst || {})[s.ticker] || {}).pillar_reads?.business;
+  const narrativeHtml = narrative
+    ? narrative
+    : 'No AI fundamental read available for this security yet.';
+
+  const events = (DATA.material_events || {})[s.ticker] || [];
+  const eventsHtml = events.length === 0
+    ? `<div class="events-empty">No recent material events available.</div>`
+    : events.map(ev => `<div class="event-item">
+        <div class="event-date">${ev.date}</div>
+        <div class="event-title">${(ev.labels || []).join(' · ')}${ev.url ? ` — <a href="${ev.url}" target="_blank" rel="noopener">View filing ↗</a>` : ''}</div>
+      </div>`).join('');
+
+  const coverageText = s.coverage !== null
+    ? `Data Coverage: ${s.coverage}/5 categories${s.missing.length ? ` — ${s.missing.map(k => CATEGORY_LABELS[k] || k).join(', ')} unavailable for this company` : ''}`
+    : 'Data coverage unavailable for this security.';
+
+  return `<div class="detail-pane">
+    <div class="detail-grid">
+      <div>
+        ${growthHtml}
+        ${profitHtml}
+        ${cashHtml}
+        ${balanceHtml}
+        ${valuationHtml}
       </div>
-      <p class="news-title"><a href="${n.link}" target="_blank" rel="noopener">${n.title}</a></p>
-    </div>
-  `).join('');
-}
+      <div>
+        <span class="detail-narrative-label">Fundamental Read</span>
+        <div class="detail-narrative">${narrativeHtml}</div>
 
-// News
-const newsList = document.getElementById('news-list');
-if (DATA.news.length === 0) {
-  newsList.innerHTML = '<div class="empty-state">No headlines fetched.</div>';
-} else {
-  newsList.innerHTML = DATA.news.slice(0, 20).map(n => `
-    <div class="news-item">
-      <div class="news-source-row">
-        <span class="news-source">${n.source}</span>
-        ${n.sentiment_label && n.sentiment_label !== 'Neutral' ? `<span class="label-pill ${labelClass(n.sentiment_label)}">${n.sentiment_label}</span>` : ''}
+        <span class="evidence-label">Recent Material Events</span>
+        <div class="events-list">${eventsHtml}</div>
+
+        <div class="detail-context">${coverageText}</div>
+        <div class="detail-actions">
+          <button class="detail-btn" type="button" onclick="openChartModal('${s.ticker}')">View full chart →</button>
+        </div>
       </div>
-      <p class="news-title"><a href="${n.link}" target="_blank" rel="noopener">${n.title}</a></p>
     </div>
-  `).join('');
+  </div>`;
 }
 
-// Ticker tape — pulled from most_discussed so it reflects true mixed sentiment
-function renderTape() {
-  const tapeEl = document.getElementById('tape');
-  const tapeItems = DATA.most_discussed.slice(0, 15);
-  if (tapeItems.length > 0) {
-    const html = tapeItems.map(t => {
-      const cls = t.avg_sentiment >= 0.1 ? 'up' : (t.avg_sentiment <= -0.1 ? 'down' : '');
-      const arrow = t.avg_sentiment >= 0.1 ? '▲' : (t.avg_sentiment <= -0.1 ? '▼' : '—');
-      const px = t.change_pct !== null && t.change_pct !== undefined ? ` ${fmtChg(t.change_pct)}` : '';
-      return `<span class="tape-item">${tickerLink(t.ticker, `<span class="sym">${t.ticker}</span>`)} <span class="${cls}">${arrow}${px}</span></span>`;
-    }).join('');
-    tapeEl.innerHTML = html + html;
-  } else {
-    tapeEl.innerHTML = '<span class="tape-item">No trending tickers yet — run the tool to populate this.</span>';
-  }
-}
-renderTape();
+// --- Coverage strip ---
+document.getElementById('coverage-count').textContent = `${securities.length} securities covered`;
+document.getElementById('coverage-updated').textContent = `Updated ${DATA.generated_at}`;
 
-// Universal search — real, works client-side against data already in
-// this page. Matches ticker symbol substrings, shows the Undertow score
-// (AI overall_score) when available so a result is useful at a glance,
-// not just a navigation shortcut.
-const searchInput = document.getElementById('nav-search-input');
-const searchResultsEl = document.getElementById('nav-search-results');
-const allTickers = [...new Set(DATA.watchlist_grid.map(t => t.ticker))].sort();
+renderGlance();
+renderTable();
 
-function renderSearchResults(query) {
-  const q = query.trim().toUpperCase();
-  if (!q) { searchResultsEl.style.display = 'none'; return; }
-  const matches = allTickers.filter(t => t.includes(q)).slice(0, 6);
-  if (matches.length === 0) {
-    searchResultsEl.innerHTML = '<div class="search-empty">No matches in the flagship set</div>';
-  } else {
-    searchResultsEl.innerHTML = matches.map(sym => {
-      const ai = (DATA.analyst || {})[sym];
-      const score = ai ? ai.overall_score : null;
-      return `<div class="search-result" data-ticker="${sym}">
-        <span class="search-result-sym">${sym}</span>
-        <span class="search-result-meta">
-          ${score !== null ? `<span class="search-result-score" style="color:${pillarColorHex(score)}">${score}</span>` : '<span class="search-result-score" style="color:var(--text-faint)">—</span>'}
-        </span>
-      </div>`;
-    }).join('');
-  }
-  searchResultsEl.style.display = 'block';
-}
-searchInput.addEventListener('input', (e) => renderSearchResults(e.target.value));
-searchInput.addEventListener('focus', (e) => { if (e.target.value) renderSearchResults(e.target.value); });
-searchResultsEl.addEventListener('click', (e) => {
-  const result = e.target.closest('.search-result');
-  if (result) {
-    searchResultsEl.style.display = 'none';
-    searchInput.value = '';
-  }
-});
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.nav-search')) searchResultsEl.style.display = 'none';
-});
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') searchResultsEl.style.display = 'none';
-});
-
-// Auth + personal watchlist — backed by Supabase (Postgres + Auth + RLS).
-// Market intelligence data above is all static/embedded; this is the one
-// part of the page that talks to a live backend, and only for the
-// logged-in user's own watchlist rows (enforced by RLS, not app code).
+// --- Auth (nav-only on this page, same pattern as Sentiment Intelligence) ---
 const SUPABASE_URL = 'https://kxgfwqteiosancwozcgo.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_13iV4lUM5MD5FaRxhvcWvA_Cv5gtAfI';
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const authModal = document.getElementById('auth-modal');
 function openAuthModal() {
-  const msg = document.getElementById('auth-message');
-  msg.classList.remove('show');
+  document.getElementById('auth-message').classList.remove('show');
   authModal.style.display = 'flex';
 }
 function closeAuthModal() { authModal.style.display = 'none'; }
 document.getElementById('auth-modal-close').addEventListener('click', closeAuthModal);
 authModal.addEventListener('click', (e) => { if (e.target === authModal) closeAuthModal(); });
-document.getElementById('watchlist-login-btn').addEventListener('click', openAuthModal);
 
 const authTabLogin = document.getElementById('auth-tab-login');
 const authTabSignup = document.getElementById('auth-tab-signup');
@@ -9158,200 +8780,36 @@ authFormSignup.addEventListener('submit', async (e) => {
   const email = document.getElementById('auth-signup-email').value;
   const password = document.getElementById('auth-signup-password').value;
   const { data, error } = await sbClient.auth.signUp({ email, password });
-  if (error) {
-    showAuthMessage(error.message, 'error');
-  } else if (!data.session) {
-    showAuthMessage('Check your email to confirm your account.', 'info');
-  } else {
-    closeAuthModal();
-  }
+  if (error) { showAuthMessage(error.message, 'error'); }
+  else if (!data.session) { showAuthMessage('Check your email to confirm your account.', 'info'); }
+  else { closeAuthModal(); }
 });
 
 document.getElementById('auth-google-btn').addEventListener('click', async () => {
-  const { error } = await sbClient.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.href },
-  });
+  const { error } = await sbClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
   if (error) showAuthMessage(error.message, 'error');
 });
 
-// My Watchlist — pick-cards for the 15 flagship tickers we cover, backed
-// by a real watchlists/watchlist_items row pair created automatically on
-// signup (see the on_auth_user_created trigger).
-let myWatchlistId = null;
-let myStocksByTicker = {};
-let myWatchlistTickers = new Set();
-
-async function loadMyWatchlist() {
-  const { data: { user } } = await sbClient.auth.getUser();
-  if (!user) return;
-
-  // maybeSingle (not single) so zero rows resolves to null instead of an
-  // error — accounts created before the auto-create trigger existed have
-  // no watchlists row yet, so we create one here rather than silently
-  // failing to render anything.
-  let { data: wl } = await sbClient.from('watchlists').select('id').eq('user_id', user.id).limit(1).maybeSingle();
-  if (!wl) {
-    const { data: created, error: createError } = await sbClient
-      .from('watchlists')
-      .insert({ user_id: user.id, name: 'My Watchlist' })
-      .select('id')
-      .single();
-    if (createError) { console.error('Failed to create watchlist:', createError); return; }
-    wl = created;
-  }
-  myWatchlistId = wl.id;
-
-  const { data: stocks } = await sbClient.from('stocks').select('id,ticker');
-  myStocksByTicker = {};
-  const stockIdToTicker = {};
-  (stocks || []).forEach(s => { myStocksByTicker[s.ticker] = s.id; stockIdToTicker[s.id] = s.ticker; });
-
-  const { data: items } = await sbClient.from('watchlist_items').select('stock_id').eq('watchlist_id', myWatchlistId);
-  myWatchlistTickers = new Set((items || []).map(it => stockIdToTicker[it.stock_id]).filter(Boolean));
-
-  renderMyWatchlist();
-}
-
-// Shows only tickers the user has actually starred — not a picker of all
-// 15. Adding happens from the ☆ on a ticker's chart popup; clicking a card
-// here removes it.
-function renderMyWatchlist() {
-  const grid = document.getElementById('my-watchlist-grid');
-  const countBadge = document.getElementById('sidebar-watchlist-count');
-  const tickers = allTickers.filter(sym => myWatchlistTickers.has(sym));
-
-  countBadge.textContent = tickers.length;
-  countBadge.style.display = tickers.length > 0 ? 'inline-block' : 'none';
-
-  if (tickers.length === 0) {
-    grid.innerHTML = '<div class="sidebar-empty">Your watchlist is empty.<br>Open any ticker\'s chart and click ☆ to add it here.</div>';
-    return;
-  }
-
-  grid.innerHTML = tickers.map(sym => {
-    const row = DATA.watchlist_grid.find(t => t.ticker === sym) || {};
-    const cls = chgClass(row.change_pct);
-    const spark = sparklineSvg((DATA.price_history || {})[sym], 'watchlist-row-spark', 90, 22);
-    return `<div class="watchlist-row ${cls}" data-ticker="${sym}">
-      <span class="watchlist-row-sym">${sym}</span>
-      ${spark}
-      <div class="watchlist-row-right">
-        <div class="watchlist-row-price-wrap">
-          <div class="watchlist-row-price">${row.price != null ? '$' + Number(row.price).toFixed(2) : '—'}</div>
-          <div class="watchlist-row-chg ${cls}">${fmtChg(row.change_pct)}</div>
-        </div>
-        <button class="watchlist-row-remove" type="button" title="Remove from watchlist" aria-label="Remove ${sym} from watchlist">&times;</button>
-      </div>
-    </div>`;
-  }).join('');
-
-  grid.querySelectorAll('.watchlist-row').forEach(rowEl => {
-    const sym = rowEl.dataset.ticker;
-    rowEl.addEventListener('click', () => openChartModal(sym));
-    rowEl.querySelector('.watchlist-row-remove').addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleWatchlistItem(sym);
-    });
-  });
-}
-
-async function toggleWatchlistItem(ticker) {
-  const stockId = myStocksByTicker[ticker];
-  if (!stockId || !myWatchlistId) return;
-  if (myWatchlistTickers.has(ticker)) {
-    myWatchlistTickers.delete(ticker);
-    renderMyWatchlist();
-    updateWatchlistStar();
-    await sbClient.from('watchlist_items').delete().eq('watchlist_id', myWatchlistId).eq('stock_id', stockId);
-  } else {
-    myWatchlistTickers.add(ticker);
-    renderMyWatchlist();
-    updateWatchlistStar();
-    await sbClient.from('watchlist_items').insert({ watchlist_id: myWatchlistId, stock_id: stockId });
-  }
-}
-
-// Guards against out-of-order renders: a quick logout-then-login can fire
-// two overlapping calls, and without this the slower (stale) one can
-// resolve last and clobber the newer, correct UI state.
 let authRenderSeq = 0;
-
 async function renderAuthState() {
   const seq = ++authRenderSeq;
   const { data: { session } } = await sbClient.auth.getSession();
-  if (seq !== authRenderSeq) return; // a newer call has already started
+  if (seq !== authRenderSeq) return;
 
   const navAuth = document.getElementById('nav-auth');
-  const loginPrompt = document.getElementById('watchlist-login-prompt');
-  const myGrid = document.getElementById('my-watchlist-grid');
-
   if (session && session.user) {
     navAuth.innerHTML = `<div class="nav-user">
       <span class="nav-user-email">${session.user.email}</span>
       <button class="nav-logout-btn" id="nav-logout-btn" type="button">Log out</button>
     </div>`;
     document.getElementById('nav-logout-btn').addEventListener('click', () => sbClient.auth.signOut());
-    loginPrompt.style.display = 'none';
-    myGrid.style.display = 'block';
-    await loadMyWatchlist();
-    if (seq !== authRenderSeq) return;
   } else {
     navAuth.innerHTML = `<button class="nav-auth-btn" id="nav-login-btn" type="button">Log in</button>`;
     document.getElementById('nav-login-btn').addEventListener('click', openAuthModal);
-    loginPrompt.style.display = 'block';
-    myGrid.style.display = 'none';
-    document.getElementById('sidebar-watchlist-count').style.display = 'none';
-    myWatchlistId = null;
-    myWatchlistTickers = new Set();
   }
 }
-
 sbClient.auth.onAuthStateChange(() => renderAuthState());
 renderAuthState();
-
-// Live price refresh — polls a small quotes.json written by a separate,
-// lightweight GitHub Actions job every ~15 minutes (see refresh_quotes.py).
-// Only price/change_pct move here; sentiment, news, and AI analysis stay
-// on the once-a-day full pipeline since they don't change this fast.
-const QUOTES_POLL_INTERVAL_MS = 60000;
-
-function applyQuoteUpdates(quotes) {
-  [DATA.top_bullish, DATA.top_bearish, DATA.most_discussed, DATA.watchlist_grid].forEach(list => {
-    list.forEach(t => {
-      const q = quotes[t.ticker];
-      if (q) { t.price = q.price; t.change_pct = q.change_pct; }
-    });
-  });
-
-  renderLeaders();
-  renderDiscussed();
-  renderWatchlist();
-  renderMyWatchlist();
-  renderTape();
-
-  if (currentModalTicker && quotes[currentModalTicker]) {
-    const info = tickerInfo[currentModalTicker];
-    document.getElementById('cm-price').textContent = fmtPrice(info.price);
-    const chgEl = document.getElementById('cm-chg');
-    chgEl.textContent = fmtChg(info.change_pct);
-    chgEl.className = 'chart-modal-chg ' + chgClass(info.change_pct);
-  }
-}
-
-async function pollQuotes() {
-  try {
-    const res = await fetch('quotes.json', { cache: 'no-store' });
-    if (!res.ok) return;
-    const payload = await res.json();
-    applyQuoteUpdates(payload.quotes || {});
-  } catch (e) {
-    // Silent — a missed refresh just means prices stay as they were until
-    // the next poll; not worth surfacing as a user-facing error.
-  }
-}
-pollQuotes();
-setInterval(pollQuotes, QUOTES_POLL_INTERVAL_MS);
 </script>
 
 </body>
