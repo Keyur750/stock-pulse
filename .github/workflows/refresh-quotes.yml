@@ -1,0 +1,39 @@
+name: Refresh Live Quotes
+
+on:
+  schedule:
+    # Every 15 minutes — a price-only refresh, separate from the full
+    # daily pipeline. GitHub's scheduler doesn't reliably run faster than
+    # this and may delay further during high load, so this is "current
+    # within the last several minutes," not tick-by-tick streaming.
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}   # lets you trigger a run manually from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install yfinance>=0.2.40
+
+      - name: Refresh quotes
+        run: python refresh_quotes.py
+
+      - name: Commit and push updated quotes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/quotes.json
+          git diff --staged --quiet || git commit -m "Refresh live quotes $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push

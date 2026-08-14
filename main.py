@@ -18,17 +18,23 @@ from typing import Optional
 from stocktwits import collect_all
 from reddit import collect_reddit
 from apewisdom import fetch_mentions as fetch_reddit_mentions
-from news_fetcher import fetch_news
+from news_fetcher import fetch_news, fetch_ticker_news
+from news_ranker import rank_news
+from sec_filings import fetch_recent_8ks
 from sentiment import score_message, score_text, label_for_score, classify_message
 from reddit import extract_tickers
 from market_data import fetch_quotes
 from fundamentals import fetch_fundamentals, score_fundamentals
+from wallstreet import fetch_analyst_data, score_wallstreet
+from market import fetch_market_data, score_market
+from trends import fetch_search_interest
 from analyst import analyze_stock, MODEL as ANALYST_MODEL
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(ROOT, "data")
 HISTORY_PATH = os.path.join(DATA_DIR, "history.json")
 ANALYST_HISTORY_PATH = os.path.join(DATA_DIR, "analyst_history.json")
+SIGNAL_HISTORY_PATH = os.path.join(DATA_DIR, "signal_history.json")
 # docs/index.html is the static marketing homepage (not touched by this
 # script); the live data dashboard is served from docs/dashboard.html.
 DASHBOARD_PATH = os.path.join(ROOT, "docs", "dashboard.html")
@@ -48,7 +54,16 @@ def load_history():
 
 
 def save_history(history, today_snapshot, keep_days=30):
-    history.append(today_snapshot)
+    """Replaces today's entry if one already exists (re-running the same
+    day — a manual re-trigger, or local testing) instead of appending a
+    duplicate. Without this, multiple same-day runs silently pile up as
+    distinct 'days' in history, which quietly corrupts anything that reads
+    day-over-day (volume-spike baselines, sentiment deltas, the sentiment
+    trend chart)."""
+    if history and history[-1].get("date") == today_snapshot["date"]:
+        history[-1] = today_snapshot
+    else:
+        history.append(today_snapshot)
     history = history[-keep_days:]
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(HISTORY_PATH, "w", encoding="utf-8") as f:
@@ -64,10 +79,38 @@ def load_analyst_history():
 
 
 def save_analyst_history(history, today_snapshot, keep_days=90):
-    history.append(today_snapshot)
+    """Same same-day dedupe as save_history, and for the same reason."""
+    if history and history[-1].get("date") == today_snapshot["date"]:
+        history[-1] = today_snapshot
+    else:
+        history.append(today_snapshot)
     history = history[-keep_days:]
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(ANALYST_HISTORY_PATH, "w", encoding="utf-8") as f:
+        json.dump(history, f, indent=2)
+    return history
+
+
+def load_signal_history():
+    if os.path.exists(SIGNAL_HISTORY_PATH):
+        with open(SIGNAL_HISTORY_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+
+def save_signal_history(history, today_snapshot, keep_days=365):
+    """The track-record moat's raw material — see PRODUCT.md Phase 4.
+    Starts recording from Phase 2, the moment pillar scores exist, not
+    held back until the track-record UI itself is built. Same same-day
+    dedupe as save_history. Keeps a full year by default since Phase 4
+    wants 180-day maturities eventually."""
+    if history and history[-1].get("date") == today_snapshot["date"]:
+        history[-1] = today_snapshot
+    else:
+        history.append(today_snapshot)
+    history = history[-keep_days:]
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(SIGNAL_HISTORY_PATH, "w", encoding="utf-8") as f:
         json.dump(history, f, indent=2)
     return history
 
@@ -140,6 +183,8 @@ def analyze(symbol_messages: dict, trending_symbols: set, watchlist: set,
             "media_sentiment": None,
             "media_label": None,
             "media_headline_count": None,
+            "search_interest_today": None,
+            "search_interest_baseline": None,
         })
     return results
 
@@ -198,6 +243,18 @@ def merge_media_sentiment(results, media_sentiment):
     return results
 
 
+def merge_search_interest(results, search_interest):
+    """Attach Google Trends' relative search-interest reading as a third,
+    fully independent attention measure — a free Crowd cross-check that
+    doesn't share a data source with StockTwits, Reddit, or ApeWisdom."""
+    for r in results:
+        s = search_interest.get(r["ticker"])
+        if s:
+            r["search_interest_today"] = s["interest_today"]
+            r["search_interest_baseline"] = s["interest_baseline"]
+    return results
+
+
 def merge_reddit_mentions(results, mentions):
     """Attach ApeWisdom's Reddit mention volume as a second, independent
     attention measure alongside StockTwits-derived mentions — cross-checking
@@ -212,12 +269,13 @@ def merge_reddit_mentions(results, mentions):
     return results
 
 
-def compute_signals(results, history):
+def compute_signals(results, history, pillar_scores=None):
     """Auto-generate analyst-style callouts: price/sentiment divergences
     and abnormal chatter-volume spikes. This is the highest-value output —
     surfacing the handful of tickers where the crowd and the tape disagree,
     or where something is unusually loud, instead of making you scan every
     row yourself."""
+    pillar_scores = pillar_scores or {}
     # Build a mention-volume baseline per ticker from the last week of history.
     mention_history = {}
     for snap in history[-7:]:
@@ -305,8 +363,131 @@ def compute_signals(results, history):
                 "magnitude": ratio,
             })
 
+        si_today = r.get("search_interest_today")
+        si_baseline = r.get("search_interest_baseline")
+        if si_today is not None and si_baseline and si_baseline >= 5 and si_today > si_baseline * 2:
+            ratio = round(si_today / si_baseline, 1)
+            signals.append({
+                "type": "search_spike",
+                "ticker": ticker,
+                "headline": f"{ticker} Google search interest up {ratio}x",
+                "detail": f"Search interest at {si_today}/100 today vs a ~{round(si_baseline)} "
+                          f"recent daily average — independent of StockTwits and Reddit, public "
+                          f"search attention is spiking too.",
+                "magnitude": ratio,
+            })
+
+        # The Divergence Engine: full pairwise comparison across all four
+        # pillars (Crowd/Wall Street/Business/Market), not just Crowd vs.
+        # the AI's fused score. This is the actual moat, not a feature —
+        # see PRODUCT.md's "The moat: Divergence + Change + Track Record."
+        pillars = pillar_scores.get(ticker) if pillar_scores else None
+        if pillars:
+            pattern, detail_text = classify_divergence(pillars)
+            if pattern:
+                signals.append(_build_divergence_signal(ticker, pattern, pillars, detail_text))
+
     signals.sort(key=lambda s: s["magnitude"], reverse=True)
     return signals[:8]
+
+
+# Wall Street pillar scores cluster structurally higher than the other
+# three — sell-side analysts rarely issue Sell ratings, so a "neutral"
+# Wall Street read sits well above a neutral Crowd/Business/Market read.
+# Live testing (2026-08-13) showed even a stock as troubled as Boeing
+# scoring 76/100 on Wall Street consensus. Using one universal threshold
+# across all four pillars would make "Wall Street confirms" nearly
+# always true and "Wall Street doesn't confirm" nearly never fire — so
+# Wall Street gets its own, higher-calibrated bucket.
+_DEFAULT_LEVEL_THRESHOLDS = (35, 65)
+_WALLSTREET_LEVEL_THRESHOLDS = (55, 78)
+
+DIVERGENCE_PATTERNS = {
+    "emerging_consensus": {"label": "Emerging Consensus", "icon": "🔥"},
+    "retail_euphoria": {"label": "Retail Euphoria", "icon": "⚠️"},
+    "fundamental_deterioration": {"label": "Fundamental Deterioration", "icon": "🧨"},
+    "under_the_radar": {"label": "Under-the-Radar", "icon": "💎"},
+}
+
+
+def _pillar_level(score, thresholds=_DEFAULT_LEVEL_THRESHOLDS):
+    if score is None:
+        return None
+    lo, hi = thresholds
+    if score >= hi:
+        return "high"
+    if score <= lo:
+        return "low"
+    return "mid"
+
+
+def classify_divergence(pillars):
+    """pillars: {"crowd", "wall_street", "business", "market"} each a
+    0-100 score or None. Returns (pattern_key, None) or (None, None) if
+    there isn't enough data (fewer than 3 pillars present) or nothing
+    about this ticker's pillar mix matches a named pattern — most
+    tickers on most days won't match anything, which is correct: this
+    should flag real alignment or real disagreement, not fire on
+    every ticker every day."""
+    crowd = _pillar_level(pillars.get("crowd"))
+    wall_street = _pillar_level(pillars.get("wall_street"), _WALLSTREET_LEVEL_THRESHOLDS)
+    business = _pillar_level(pillars.get("business"))
+    market = _pillar_level(pillars.get("market"))
+
+    if sum(1 for v in (crowd, wall_street, business, market) if v is not None) < 3:
+        return None, None
+
+    if crowd == "high" and wall_street == "high" and business == "high" and market == "high":
+        return "emerging_consensus", None
+    if crowd == "high" and wall_street in ("mid", "low") and business in ("mid", "low"):
+        return "retail_euphoria", None
+    if business == "low" and (crowd == "high" or market == "high"):
+        return "fundamental_deterioration", None
+    if wall_street == "high" and business == "high" and crowd in ("mid", "low"):
+        return "under_the_radar", None
+    return None, None
+
+
+def _fmt_pillar(label, score):
+    return f"{label} {score}/100" if score is not None else f"{label} n/a"
+
+
+def _build_divergence_signal(ticker, pattern, pillars, _unused=None):
+    meta = DIVERGENCE_PATTERNS[pattern]
+    crowd, ws, biz, mkt = (pillars.get("crowd"), pillars.get("wall_street"),
+                            pillars.get("business"), pillars.get("market"))
+    pillar_summary = ", ".join([
+        _fmt_pillar("Crowd", crowd), _fmt_pillar("Wall Street", ws),
+        _fmt_pillar("Business", biz), _fmt_pillar("Market", mkt),
+    ])
+
+    if pattern == "emerging_consensus":
+        headline = f"{ticker}: all four pillars point the same way"
+        detail = f"{pillar_summary} — rare full alignment across crowd sentiment, analysts, fundamentals, and price momentum."
+    elif pattern == "retail_euphoria":
+        headline = f"{ticker}: retail conviction is running ahead of the rest"
+        detail = f"{pillar_summary} — the crowd is hot, but Wall Street and the business itself haven't confirmed it yet."
+    elif pattern == "fundamental_deterioration":
+        headline = f"{ticker}: price and chatter are up, but the business is weakening"
+        detail = f"{pillar_summary} — sentiment and/or price are strong while the underlying business metrics are not."
+    else:  # under_the_radar
+        headline = f"{ticker}: professionals like this more than retail has noticed"
+        detail = f"{pillar_summary} — Wall Street and the fundamentals are both strong, but retail attention hasn't caught up yet."
+
+    present = [v for v in (crowd, ws, biz, mkt) if v is not None]
+    spread = (max(present) - min(present)) / 100 if len(present) >= 2 else 0
+    # Weighted above single-source signals (volume/reddit spikes, price
+    # divergence) since this is corroborated across up to 4 independent
+    # reads, not one — same reasoning as the old ai_divergence weighting.
+    magnitude = spread * 2.5
+
+    return {
+        "type": pattern,
+        "ticker": ticker,
+        "headline": headline,
+        "detail": detail,
+        "magnitude": magnitude,
+    }
 
 
 def build_sections(results, watchlist, min_mentions, quotes=None):
@@ -346,9 +527,71 @@ def build_sections(results, watchlist, min_mentions, quotes=None):
                 "reddit_mentions_24h_ago": None, "reddit_upvotes": None,
                 "media_sentiment": None, "media_label": None,
                 "media_headline_count": None,
+                "search_interest_today": None, "search_interest_baseline": None,
             })
 
     return top_bullish, top_bearish, most_discussed, watchlist_grid
+
+
+def build_sentiment_history(history, ticker_results, watchlist):
+    """Per-ticker daily avg_sentiment series (date + score), including
+    today — lets the chart overlay retail mood over time against price,
+    instead of leaving 'was the crowd right' as a sentence you have to
+    take on faith. Days with zero chatter for a ticker are naturally
+    absent (not faked as neutral), so the line can have real gaps."""
+    series = {t: [] for t in watchlist}
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    for snap in history:
+        date = snap.get("date")
+        if date == today:
+            # `history` was loaded before this run started, so any entry
+            # already dated today is stale — this run's ticker_results
+            # below is the freshest version of today and supersedes it.
+            continue
+        for tkr, entry in snap.get("tickers", {}).items():
+            if tkr not in series:
+                continue
+            val = entry.get("avg_sentiment") if isinstance(entry, dict) else entry
+            if val is not None:
+                series[tkr].append({"date": date, "avg_sentiment": val})
+
+    for r in ticker_results:
+        if r["ticker"] in series:
+            series[r["ticker"]].append({"date": today, "avg_sentiment": r["avg_sentiment"]})
+
+    # Need at least two points to draw a line; anything thinner isn't
+    # worth rendering yet and the frontend treats "missing" as "still
+    # building history" rather than an error.
+    return {t: v for t, v in series.items() if len(v) >= 2}
+
+
+def build_signal_snapshot(pillar_scores, signals, quotes):
+    """One record per flagship ticker: all four pillar scores, today's
+    Divergence Engine classification if any, a data-coverage confidence
+    measure, and today's price. This is the raw material Phase 4's
+    track record and 'why did the score change' features will read
+    from — `confidence` is a real computed value (share of the 4
+    pillars with actual data), not a placeholder, per the explicit
+    warning in PRODUCT.md against unexplained numbers. `market_regime`
+    is intentionally omitted for now rather than faked — it needs a
+    real market-wide (not per-ticker) volatility classification that
+    doesn't exist yet."""
+    by_ticker_pattern = {s["ticker"]: s["type"] for s in signals if s["type"] in DIVERGENCE_PATTERNS}
+
+    snapshot = {}
+    for ticker, pillars in pillar_scores.items():
+        present = [v for v in pillars.values() if v is not None]
+        confidence = round(len(present) / 4 * 100) if pillars else 0
+        snapshot[ticker] = {
+            "crowd": pillars.get("crowd"),
+            "wall_street": pillars.get("wall_street"),
+            "business": pillars.get("business"),
+            "market": pillars.get("market"),
+            "divergence": by_ticker_pattern.get(ticker),
+            "confidence": confidence,
+            "price": (quotes.get(ticker) or {}).get("price"),
+        }
+    return snapshot
 
 
 def _period_change(history):
@@ -371,15 +614,28 @@ def _news_for_ticker(news_items, ticker):
     return matched
 
 
+def _normalize_crowd_score(sentiment):
+    """avg_sentiment lives on a -1..1 scale; every other pillar is 0-100.
+    Normalize so the Divergence Engine can compare them directly."""
+    if not sentiment or sentiment.get("avg_sentiment") is None or not sentiment.get("mentions"):
+        return None
+    return round((sentiment["avg_sentiment"] + 1) * 50, 1)
+
+
 def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_history,
                           quotes, sleep_seconds=7):
-    """Runs the AI analyst model for a small, deliberately-scoped set of
+    """Runs all four pillars for a small, deliberately-scoped set of
     flagship tickers — not the whole ~50-ticker universe the rest of the
-    pipeline touches, since every call costs quota (and eventually money).
-    Feeds it real fundamentals, real sentiment, real recent price action,
-    and real matched news — never empty placeholders."""
+    pipeline touches, since every AI call costs quota (and eventually
+    money). Feeds the AI analyst real fundamentals, sentiment, Wall
+    Street data, market context, and matched news — never empty
+    placeholders. Returns (analyst_results, pillar_scores): the latter
+    is computed independently of whether the AI call itself succeeds,
+    so the Divergence Engine always has real pillar numbers to compare
+    even on a day the LLM call fails for a ticker."""
     by_ticker = {r["ticker"]: r for r in ticker_results}
-    results = {}
+    analyst_results = {}
+    pillar_scores = {}
 
     for i, ticker in enumerate(flagship_tickers):
         print(f"  [analyst] analyzing {ticker} ({i + 1}/{len(flagship_tickers)})...")
@@ -387,9 +643,23 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
         f = fetch_fundamentals(ticker)
         fscore = score_fundamentals(f) if f else None
 
+        w = fetch_analyst_data(ticker)
+        wscore = score_wallstreet(w) if w else None
+
+        hist = price_history.get(ticker, [])
+        m = fetch_market_data(ticker, hist)
+        mscore = score_market(m) if m else None
+
         sentiment = by_ticker.get(ticker)
+        pillar_scores[ticker] = {
+            "crowd": _normalize_crowd_score(sentiment),
+            "wall_street": wscore.get("overall") if wscore else None,
+            "business": fscore.get("overall") if fscore else None,
+            "market": mscore.get("overall") if mscore else None,
+        }
+
         q = quotes.get(ticker, {})
-        period_chg, period_days = _period_change(price_history.get(ticker, []))
+        period_chg, period_days = _period_change(hist)
         price_ctx = {
             "price": q.get("price"),
             "change_pct": q.get("change_pct"),
@@ -401,17 +671,19 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
         result = analyze_stock(
             ticker, name=f.get("name") if f else ticker, sector=f.get("sector") if f else None,
             fundamentals=f, fscore=fscore, sentiment=sentiment, price=price_ctx,
-            news_items=matched_news,
+            news_items=matched_news, wallstreet=w, wscore=wscore, market=m, mscore=mscore,
         )
         if result:
             result["_fundamentals_score"] = fscore.get("overall") if fscore else None
-            results[ticker] = result
+            result["_wallstreet_score"] = wscore.get("overall") if wscore else None
+            result["_market_score"] = mscore.get("overall") if mscore else None
+            analyst_results[ticker] = result
 
         if i < len(flagship_tickers) - 1:
             time.sleep(sleep_seconds)
 
-    print(f"  [analyst] {len(results)}/{len(flagship_tickers)} tickers analyzed successfully")
-    return results
+    print(f"  [analyst] {len(analyst_results)}/{len(flagship_tickers)} tickers analyzed successfully")
+    return analyst_results, pillar_scores
 
 
 def render_dashboard(payload):
@@ -475,7 +747,46 @@ def main():
     print(f"  matched {sum(1 for r in ticker_results if r['reddit_mentions'] is not None)}"
           f"/{len(ticker_results)} tickers to ApeWisdom data")
 
-    print("Fetching and scoring financial news...")
+    if config.get("google_trends_enabled", True):
+        trend_tickers = sorted(watchlist)
+        print(f"Fetching Google Trends search interest for {len(trend_tickers)} tickers "
+              f"(slow — Google rate-limits aggressively)...")
+        search_interest = fetch_search_interest(
+            trend_tickers, sleep_seconds=config.get("google_trends_sleep_seconds", 20.0)
+        )
+        ticker_results = merge_search_interest(ticker_results, search_interest)
+        print(f"  matched {len(search_interest)}/{len(trend_tickers)} tickers to Trends data")
+
+    flagship_tickers = config.get("flagship_tickers", [])
+
+    # News Intelligence System — three tiers, each answering a different
+    # question, not one bigger ranked pile. See PRODUCT.md.
+    print("Fetching Material Events (SEC EDGAR 8-K filings — Tier 1)...")
+    material_events = fetch_recent_8ks(
+        flagship_tickers, days=config.get("material_events_lookback_days", 7)
+    )
+    print(f"  found recent 8-K filings for {len(material_events)}/{len(flagship_tickers)} tickers")
+
+    print("Fetching and ranking company-specific news (Tier 2)...")
+    raw_company_news = fetch_ticker_news(flagship_tickers)
+    company_news = {}
+    for i, ticker in enumerate(flagship_tickers):
+        items = raw_company_news.get(ticker)
+        if not items:
+            continue
+        ranked = rank_news(ticker, ticker, items)
+        for it in ranked:
+            it["sentiment_score"] = round(score_text(it["title"]), 3)
+            it["sentiment_label"] = label_for_score(it["sentiment_score"])
+        kept = [it for it in ranked if it.get("keep", True)]
+        kept.sort(key=lambda it: it.get("importance") or 0, reverse=True)
+        if kept:
+            company_news[ticker] = kept[:8]
+        if i < len(flagship_tickers) - 1:
+            time.sleep(config.get("news_ranker_sleep_seconds", 3))
+    print(f"  kept ranked company news for {len(company_news)}/{len(flagship_tickers)} tickers")
+
+    print("Fetching and scoring broad market news (Tier 3)...")
     news_items = score_news(fetch_news(config["news_feeds"]))
     print(f"  collected {len(news_items)} headlines")
 
@@ -483,21 +794,23 @@ def main():
     ticker_results = merge_media_sentiment(ticker_results, media_sentiment)
     print(f"  matched media sentiment for {len(media_sentiment)} tickers")
 
-    flagship_tickers = config.get("flagship_tickers", [])
     analyst_results = {}
+    pillar_scores = {}
     if flagship_tickers:
-        print(f"Running AI analyst model on {len(flagship_tickers)} flagship tickers...")
-        analyst_results = run_analyst_pipeline(
+        print(f"Running the 4-pillar engine + AI analyst on {len(flagship_tickers)} flagship tickers...")
+        analyst_results, pillar_scores = run_analyst_pipeline(
             flagship_tickers, ticker_results, news_items, price_history, quotes,
             sleep_seconds=config.get("analyst_call_sleep_seconds", 7),
         )
 
-    print("Computing signals (divergences, volume spikes)...")
-    signals = compute_signals(ticker_results, history)
+    print("Computing signals (divergences, volume spikes, the Divergence Engine)...")
+    signals = compute_signals(ticker_results, history, pillar_scores)
 
     top_bullish, top_bearish, most_discussed, watchlist_grid = build_sections(
         ticker_results, watchlist, min_mentions, quotes
     )
+
+    sentiment_history = build_sentiment_history(history, ticker_results, watchlist)
 
     generated_at = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %I:%M %p %Z")
 
@@ -513,7 +826,11 @@ def main():
         "watchlist_grid": watchlist_grid,
         "news": news_items,
         "price_history": price_history,
+        "sentiment_history": sentiment_history,
         "analyst": analyst_results,
+        "pillar_scores": pillar_scores,
+        "material_events": material_events,
+        "company_news": company_news,
     }
     render_dashboard(payload)
 
@@ -532,6 +849,13 @@ def main():
             "model": ANALYST_MODEL,
             "tickers": analyst_results,
         }, config.get("analyst_history_days_to_keep", 90))
+
+    if pillar_scores:
+        signal_history = load_signal_history()
+        save_signal_history(signal_history, {
+            "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "tickers": build_signal_snapshot(pillar_scores, signals, quotes),
+        }, config.get("signal_history_days_to_keep", 365))
 
     print(f"\nDone. Open {DASHBOARD_PATH} in your browser.")
 

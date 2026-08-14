@@ -26,6 +26,14 @@
 
   "min_mentions_to_show": 2,
   "history_days_to_keep": 30,
+  "analyst_history_days_to_keep": 90,
+  "signal_history_days_to_keep": 365,
   "chart_history_period": "3mo",
-  "analyst_call_sleep_seconds": 7
+  "analyst_call_sleep_seconds": 7,
+
+  "google_trends_enabled": true,
+  "google_trends_sleep_seconds": 20.0,
+
+  "material_events_lookback_days": 7,
+  "news_ranker_sleep_seconds": 3
 }

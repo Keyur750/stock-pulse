@@ -13,20 +13,10 @@ provider (Claude, GPT) later is a small, contained change, not a rewrite.
 """
 
 import json
-import os
 import re
 import time
 
-# Deliberately pinned, not "-latest". The "-latest" aliases silently
-# repoint to newer models over time — gemini-flash-latest moved to
-# gemini-3.6-flash mid-project, which turned out to have a free-tier cap
-# of just 20 requests/day (vs. flash-lite's much larger allowance),
-# and quietly zeroed out our quota. Pin to a specific model with known
-# quota headroom; re-evaluate deliberately, not by surprise.
-MODEL = "gemini-3.1-flash-lite"
-
-_client = None
-_client_checked = False
+from llm_client import get_client, MODEL
 
 RESPONSE_SCHEMA = {
     "type": "object",
@@ -48,8 +38,19 @@ RESPONSE_SCHEMA = {
         "bearish_factors": {"type": "array", "items": {"type": "string"}, "description": "4-6 reasons for caution, same rule — explain the mechanism, don't just restate a number."},
         "key_risks": {"type": "array", "items": {"type": "string"}, "description": "3-5 SPECIFIC named risks — an actual lawsuit, regulation, competitor, or execution dependency by name. Banned: generic phrases like 'regulatory scrutiny' or 'market risk' with nothing named. If you genuinely don't know a specific name, say what KIND of thing to watch for and why, don't fabricate a name."},
         "key_catalysts": {"type": "array", "items": {"type": "string"}, "description": "3-5 SPECIFIC upcoming or ongoing events that could move the stock, named concretely (a product launch, an earnings date, a segment inflection) — not vague 'continued growth.'"},
+        "pillar_reads": {
+            "type": "object",
+            "description": "One short, specific read per pillar — what that source of judgment believes and why, not a restatement of its score.",
+            "properties": {
+                "crowd": {"type": "string", "description": "1-2 sentences: what retail chatter believes right now and why — name the actual theme (a product, a catalyst, a fear), not just 'bullish' or 'bearish.'"},
+                "wall_street": {"type": "string", "description": "1-2 sentences: what Wall Street analysts think and why, referencing the actual rating/target data given. If coverage is thin or absent, say so plainly instead of inventing a view."},
+                "business": {"type": "string", "description": "1-2 sentences: what the fundamentals actually show, in plain language — not a restatement of the category scores."},
+                "market": {"type": "string", "description": "1-2 sentences: where the stock already sits relative to its own recent range and trend, and whether that means a bullish or bearish thesis is already priced in versus still fresh — this is the one pillar that's explicitly about context, not verdict."},
+            },
+            "required": ["crowd", "wall_street", "business", "market"],
+        },
     },
-    "required": ["reasoning", "overall_score", "verdict", "summary", "bullish_factors", "bearish_factors", "key_risks", "key_catalysts"],
+    "required": ["reasoning", "overall_score", "verdict", "summary", "bullish_factors", "bearish_factors", "key_risks", "key_catalysts", "pillar_reads"],
 }
 
 PROMPT_TEMPLATE = """You are a senior equity research analyst — the kind whose notes \
@@ -79,46 +80,32 @@ If the data is mixed, say so plainly rather than splitting the difference vaguel
 language like "you should buy."
 - Fill "reasoning" first and actually use it to think — don't write it as an afterthought \
 summary of the other fields.
+- For "pillar_reads.market" specifically: explicitly reason about whether the bullish or \
+bearish case is already reflected in where the stock is trading relative to its own recent \
+range — a stock already up sharply and near its highs needs different framing than one that \
+hasn't moved, even if the underlying thesis is identical. This is the core reason this pillar \
+exists — don't skip the reasoning and just restate the numbers.
 
 TICKER: {ticker} — {name} ({sector})
 
-FUNDAMENTALS (from live financial data, scored 0-100 per category):
+FUNDAMENTALS / BUSINESS (from live financial data, scored 0-100 per category):
 {fundamentals_block}
 
-RETAIL SENTIMENT (from StockTwits/Reddit chatter today):
+RETAIL SENTIMENT / CROWD (from StockTwits/Reddit chatter today):
 {sentiment_block}
 
-RECENT PRICE ACTION (do not reason about valuation in a vacuum — factor in whether recent \
-strength/weakness already prices in what you're about to say):
+WALL STREET / ANALYST CONSENSUS (from live analyst rating and price-target data):
+{wallstreet_block}
+
+MARKET CONTEXT (price relative to its own recent range — use this to judge what's already \
+priced in, do not reason about valuation in a vacuum):
 {price_block}
+{market_block}
 
 RECENT NEWS HEADLINES (may be sparse — use general knowledge to fill context, but flag what's from these headlines vs. what's background knowledge):
 {news_block}
 
 Respond with the synthesis described above."""
-
-
-def _get_client():
-    global _client, _client_checked
-    if _client_checked:
-        return _client
-    _client_checked = True
-
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        print("  [analyst] GEMINI_API_KEY not set — skipping AI analysis.")
-        return None
-    try:
-        from google import genai
-    except ImportError:
-        print("  [analyst] google-genai not installed — skipping AI analysis.")
-        return None
-    try:
-        _client = genai.Client(api_key=api_key)
-    except Exception as e:
-        print(f"  [analyst] failed to init Gemini client: {type(e).__name__}: {e}")
-        _client = None
-    return _client
 
 
 def _fmt_fundamentals(fundamentals, fscore):
@@ -156,6 +143,40 @@ def _fmt_sentiment(sentiment):
     return "\n".join(lines)
 
 
+def _signed_pct(v):
+    return f"{v:+.1f}%" if isinstance(v, (int, float)) else "n/a"
+
+
+def _fmt_wallstreet(wallstreet, wscore):
+    if not wallstreet or not wscore or not wscore.get("overall"):
+        return "Not available — little or no analyst coverage."
+    lines = [
+        f"- Overall Wall Street score: {wscore.get('overall')}/100 (data coverage: {wscore.get('coverage')}/3 categories)",
+        f"- Consensus rating: {wallstreet.get('recommendation_key', 'n/a')} "
+        f"(mean {wallstreet.get('recommendation_mean')} on a 1=Strong Buy...5=Strong Sell scale), "
+        f"from {wallstreet.get('num_analysts')} analysts",
+        f"- Mean price target: ${wallstreet.get('target_mean_price')} "
+        f"({_signed_pct(wallstreet.get('upside_pct'))} vs current price)",
+        f"- Analyst tone shift over roughly the last 3 months: "
+        f"{_signed_pct(wallstreet.get('revision_delta_pct'))} change in the bullish-rated share of coverage",
+    ]
+    return "\n".join(lines)
+
+
+def _fmt_market(market, mscore):
+    if not market or not mscore or not mscore.get("overall"):
+        return "Not available."
+    lines = [
+        f"- Overall market/momentum score: {mscore.get('overall')}/100 (data coverage: {mscore.get('coverage')}/3 categories)",
+        f"- {_signed_pct(market.get('pct_from_52w_high'))} from its 52-week high, "
+        f"{_signed_pct(market.get('pct_from_52w_low'))} from its 52-week low",
+        f"- {_signed_pct(market.get('pct_from_50d_avg'))} vs its 50-day average, "
+        f"{_signed_pct(market.get('pct_from_200d_avg'))} vs its 200-day average",
+        f"- Daily realized volatility: {market.get('daily_volatility_pct')}% (higher = choppier trading)",
+    ]
+    return "\n".join(lines)
+
+
 def _fmt_price(price):
     if not price or price.get("price") is None:
         return "Not available."
@@ -186,14 +207,15 @@ def _extract_retry_delay(exc, default=60):
 
 def analyze_stock(ticker: str, name: str, sector: str, fundamentals: dict | None,
                    fscore: dict | None, sentiment: dict | None, price: dict | None,
-                   news_items: list) -> dict | None:
+                   news_items: list, wallstreet: dict | None = None, wscore: dict | None = None,
+                   market: dict | None = None, mscore: dict | None = None) -> dict | None:
     """Runs one ticker through the analyst model. Returns the parsed
     response dict, or None if no API key is configured or the call fails
     after one retry (never raises — a failed AI analysis shouldn't break
     the whole run). Retries once on rate-limit (429) errors, since the
     free tier's per-minute limit is easy to brush against across several
     tickers in one run."""
-    client = _get_client()
+    client = get_client()
     if client is None:
         return None
 
@@ -201,7 +223,9 @@ def analyze_stock(ticker: str, name: str, sector: str, fundamentals: dict | None
         ticker=ticker, name=name or ticker, sector=sector or "unknown sector",
         fundamentals_block=_fmt_fundamentals(fundamentals, fscore),
         sentiment_block=_fmt_sentiment(sentiment),
+        wallstreet_block=_fmt_wallstreet(wallstreet, wscore),
         price_block=_fmt_price(price),
+        market_block=_fmt_market(market, mscore),
         news_block=_fmt_news(news_items),
     )
 

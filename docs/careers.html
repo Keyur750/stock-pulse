@@ -5,114 +5,109 @@
 <title>Careers — Undertow</title>
 <meta name="description" content="Undertow is currently a solo, independent project. No open roles today — here's what we'd look for if that changes.">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230F2A4A'/%3E%3Cpath d='M3,20 C7,10 11,10 16,17 C21,24 25,24 29,12' fill='none' stroke='%232C5FF0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B1626'/%3E%3Cpath d='M4,20 C8,11 12,11 16,17.5 C20,24 24,24 28,13' fill='none' stroke='%233B82F6' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg-void: #F3F5FA; --bg-deep: #EDF0F7; --bg-panel: #FFFFFF; --bg-panel-2: #FAFBFD;
-    --glass-border: rgba(16,25,45,0.08); --glass-border-hover: rgba(16,25,45,0.18);
-    --brand: #2C5FF0; --brand-2: #16406E; --gold: #B8862F; --violet: #6D5BD0; --teal: #0E8F80;
-    --bull: #0E9F6E; --bear: #DC2626;
-    --text-primary: #10192B; --text-secondary: #45516A; --text-muted: #6B7690; --text-faint: #9AA3B8;
-    --shadow-card: 0 1px 2px rgba(16,25,45,0.05), 0 10px 26px -10px rgba(16,25,45,0.14);
-    --shadow-card-hover: 0 2px 5px rgba(16,25,45,0.07), 0 18px 40px -12px rgba(16,25,45,0.18);
+    --bg-primary: #0B1626; --bg-secondary: #0F1C2E;
+    --surface-1: #101C2D; --surface-2: #142238; --surface-3: #17263D;
+    --text-primary: #F5F7FA; --text-secondary: #94A3B8; --text-faint: #5B6B84;
+    --border: #22324A; --border-hover: #314764;
+    --accent: #3B82F6; --accent-dim: rgba(59,130,246,0.10); --accent-border: rgba(59,130,246,0.30);
+    --bull: #10B981; --bull-soft: rgba(16,185,129,0.12);
+    --bear: #EF4444; --amber: #F59E0B; --amber-soft: rgba(245,158,11,0.12);
+    --gray: #64748B;
+    --radius-sm: 8px; --radius-md: 10px; --radius-lg: 12px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.24); --shadow-md: 0 8px 24px -8px rgba(0,0,0,0.45);
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
-    margin: 0; color: var(--text-primary); font-family: 'Public Sans', sans-serif;
-    background:
-      radial-gradient(900px 560px at 10% -6%, rgba(14,143,128,0.06), transparent 60%),
-      radial-gradient(800px 520px at 95% 8%, rgba(44,95,240,0.05), transparent 55%),
-      linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-void) 100%);
-    background-attachment: fixed; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    margin: 0; color: var(--text-primary); font-family: 'Inter', sans-serif;
+    background: radial-gradient(1000px 560px at 10% -8%, rgba(59,130,246,0.06), transparent 60%), var(--bg-primary);
+    background-attachment: fixed; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; overflow-x: hidden;
   }
   a { color: inherit; }
   .mono { font-family: 'JetBrains Mono', monospace; }
-  .wrap { max-width: 1220px; margin: 0 auto; padding: 0 32px; }
-  .wrap-narrow { max-width: 780px; margin: 0 auto; padding: 0 32px; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+  .wrap-narrow { max-width: 740px; margin: 0 auto; padding: 0 28px; }
 
-  .nav-wrap { position: sticky; top: 0; z-index: 30; background: rgba(243,245,250,0.85); backdrop-filter: blur(16px) saturate(140%); border-bottom: 1px solid var(--glass-border); }
-  nav.topnav { max-width: 1220px; margin: 0 auto; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
-  .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; }
-  .brand-mark { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(155deg, #16345B, #0B2038); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px -6px rgba(15,42,74,0.45); flex-shrink: 0; }
-  .brand-word { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
-  .brand-word .dot { background: linear-gradient(135deg, var(--brand), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .nav-wrap { position: sticky; top: 0; z-index: 30; background: rgba(11,22,38,0.9); backdrop-filter: blur(14px) saturate(140%); border-bottom: 1px solid var(--border); }
+  nav.topnav { max-width: 1180px; margin: 0 auto; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+  .brand-mark { width: 30px; height: 30px; border-radius: 7px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .brand-word { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
   .nav-links { display: flex; align-items: center; gap: 4px; }
-  .nav-links a { font-size: 13.5px; font-weight: 600; color: var(--text-secondary); text-decoration: none; padding: 9px 15px; border-radius: 20px; transition: color .15s ease, background-color .15s ease; }
-  .nav-links a:hover { color: var(--text-primary); background: var(--bg-panel-2); }
-  .nav-links a.active { color: var(--brand); background: rgba(44,95,240,0.08); }
-  .nav-cta { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff !important; font-weight: 700 !important; box-shadow: 0 8px 20px -8px rgba(44,95,240,0.45); }
-  .nav-cta:hover { filter: brightness(1.08); }
+  .nav-links a { font-size: 13.5px; font-weight: 500; color: var(--text-secondary); text-decoration: none; padding: 8px 14px; border-radius: var(--radius-sm); transition: color .15s ease, background-color .15s ease; }
+  .nav-links a:hover { color: var(--text-primary); background: var(--surface-2); }
+  .nav-links a.active { color: var(--accent); background: var(--accent-dim); }
+  .nav-cta { background: var(--accent) !important; color: #fff !important; font-weight: 700 !important; }
+  .nav-cta:hover { filter: brightness(1.1); }
   @media (max-width: 780px) { .nav-links a:not(.nav-cta) { display: none; } }
 
-  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
   .reveal.visible { opacity: 1; transform: translateY(0); }
   .reveal-1 { transition-delay: .05s; } .reveal-2 { transition-delay: .12s; } .reveal-3 { transition-delay: .19s; } .reveal-4 { transition-delay: .26s; }
 
-  .hero { padding: 88px 0 20px; text-align: center; }
-  .hero-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--teal); background: rgba(14,143,128,.10); border: 1px solid rgba(14,143,128,0.25); display: inline-flex; padding: 6px 16px; border-radius: 20px; }
-  .hero h1 { font-family: 'Fraunces', serif; font-size: clamp(32px, 5vw, 50px); line-height: 1.15; font-weight: 600; letter-spacing: -0.02em; margin: 24px auto 0; max-width: 760px; }
-  .hero h1 .grad { background: linear-gradient(100deg, var(--brand), var(--violet)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .hero-sub { font-size: 16.5px; color: var(--text-secondary); max-width: 600px; margin: 20px auto 0; line-height: 1.65; }
+  .hero { padding: 80px 0 16px; text-align: center; }
+  .hero-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber); background: var(--amber-soft); border: 1px solid rgba(245,158,11,0.32); display: inline-flex; padding: 6px 15px; border-radius: 20px; }
+  .hero h1 { font-size: clamp(30px, 4.6vw, 46px); line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; margin: 22px auto 0; max-width: 700px; }
+  .hero h1 .accent { color: var(--accent); }
+  .hero-sub { font-size: 16px; color: var(--text-secondary); max-width: 560px; margin: 18px auto 0; line-height: 1.6; }
 
-  section.section { padding: 64px 0; }
-  .surface { background: linear-gradient(165deg, var(--bg-panel) 0%, var(--bg-panel-2) 100%); border: 1px solid var(--glass-border); box-shadow: var(--shadow-card); }
-  .surface-hover { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
-  .surface-hover:hover { transform: translateY(-3px); box-shadow: var(--shadow-card-hover); border-color: var(--glass-border-hover); }
+  section.section { padding: 56px 0; }
+  .surface { background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-sm); border-radius: var(--radius-lg); }
+  .surface-hover { transition: border-color .18s ease, background-color .18s ease; }
+  .surface-hover:hover { border-color: var(--border-hover); background: var(--surface-2); }
 
-  .status-banner { border-radius: 16px; padding: 26px 28px; display: flex; gap: 16px; align-items: flex-start; }
-  .status-banner .icon { font-size: 15px; margin-top: 4px; color: var(--teal); }
-  .status-banner h3 { margin: 0 0 6px; font-family: 'Fraunces', serif; font-weight: 600; font-size: 16px; }
-  .status-banner p { margin: 0; font-size: 13.5px; color: var(--text-muted); line-height: 1.6; }
+  .status-banner { border-radius: var(--radius-lg); padding: 24px 26px; display: flex; gap: 14px; align-items: flex-start; }
+  .status-banner .icon { font-size: 13px; margin-top: 4px; color: var(--amber); }
+  .status-banner h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+  .status-banner p { margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
 
-  .prose h2 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 23px; margin: 44px 0 16px; letter-spacing: -0.01em; }
-  .prose p { font-size: 15.5px; color: var(--text-secondary); line-height: 1.8; margin: 0 0 20px; }
+  .prose h2 { font-size: 22px; font-weight: 800; margin: 40px 0 14px; letter-spacing: -0.01em; }
+  .prose p { font-size: 15px; color: var(--text-secondary); line-height: 1.8; margin: 0 0 18px; }
 
-  .role-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 36px; }
+  .role-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 32px; }
   @media (max-width: 700px) { .role-grid { grid-template-columns: 1fr; } }
-  .role-card { border-radius: 14px; padding: 22px; }
-  .role-card .role-tag { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; padding: 3px 8px; border-radius: 5px; background: var(--bg-panel-2); border: 1px solid var(--border, var(--glass-border)); color: var(--text-faint); }
-  .role-card h4 { margin: 10px 0 8px; font-family: 'Fraunces', serif; font-weight: 600; font-size: 15px; }
-  .role-card p { margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .role-card { border-radius: var(--radius-md); padding: 20px; }
+  .role-card .role-tag { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; padding: 3px 8px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-faint); }
+  .role-card h4 { margin: 10px 0 8px; font-size: 14px; font-weight: 700; }
+  .role-card p { margin: 0; font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; }
 
-  .culture-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 36px; }
+  .culture-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 32px; }
   @media (max-width: 900px) { .culture-grid { grid-template-columns: 1fr; } }
-  .culture-card { border-radius: 14px; padding: 22px; text-align: center; }
-  .culture-card .emoji { font-size: 26px; }
-  .culture-card h4 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 14.5px; margin: 12px 0 6px; }
-  .culture-card p { font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.55; }
+  .culture-card { border-radius: var(--radius-md); padding: 20px; text-align: center; }
+  .culture-card h4 { font-size: 13.5px; font-weight: 700; margin: 0 0 6px; }
+  .culture-card p { font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.55; }
 
-  .btn { display: inline-flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 700; padding: 14px 26px; border-radius: 12px; text-decoration: none; transition: transform .15s ease, filter .15s ease; }
-  .btn-primary { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff; box-shadow: 0 12px 28px -10px rgba(44,95,240,0.45); }
-  .btn-primary:hover { transform: translateY(-2px); filter: brightness(1.08); }
-  .btn-ghost { background: var(--bg-panel); color: var(--text-primary); border: 1px solid var(--glass-border); box-shadow: var(--shadow-card); }
-  .btn-ghost:hover { border-color: var(--glass-border-hover); transform: translateY(-2px); }
+  .btn { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; padding: 13px 24px; border-radius: var(--radius-md); text-decoration: none; transition: transform .15s ease, filter .15s ease; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-ghost { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--border-hover); background: var(--surface-2); }
 
-  footer { border-top: 1px solid var(--glass-border); margin-top: 40px; }
-  .footer-grid { max-width: 1220px; margin: 0 auto; padding: 56px 32px 28px; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; }
+  footer { border-top: 1px solid var(--border); margin-top: 30px; }
+  .footer-grid { max-width: 1180px; margin: 0 auto; padding: 48px 28px 24px; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 28px; }
   @media (max-width: 780px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
-  .footer-brand p { color: var(--text-muted); font-size: 13px; line-height: 1.6; max-width: 280px; margin-top: 14px; }
-  .footer-col h5 { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-faint); margin: 0 0 14px; }
-  .footer-col a { display: block; font-size: 13.5px; color: var(--text-secondary); text-decoration: none; margin-bottom: 10px; }
-  .footer-col a:hover { color: var(--brand); }
-  .footer-bottom { max-width: 1220px; margin: 0 auto; padding: 20px 32px 32px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
+  .footer-brand p { color: var(--text-faint); font-size: 12.5px; line-height: 1.6; max-width: 260px; margin-top: 12px; }
+  .footer-col h5 { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-faint); margin: 0 0 12px; }
+  .footer-col a { display: block; font-size: 13px; color: var(--text-secondary); text-decoration: none; margin-bottom: 9px; }
+  .footer-col a:hover { color: var(--accent); }
+  .footer-bottom { max-width: 1180px; margin: 0 auto; padding: 18px 28px 30px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
 </style>
 </head>
 <body>
 
 <div class="nav-wrap">
   <nav class="topnav">
-    <a class="brand" href="index.html">
-      <div class="brand-mark"><svg width="18" height="18" viewBox="0 0 32 32" fill="none"><path d="M3,20 C7,10 11,10 16,17 C21,24 25,24 29,12" stroke="url(#g1)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="g1" x1="0" y1="0" x2="32" y2="0"><stop offset="0" stop-color="#2C5FF0"/><stop offset="1" stop-color="#B8862F"/></linearGradient></defs></svg></div>
-      <span class="brand-word"><span class="dot">U</span>ndertow</span>
-    </a>
+    <a class="brand" href="index.html"><div class="brand-mark"><svg width="15" height="15" viewBox="0 0 32 32" fill="none"><path d="M4,20 C8,11 12,11 16,17.5 C20,24 24,24 28,13" stroke="#3B82F6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="brand-word">UNDERTOW</span></a>
     <div class="nav-links">
       <a href="index.html">Home</a>
       <a href="about.html">About</a>
       <a href="careers.html" class="active">Careers</a>
-      <a href="dashboard.html" class="nav-cta">Live Dashboard →</a>
+      <a href="dashboard.html" class="nav-cta">Explore the Intelligence →</a>
     </div>
   </nav>
 </div>
@@ -120,7 +115,7 @@
 <header class="hero">
   <div class="wrap">
     <span class="hero-kicker reveal visible">CAREERS</span>
-    <h1 class="reveal visible">Small team, <span class="grad">honest about it.</span></h1>
+    <h1 class="reveal visible">Small team, <span class="accent">honest about it.</span></h1>
     <p class="hero-sub reveal visible reveal-1">Undertow is a solo, independent project today — not a company with a hiring pipeline. This page is here so that's clear, not to dress up something it isn't.</p>
   </div>
 </header>
@@ -146,22 +141,22 @@
       <div class="role-card surface surface-hover reveal reveal-1">
         <span class="role-tag">DATA</span>
         <h4>Data Engineer</h4>
-        <p>Someone who'd get excited about adding real Reddit API access once approval comes through, or wiring up another free sentiment source without breaking the "no black box" rule.</p>
+        <p>Someone who'd get excited about wiring up another independent signal source without breaking the "no black box" rule.</p>
       </div>
       <div class="role-card surface surface-hover reveal reveal-2">
         <span class="role-tag">DESIGN</span>
         <h4>Product Designer</h4>
-        <p>Someone who cares as much about how a number is labeled as what the number is — density without clutter, done right in both light and dark.</p>
+        <p>Someone who cares as much about how a number is labeled as what the number is — density without clutter.</p>
       </div>
       <div class="role-card surface surface-hover reveal reveal-3">
         <span class="role-tag">RESEARCH</span>
         <h4>Quant / NLP Researcher</h4>
-        <p>Someone who'd push the sentiment scoring past VADER-plus-slang into something more rigorous, and be honest about where it's still just a heuristic.</p>
+        <p>Someone who'd push the divergence classification and narrative taxonomy past first-pass heuristics, honestly.</p>
       </div>
       <div class="role-card surface surface-hover reveal reveal-4">
         <span class="role-tag">COMMUNITY</span>
         <h4>Community / Trust</h4>
-        <p>Someone who'd keep the project honest as it grows — no dark patterns, no paywalling transparency, no pretending free-tier limits don't exist.</p>
+        <p>Someone who'd keep the project honest as it grows — no dark patterns, no paywalling transparency.</p>
       </div>
     </div>
   </div>
@@ -169,15 +164,15 @@
 
 <section class="section" style="padding-top:0;">
   <div class="wrap-narrow">
-    <h2 style="font-family:'Fraunces',serif;font-weight:600;font-size:22px;text-align:center;" class="reveal">What we'd actually care about</h2>
+    <h2 style="font-size:20px;font-weight:800;text-align:center;" class="reveal">What we'd actually care about</h2>
     <div class="culture-grid">
-      <div class="culture-card surface surface-hover reveal reveal-1"><div class="emoji">🔍</div><h4>Show the work</h4><p>No shipping a number without a visible source.</p></div>
-      <div class="culture-card surface surface-hover reveal reveal-2"><div class="emoji">🪶</div><h4>Stay light</h4><p>Free-tier-first, no cost creep, no dependency on someone else's paywall.</p></div>
-      <div class="culture-card surface surface-hover reveal reveal-3"><div class="emoji">🎯</div><h4>Say no to noise</h4><p>A feature earns its place by cutting through clutter, not adding to it.</p></div>
+      <div class="culture-card surface surface-hover reveal reveal-1"><h4>Show the work</h4><p>No shipping a number without a visible source.</p></div>
+      <div class="culture-card surface surface-hover reveal reveal-2"><h4>Stay light</h4><p>Free-tier-first, no cost creep, no dependency on someone else's paywall.</p></div>
+      <div class="culture-card surface surface-hover reveal reveal-3"><h4>Say no to noise</h4><p>A feature earns its place by cutting through clutter, not adding to it.</p></div>
     </div>
 
-    <div style="text-align:center;margin-top:48px;" class="reveal">
-      <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px;">Genuinely interested in where this goes? The project lives in the open.</p>
+    <div style="text-align:center;margin-top:44px;" class="reveal">
+      <p style="color:var(--text-secondary);font-size:13.5px;margin-bottom:18px;">Genuinely interested in where this goes? The project lives in the open.</p>
       <a class="btn btn-ghost" href="https://github.com/keyur750/stock-pulse" target="_blank" rel="noopener">View the project on GitHub</a>
     </div>
   </div>
@@ -186,11 +181,8 @@
 <footer>
   <div class="footer-grid">
     <div class="footer-brand">
-      <a class="brand" href="index.html">
-        <div class="brand-mark"><svg width="18" height="18" viewBox="0 0 32 32" fill="none"><path d="M3,20 C7,10 11,10 16,17 C21,24 25,24 29,12" stroke="url(#g2)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="g2" x1="0" y1="0" x2="32" y2="0"><stop offset="0" stop-color="#2C5FF0"/><stop offset="1" stop-color="#B8862F"/></linearGradient></defs></svg></div>
-        <span class="brand-word"><span class="dot">U</span>ndertow</span>
-      </a>
-      <p>Retail sentiment, cross-checked against reality. An independent project, built in the open.</p>
+      <a class="brand" href="index.html"><div class="brand-mark"><svg width="15" height="15" viewBox="0 0 32 32" fill="none"><path d="M4,20 C8,11 12,11 16,17.5 C20,24 24,24 28,13" stroke="#3B82F6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="brand-word">UNDERTOW</span></a>
+      <p>Market intelligence for the modern investor. An independent project, built in the open.</p>
     </div>
     <div class="footer-col"><h5>Product</h5><a href="dashboard.html">Live Dashboard</a><a href="dashboard.html#signals-block">Signals</a><a href="dashboard.html#watchlist">Watchlist</a></div>
     <div class="footer-col"><h5>Company</h5><a href="about.html">About</a><a href="careers.html">Careers</a></div>

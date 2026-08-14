@@ -235,9 +235,16 @@ still in `market_data.py`), not deleted — see `PRODUCT.md` for why.
   "loud" and "bullish" aren't conflated
 - **Your Watchlist** — every tracked ticker, with filters (All / Active only
   / Bullish / Bearish)
+- **Material Events** — real SEC 8-K filings for your flagship tickers,
+  shown as-is (a legal disclosure requirement, not an editorial guess
+  at what's important)
+- **Company News** — per-company headlines (via `yfinance`), filtered
+  and importance-ranked by the AI so generic advice/listicle content
+  doesn't crowd out real company-specific news
 - **Market News** — headlines from your configured RSS feeds, each scored
   for sentiment so you can see when the press leans bullish or bearish on
-  a story, not just read it
+  a story, not just read it — kept as broad ambient context, not ranked
+  against company news
 
 Click any ticker anywhere to open a self-hosted chart — a ~3-month price
 history with hover crosshair, built entirely from data already fetched for
@@ -262,6 +269,14 @@ inside that chart, for anyone who wants the full real-time view.
   signal (which needs no Reddit approval to work). Being a third-party
   service rather than Reddit itself, it could change or go down without
   notice; failures are logged and skipped, same as every other source.
+- **Google Trends** (`trends.py`, `pytrends`): a free, independent
+  Crowd attention cross-check — relative search interest for "{ticker}
+  stock" over the last 3 months. Genuinely rate-limited by Google in
+  practice (real-world testing hit HTTP 429 after a single request
+  with only a 1.5s gap) — runs with a long delay between tickers and
+  one retry, and partial failures on a given day are expected, not a
+  bug. Controlled by `google_trends_enabled` / `google_trends_sleep_seconds`
+  in `config.json`.
 - **News sentiment**: headlines from your RSS feeds are scored with the
   same VADER pipeline as chatter, and matched to your flagship tickers by
   symbol mention — giving a media-sentiment read distinct from retail
@@ -272,18 +287,37 @@ inside that chart, for anyone who wants the full real-time view.
   retail trading slang.
 - **Prices**: `yfinance` pulls current price, day change, and 3-month
   history for every flagship ticker.
-- **AI analysis**: `analyst.py` sends each flagship ticker's fundamentals,
-  sentiment, price trend, and matched news to Gemini, which reasons about
-  them together — growth in context of company size, known company
-  situations, genuinely balanced bullish/bearish factors — rather than
-  scoring off a fixed formula.
+- **Wall Street pillar** (`wallstreet.py`): analyst consensus rating,
+  mean price target, and a 3-month recommendation-trend read, all free
+  via `yfinance`. Note: sell-side ratings cluster structurally bullish
+  across the board (analysts rarely issue Sell ratings) — the
+  Divergence Engine accounts for this with a separately-calibrated
+  threshold for this pillar.
+- **Market pillar** (`market.py`): momentum/extension (distance from
+  52-week high, position vs. moving averages) and realized volatility,
+  free via `yfinance` plus the price history already fetched — answers
+  "is this already priced in," not "is this good."
+- **AI analysis**: `analyst.py` sends each flagship ticker's
+  fundamentals, sentiment, Wall Street data, market context, price
+  trend, and matched news to Gemini, which reasons about them together
+  — growth in context of company size, known company situations,
+  genuinely balanced bullish/bearish factors, and a short "why" read
+  per pillar — rather than scoring off a fixed formula.
+- **The Divergence Engine**: compares all four pillar scores pairwise
+  and classifies real disagreement into named patterns (Emerging
+  Consensus, Retail Euphoria, Fundamental Deterioration, Under-the-
+  Radar) — see `PRODUCT.md`'s "The moat" for what each means and why
+  this, not any single pillar, is the actual differentiator.
 - **Signals**: computed by comparing sentiment direction against same-day
   price direction, today's message volume against a 7-day rolling average
-  from history, day-over-day Reddit mention growth from ApeWisdom, and
-  media sentiment against retail sentiment.
+  from history, day-over-day Reddit and Google Trends attention growth,
+  media sentiment against retail sentiment, and the Divergence Engine.
 - **History**: `data/history.json` accumulates a daily snapshot per ticker —
   this is what powers day-over-day deltas and volume-spike detection, and
   it's committed back to the repo automatically by the Action each run.
+  `data/signal_history.json` does the same for pillar scores and
+  divergence classifications — the raw material for the track-record
+  feature planned in Phase 4.
 
 ## Notes and limits
 

@@ -2,132 +2,155 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Undertow — Retail sentiment, cross-checked against reality</title>
-<meta name="description" content="Undertow pulls bullish and bearish retail chatter from four independent sources, scores it, and checks it against real price action — daily, free, transparent.">
+<title>Undertow — Market Intelligence for the Modern Investor</title>
+<meta name="description" content="Undertow cross-checks retail sentiment, Wall Street expectations, business fundamentals, and market behavior to reveal where the market agrees — and where it doesn't.">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230F2A4A'/%3E%3Cpath d='M3,20 C7,10 11,10 16,17 C21,24 25,24 29,12' fill='none' stroke='%232C5FF0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B1626'/%3E%3Cpath d='M4,20 C8,11 12,11 16,17.5 C20,24 24,24 28,13' fill='none' stroke='%233B82F6' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg-void: #F3F5FA; --bg-deep: #EDF0F7; --bg-panel: #FFFFFF; --bg-panel-2: #FAFBFD;
-    --glass-border: rgba(16,25,45,0.08); --glass-border-hover: rgba(16,25,45,0.18);
-    --brand: #2C5FF0; --brand-2: #16406E; --gold: #B8862F; --violet: #6D5BD0; --teal: #0E8F80;
-    --bull: #0E9F6E; --bear: #DC2626;
-    --text-primary: #10192B; --text-secondary: #45516A; --text-muted: #6B7690; --text-faint: #9AA3B8;
-    --shadow-card: 0 1px 2px rgba(16,25,45,0.05), 0 10px 26px -10px rgba(16,25,45,0.14);
-    --shadow-card-hover: 0 2px 5px rgba(16,25,45,0.07), 0 18px 40px -12px rgba(16,25,45,0.18);
+    --bg-primary: #0B1626; --bg-secondary: #0F1C2E;
+    --surface-1: #101C2D; --surface-2: #142238; --surface-3: #17263D;
+    --text-primary: #F5F7FA; --text-secondary: #94A3B8; --text-faint: #5B6B84;
+    --border: #22324A; --border-hover: #314764;
+    --accent: #3B82F6; --accent-dim: rgba(59,130,246,0.10); --accent-soft: rgba(59,130,246,0.16); --accent-border: rgba(59,130,246,0.30);
+    --bull: #10B981; --bull-soft: rgba(16,185,129,0.12); --bull-border: rgba(16,185,129,0.30);
+    --bear: #EF4444; --bear-soft: rgba(239,68,68,0.12); --bear-border: rgba(239,68,68,0.30);
+    --amber: #F59E0B; --amber-soft: rgba(245,158,11,0.12); --amber-border: rgba(245,158,11,0.32);
+    --gray: #64748B; --gray-soft: rgba(100,116,139,0.14);
+    --radius-sm: 8px; --radius-md: 10px; --radius-lg: 12px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.24); --shadow-md: 0 8px 24px -8px rgba(0,0,0,0.45); --shadow-lg: 0 20px 60px -16px rgba(0,0,0,0.6);
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
-    margin: 0; color: var(--text-primary); font-family: 'Public Sans', sans-serif;
+    margin: 0; color: var(--text-primary); font-family: 'Inter', sans-serif;
     background:
-      radial-gradient(1000px 560px at 12% -6%, rgba(44,95,240,0.06), transparent 60%),
-      radial-gradient(800px 520px at 100% 4%, rgba(184,134,47,0.05), transparent 55%),
-      linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-void) 100%);
-    background-attachment: fixed;
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
+      radial-gradient(1200px 600px at 12% -10%, rgba(59,130,246,0.08), transparent 60%),
+      radial-gradient(900px 500px at 100% 4%, rgba(59,130,246,0.04), transparent 55%),
+      var(--bg-primary);
+    background-attachment: fixed; -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums; overflow-x: hidden;
   }
   a { color: inherit; }
   .mono { font-family: 'JetBrains Mono', monospace; }
-  .wrap { max-width: 1220px; margin: 0 auto; padding: 0 32px; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
 
   /* Nav */
-  .nav-wrap { position: sticky; top: 0; z-index: 30; background: rgba(243,245,250,0.85); backdrop-filter: blur(16px) saturate(140%); border-bottom: 1px solid var(--glass-border); }
-  nav.topnav { max-width: 1220px; margin: 0 auto; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
-  .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; }
-  .brand-mark { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(155deg, #16345B, #0B2038); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px -6px rgba(15,42,74,0.45); flex-shrink: 0; }
-  .brand-word { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
-  .brand-word .dot { background: linear-gradient(135deg, var(--brand), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .nav-wrap { position: sticky; top: 0; z-index: 30; background: rgba(11,22,38,0.9); backdrop-filter: blur(14px) saturate(140%); border-bottom: 1px solid var(--border); }
+  nav.topnav { max-width: 1180px; margin: 0 auto; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+  .brand-mark { width: 30px; height: 30px; border-radius: 7px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .brand-word { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
   .nav-links { display: flex; align-items: center; gap: 4px; }
-  .nav-links a { font-size: 13.5px; font-weight: 600; color: var(--text-secondary); text-decoration: none; padding: 9px 15px; border-radius: 20px; transition: color .15s ease, background-color .15s ease; }
-  .nav-links a:hover { color: var(--text-primary); background: var(--bg-panel-2); }
-  .nav-links a.active { color: var(--brand); background: rgba(44,95,240,0.08); }
-  .nav-cta { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff !important; font-weight: 700 !important; box-shadow: 0 8px 20px -8px rgba(44,95,240,0.45); }
-  .nav-cta:hover { filter: brightness(1.08); background: linear-gradient(135deg, var(--brand), var(--brand-2)) !important; }
+  .nav-links a { font-size: 13.5px; font-weight: 500; color: var(--text-secondary); text-decoration: none; padding: 8px 14px; border-radius: var(--radius-sm); transition: color .15s ease, background-color .15s ease; }
+  .nav-links a:hover { color: var(--text-primary); background: var(--surface-2); }
+  .nav-links a.active { color: var(--accent); background: var(--accent-dim); }
+  .nav-cta { background: var(--accent) !important; color: #fff !important; font-weight: 700 !important; }
+  .nav-cta:hover { filter: brightness(1.1); background: var(--accent) !important; }
   @media (max-width: 780px) { .nav-links a:not(.nav-cta) { display: none; } }
 
-  /* Reveal-on-scroll */
-  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
   .reveal.visible { opacity: 1; transform: translateY(0); }
   .reveal-1 { transition-delay: .05s; } .reveal-2 { transition-delay: .12s; }
   .reveal-3 { transition-delay: .19s; } .reveal-4 { transition-delay: .26s; }
 
   /* Hero */
-  .hero { padding: 96px 0 70px; position: relative; text-align: center; }
-  .hero-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brand-2); background: rgba(44,95,240,0.08); border: 1px solid rgba(44,95,240,0.2); display: inline-flex; padding: 6px 16px; border-radius: 20px; }
-  .hero h1 { font-family: 'Fraunces', serif; font-size: clamp(36px, 5.6vw, 62px); line-height: 1.1; font-weight: 600; letter-spacing: -0.02em; margin: 26px auto 0; max-width: 900px; }
-  .hero h1 .grad { background: linear-gradient(100deg, var(--brand), var(--gold) 85%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .hero-sub { font-size: 17.5px; color: var(--text-secondary); max-width: 620px; margin: 22px auto 0; line-height: 1.6; }
-  .hero-ctas { display: flex; gap: 14px; justify-content: center; margin-top: 36px; flex-wrap: wrap; }
-  .btn { display: inline-flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 700; padding: 14px 26px; border-radius: 12px; text-decoration: none; transition: transform .15s ease, filter .15s ease, box-shadow .15s ease; }
-  .btn-primary { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff; box-shadow: 0 12px 28px -10px rgba(44,95,240,0.45); }
-  .btn-primary:hover { transform: translateY(-2px); filter: brightness(1.08); }
-  .btn-ghost { background: var(--bg-panel); color: var(--text-primary); border: 1px solid var(--glass-border); box-shadow: var(--shadow-card); }
-  .btn-ghost:hover { border-color: var(--glass-border-hover); transform: translateY(-2px); }
+  .hero { padding: 88px 0 60px; text-align: center; }
+  .hero-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); background: var(--accent-dim); border: 1px solid var(--accent-border); display: inline-flex; padding: 6px 15px; border-radius: 20px; }
+  .hero h1 { font-size: clamp(34px, 5.2vw, 58px); line-height: 1.08; font-weight: 800; letter-spacing: -0.02em; margin: 24px auto 0; max-width: 780px; }
+  .hero h1 .accent { color: var(--accent); }
+  .hero-sub { font-size: 17px; color: var(--text-secondary); max-width: 560px; margin: 20px auto 0; line-height: 1.55; }
+  .hero-ctas { display: flex; gap: 12px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; padding: 13px 24px; border-radius: var(--radius-md); text-decoration: none; transition: transform .15s ease, filter .15s ease, background-color .15s ease; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-ghost { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--border-hover); background: var(--surface-2); }
 
-  /* Animated pulse line visual */
-  .pulse-visual { max-width: 760px; margin: 56px auto 0; position: relative; }
-  .pulse-visual svg { width: 100%; height: auto; display: block; }
-  .pulse-draw { stroke-dasharray: 900; stroke-dashoffset: 900; animation: draw 3.2s ease-out forwards, glow-pulse 3s ease-in-out 3.2s infinite; }
-  @keyframes draw { to { stroke-dashoffset: 0; } }
-  @keyframes glow-pulse { 0%,100% { filter: drop-shadow(0 0 5px rgba(44,95,240,.35)); } 50% { filter: drop-shadow(0 0 12px rgba(44,95,240,.6)); } }
-  .pulse-dot { animation: dot-fade 3s ease-in-out infinite; }
-  @keyframes dot-fade { 0%,100% { opacity: .4; } 50% { opacity: 1; } }
+  /* Intelligence diagram — Crowd/Wall Street/Business/Market feeding a
+     central Undertow Intelligence node, the actual product mechanism
+     drawn as the hero visual instead of a generic illustration */
+  .intel-diagram { max-width: 760px; margin: 56px auto 0; }
+  .intel-nodes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 640px) { .intel-nodes { grid-template-columns: repeat(2, 1fr); } }
+  .intel-node { border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface-1); padding: 14px 10px; text-align: center; }
+  .intel-node-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); font-weight: 700; }
+  .intel-node-val { font-size: 24px; font-weight: 800; margin-top: 6px; }
+  .intel-flow { display: flex; justify-content: center; padding: 10px 0; }
+  .intel-flow svg { display: block; }
+  .intel-center { border-radius: var(--radius-lg); border: 1px solid var(--accent-border); background: linear-gradient(160deg, var(--surface-2), var(--surface-1)); padding: 18px 28px; text-align: center; box-shadow: 0 0 0 1px var(--accent-dim), var(--shadow-md); }
+  .intel-center-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  .intel-center-val { font-size: 34px; font-weight: 800; margin-top: 6px; }
+  .intel-center-tag { font-size: 12px; color: var(--bull); font-weight: 700; margin-top: 2px; }
 
-  section.section { padding: 84px 0; position: relative; }
-  .section-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--teal); text-align: center; display: block; }
-  .section-title { font-family: 'Fraunces', serif; font-size: clamp(26px, 3.6vw, 38px); font-weight: 600; letter-spacing: -0.01em; text-align: center; margin: 12px auto 0; max-width: 700px; }
-  .section-sub { text-align: center; color: var(--text-muted); font-size: 15px; max-width: 560px; margin: 14px auto 0; line-height: 1.6; }
+  section.section { padding: 76px 0; position: relative; }
+  .section-kicker { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); text-align: center; display: block; }
+  .section-title { font-size: clamp(24px, 3.2vw, 34px); font-weight: 800; letter-spacing: -0.02em; text-align: center; margin: 10px auto 0; max-width: 680px; line-height: 1.2; }
+  .section-sub { text-align: center; color: var(--text-secondary); font-size: 15px; max-width: 560px; margin: 14px auto 0; line-height: 1.6; }
 
-  /* Cards */
-  .surface { background: linear-gradient(165deg, var(--bg-panel) 0%, var(--bg-panel-2) 100%); border: 1px solid var(--glass-border); box-shadow: var(--shadow-card); }
-  .surface-hover { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
-  .surface-hover:hover { transform: translateY(-4px); box-shadow: var(--shadow-card-hover); border-color: var(--glass-border-hover); }
+  .surface { background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-sm); border-radius: var(--radius-lg); }
+  .surface-hover { transition: border-color .18s ease, background-color .18s ease; }
+  .surface-hover:hover { border-color: var(--border-hover); background: var(--surface-2); }
 
-  .source-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 48px; }
-  @media (max-width: 980px) { .source-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 560px) { .source-grid { grid-template-columns: 1fr; } }
-  .source-card { border-radius: 16px; padding: 26px 22px; }
-  .source-icon { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 16px; }
-  .source-card h3 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 16px; margin: 0 0 8px; }
-  .source-card p { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin: 0; }
-  .tag-badge { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; padding: 3px 8px; border-radius: 5px; margin-top: 12px; }
+  /* Four signals */
+  .signal-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 44px; }
+  @media (max-width: 900px) { .signal-grid { grid-template-columns: repeat(2, 1fr); } }
+  .signal-tile { border-radius: var(--radius-lg); padding: 22px 20px; }
+  .signal-tile-icon { width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 14px; margin-bottom: 14px; }
+  .signal-tile h3 { font-size: 15.5px; font-weight: 700; margin: 0 0 8px; }
+  .signal-tile p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
 
-  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 48px; }
-  @media (max-width: 900px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 560px) { .feature-grid { grid-template-columns: 1fr; } }
-  .feature-card { border-radius: 16px; padding: 24px; }
-  .feature-card .emoji { font-size: 22px; }
-  .feature-card h3 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 15.5px; margin: 12px 0 6px; }
-  .feature-card p { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin: 0; }
+  /* The difference */
+  .difference-quote { text-align: center; font-size: clamp(22px, 3vw, 30px); font-weight: 700; line-height: 1.4; max-width: 760px; margin: 40px auto 0; letter-spacing: -0.01em; }
+  .difference-quote .muted { color: var(--text-faint); }
+  .difference-quote .accent { color: var(--accent); }
 
-  /* Philosophy */
-  .philosophy { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; margin-top: 48px; }
-  @media (max-width: 860px) { .philosophy { grid-template-columns: 1fr; } }
-  .philosophy p { color: var(--text-secondary); font-size: 15px; line-height: 1.75; margin: 0 0 16px; }
-  .value-list { display: flex; flex-direction: column; gap: 14px; }
-  .value-row { display: flex; gap: 14px; align-items: flex-start; border-radius: 14px; padding: 16px 18px; }
-  .value-row .num { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--brand); flex-shrink: 0; margin-top: 2px; }
-  .value-row h4 { margin: 0 0 4px; font-size: 14px; font-family: 'Fraunces', serif; font-weight: 600; }
-  .value-row p { margin: 0; font-size: 12.5px; color: var(--text-muted); line-height: 1.55; }
+  /* Divergence example */
+  .divergence-card { max-width: 640px; margin: 44px auto 0; border-radius: var(--radius-lg); padding: 26px 28px; }
+  .divergence-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); text-align: center; margin-bottom: 18px; }
+  .divergence-bars { display: flex; flex-direction: column; gap: 12px; }
+  .div-row { display: flex; align-items: center; gap: 12px; }
+  .div-row-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: var(--text-secondary); width: 92px; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.03em; }
+  .div-row-track { flex: 1; height: 8px; background: var(--surface-3); border-radius: 4px; overflow: hidden; }
+  .div-row-fill { height: 100%; border-radius: 4px; }
+  .div-row-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; width: 30px; text-align: right; flex-shrink: 0; }
+  .divergence-callout { display: flex; align-items: flex-start; gap: 10px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .divergence-callout-icon { color: var(--amber); font-size: 15px; flex-shrink: 0; }
+  .divergence-callout-text { font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; }
+  .divergence-callout-text strong { color: var(--text-primary); }
+  .illustrative-tag { text-align: center; font-size: 11px; color: var(--text-faint); margin-top: 12px; font-family: 'JetBrains Mono', monospace; }
+
+  /* Why Undertow */
+  .why-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 44px; }
+  @media (max-width: 900px) { .why-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .why-grid { grid-template-columns: 1fr; } }
+  .why-tile { border-radius: var(--radius-md); padding: 18px; }
+  .why-tile h4 { font-size: 13.5px; font-weight: 700; margin: 0 0 6px; }
+  .why-tile p { font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.55; }
+
+  /* Track record */
+  .track-record-card { max-width: 700px; margin: 40px auto 0; border-radius: var(--radius-lg); padding: 28px; text-align: center; }
+  .track-record-steps { display: flex; justify-content: space-between; margin-top: 24px; gap: 8px; flex-wrap: wrap; }
+  .track-step { flex: 1; min-width: 130px; text-align: center; }
+  .track-step-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); font-weight: 700; }
+  .track-step-label { font-size: 12.5px; color: var(--text-secondary); margin-top: 6px; line-height: 1.4; }
 
   /* CTA band */
-  .cta-band { border-radius: 24px; padding: 64px 40px; text-align: center; position: relative; overflow: hidden; background: linear-gradient(135deg, rgba(44,95,240,0.07), rgba(184,134,47,0.06)); border: 1px solid rgba(44,95,240,0.16); }
-  .cta-band h2 { font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(24px, 3.4vw, 34px); margin: 0; letter-spacing: -0.01em; }
-  .cta-band p { color: var(--text-secondary); margin: 14px 0 0; font-size: 15px; }
-  .cta-band .hero-ctas { margin-top: 30px; }
+  .cta-band { border-radius: var(--radius-lg); padding: 56px 40px; text-align: center; position: relative; background: linear-gradient(160deg, var(--surface-2), var(--surface-1)); border: 1px solid var(--accent-border); box-shadow: 0 0 0 1px var(--accent-dim); }
+  .cta-band h2 { font-size: clamp(22px, 3vw, 30px); margin: 0; font-weight: 800; letter-spacing: -0.02em; }
+  .cta-band p { color: var(--text-secondary); margin: 12px 0 0; font-size: 14.5px; }
+  .cta-band .hero-ctas { margin-top: 26px; }
 
-  footer { border-top: 1px solid var(--glass-border); margin-top: 40px; }
-  .footer-grid { max-width: 1220px; margin: 0 auto; padding: 56px 32px 28px; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; }
+  footer { border-top: 1px solid var(--border); margin-top: 30px; }
+  .footer-grid { max-width: 1180px; margin: 0 auto; padding: 48px 28px 24px; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 28px; }
   @media (max-width: 780px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
-  .footer-brand p { color: var(--text-muted); font-size: 13px; line-height: 1.6; max-width: 280px; margin-top: 14px; }
-  .footer-col h5 { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-faint); margin: 0 0 14px; }
-  .footer-col a { display: block; font-size: 13.5px; color: var(--text-secondary); text-decoration: none; margin-bottom: 10px; }
-  .footer-col a:hover { color: var(--brand); }
-  .footer-bottom { max-width: 1220px; margin: 0 auto; padding: 20px 32px 32px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
+  .footer-brand p { color: var(--text-faint); font-size: 12.5px; line-height: 1.6; max-width: 260px; margin-top: 12px; }
+  .footer-col h5 { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-faint); margin: 0 0 12px; }
+  .footer-col a { display: block; font-size: 13px; color: var(--text-secondary); text-decoration: none; margin-bottom: 9px; }
+  .footer-col a:hover { color: var(--accent); }
+  .footer-bottom { max-width: 1180px; margin: 0 auto; padding: 18px 28px 30px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
 </style>
 </head>
 <body>
@@ -136,74 +159,81 @@
   <nav class="topnav">
     <a class="brand" href="index.html">
       <div class="brand-mark">
-        <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-          <path d="M3,20 C7,10 11,10 16,17 C21,24 25,24 29,12" stroke="url(#g1)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-          <defs><linearGradient id="g1" x1="0" y1="0" x2="32" y2="0"><stop offset="0" stop-color="#2C5FF0"/><stop offset="1" stop-color="#B8862F"/></linearGradient></defs>
-        </svg>
+        <svg width="15" height="15" viewBox="0 0 32 32" fill="none"><path d="M4,20 C8,11 12,11 16,17.5 C20,24 24,24 28,13" stroke="#3B82F6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <span class="brand-word"><span class="dot">U</span>ndertow</span>
+      <span class="brand-word">UNDERTOW</span>
     </a>
     <div class="nav-links">
       <a href="index.html" class="active">Home</a>
       <a href="about.html">About</a>
       <a href="careers.html">Careers</a>
-      <a href="dashboard.html" class="nav-cta">Live Dashboard →</a>
+      <a href="dashboard.html" class="nav-cta">Explore the Intelligence →</a>
     </div>
   </nav>
 </div>
 
 <header class="hero">
   <div class="wrap">
-    <span class="hero-kicker reveal visible">RETAIL SENTIMENT &middot; MARKET INTELLIGENCE</span>
-    <h1 class="reveal visible">The crowd's read on every stock,<br><span class="grad">cross-checked against reality.</span></h1>
-    <p class="hero-sub reveal visible reveal-1">Undertow pulls bullish and bearish chatter from four independent sources, scores it, and checks it against real price action — so you're never trading on one noisy feed pretending to be the whole picture.</p>
+    <span class="hero-kicker reveal visible">MARKET INTELLIGENCE · NOT ANOTHER STOCK SITE</span>
+    <h1 class="reveal visible">Market intelligence<br>for the <span class="accent">modern investor.</span></h1>
+    <p class="hero-sub reveal visible reveal-1">See what the crowd believes. Then see what the numbers say. Undertow cross-checks retail sentiment, Wall Street expectations, business fundamentals, and market behavior to reveal where the market agrees — and where it doesn't.</p>
     <div class="hero-ctas reveal visible reveal-2">
-      <a class="btn btn-primary" href="dashboard.html">Open the live dashboard →</a>
-      <a class="btn btn-ghost" href="#how-it-works">See how it works</a>
+      <a class="btn btn-primary" href="dashboard.html">Explore the Intelligence</a>
+      <a class="btn btn-ghost" href="#how-it-works">See how Undertow works</a>
     </div>
 
-    <div class="pulse-visual reveal visible reveal-3">
-      <svg viewBox="0 0 760 160" fill="none">
-        <path class="pulse-draw" d="M0,80 C60,40 120,40 180,80 C240,120 300,120 360,80 C420,40 480,40 540,80 C600,120 660,120 720,90 L760,84"
-          stroke="#2C5FF0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle class="pulse-dot" cx="270" cy="118" r="5" fill="#DC2626"/>
-        <circle class="pulse-dot" cx="90" cy="42" r="5" fill="#0E9F6E" style="animation-delay:.6s"/>
-        <circle class="pulse-dot" cx="450" cy="42" r="5" fill="#B8862F" style="animation-delay:1.2s"/>
-      </svg>
+    <div class="intel-diagram reveal visible reveal-3">
+      <div class="intel-nodes">
+        <div class="intel-node"><div class="intel-node-label">Crowd</div><div class="intel-node-val" style="color:var(--bull)">72</div></div>
+        <div class="intel-node"><div class="intel-node-label">Wall Street</div><div class="intel-node-val" style="color:var(--amber)">64</div></div>
+        <div class="intel-node"><div class="intel-node-label">Business</div><div class="intel-node-val" style="color:var(--bull)">81</div></div>
+        <div class="intel-node"><div class="intel-node-label">Market</div><div class="intel-node-val" style="color:var(--bull)">69</div></div>
+      </div>
+      <div class="intel-flow">
+        <svg width="140" height="46" viewBox="0 0 140 46" fill="none">
+          <path d="M10,4 C10,26 70,26 70,26" stroke="#22324A" stroke-width="1.5" fill="none"/>
+          <path d="M46,4 C46,20 70,20 70,26" stroke="#22324A" stroke-width="1.5" fill="none"/>
+          <path d="M94,4 C94,20 70,20 70,26" stroke="#22324A" stroke-width="1.5" fill="none"/>
+          <path d="M130,4 C130,26 70,26 70,26" stroke="#22324A" stroke-width="1.5" fill="none"/>
+          <line x1="70" y1="26" x2="70" y2="42" stroke="#3B82F6" stroke-width="2"/>
+          <circle cx="70" cy="42" r="3" fill="#3B82F6"/>
+        </svg>
+      </div>
+      <div class="intel-center">
+        <div class="intel-center-label">Undertow Intelligence</div>
+        <div class="intel-center-val">74</div>
+        <div class="intel-center-tag">Bullish</div>
+      </div>
     </div>
   </div>
 </header>
 
 <section class="section" id="how-it-works">
   <div class="wrap">
-    <span class="section-kicker reveal">METHODOLOGY</span>
-    <h2 class="section-title reveal reveal-1">Four sources. One confidence score.</h2>
-    <p class="section-sub reveal reveal-2">Most sentiment tools read one feed and call it the crowd's opinion. Undertow corroborates across sources that don't agree with each other by default — so when they do agree, that means something.</p>
+    <span class="section-kicker reveal">THE FOUR SIGNALS</span>
+    <h2 class="section-title reveal reveal-1">Four independent reads. One cross-checked score.</h2>
+    <p class="section-sub reveal reveal-2">Most tools measure one of these. Undertow measures all four, then tells you where they agree — and where they don't.</p>
 
-    <div class="source-grid">
-      <div class="source-card surface surface-hover reveal reveal-1">
-        <div class="source-icon" style="background:rgba(44,95,240,.10);">💬</div>
-        <h3>StockTwits</h3>
-        <p>Public message streams per ticker. Users self-tag posts Bullish or Bearish — a direct signal, not an inference — blended with lexicon scoring for untagged posts.</p>
-        <span class="tag-badge" style="background:rgba(44,95,240,.10);color:var(--brand);">Direct sentiment</span>
+    <div class="signal-grid">
+      <div class="signal-tile surface surface-hover reveal reveal-1">
+        <div class="signal-tile-icon" style="background:var(--bull-soft);color:var(--bull);">C</div>
+        <h3>Crowd</h3>
+        <p>What retail is actually saying — StockTwits, Reddit, and search interest, cross-checked against each other, not trusted on their own.</p>
       </div>
-      <div class="source-card surface surface-hover reveal reveal-2">
-        <div class="source-icon" style="background:rgba(232,72,28,.10);">🧵</div>
-        <h3>Reddit</h3>
-        <p>Official read-only API across r/wallstreetbets, r/stocks, r/investing, r/StockMarket — posts and comments on tickers you're watching.</p>
-        <span class="tag-badge" style="background:rgba(232,72,28,.10);color:#C0421A;">Official API</span>
+      <div class="signal-tile surface surface-hover reveal reveal-2">
+        <div class="signal-tile-icon" style="background:var(--amber-soft);color:var(--amber);">W</div>
+        <h3>Wall Street</h3>
+        <p>Analyst consensus, price targets, and whether professional sentiment is getting more or less bullish over time.</p>
       </div>
-      <div class="source-card surface surface-hover reveal reveal-3">
-        <div class="source-icon" style="background:rgba(109,91,208,.12);">📈</div>
-        <h3>ApeWisdom</h3>
-        <p>Independent mention-volume tracking across Reddit stock communities — a second, unrelated measure of attention that corroborates or contradicts the others.</p>
-        <span class="tag-badge" style="background:rgba(109,91,208,.12);color:var(--violet);">Volume cross-check</span>
+      <div class="signal-tile surface surface-hover reveal reveal-3">
+        <div class="signal-tile-icon" style="background:var(--bull-soft);color:var(--bull);">B</div>
+        <h3>Business</h3>
+        <p>Revenue, margins, cash flow, balance sheet health, and valuation — what's actually happening inside the company.</p>
       </div>
-      <div class="source-card surface surface-hover reveal reveal-4">
-        <div class="source-icon" style="background:rgba(14,143,128,.12);">📰</div>
-        <h3>Market News</h3>
-        <p>Financial headlines scored for sentiment, kept distinct from retail chatter — because press narrative and crowd mood diverging is itself a signal.</p>
-        <span class="tag-badge" style="background:rgba(14,143,128,.12);color:var(--teal);">Media sentiment</span>
+      <div class="signal-tile surface surface-hover reveal reveal-4">
+        <div class="signal-tile-icon" style="background:var(--accent-dim);color:var(--accent);">M</div>
+        <h3>Market</h3>
+        <p>Where the stock already sits relative to its own range and trend — is the story already priced in, or still fresh.</p>
       </div>
     </div>
   </div>
@@ -211,35 +241,60 @@
 
 <section class="section">
   <div class="wrap">
-    <span class="section-kicker reveal">ON THE DASHBOARD</span>
-    <h2 class="section-title reveal reveal-1">Everything you need, nothing you have to dig for.</h2>
-    <p class="section-sub reveal reveal-2">A daily-refreshed read of your watchlist, the market, and where the crowd and the tape disagree.</p>
+    <span class="section-kicker reveal">THE DIFFERENCE</span>
+    <p class="difference-quote reveal reveal-1">
+      <span class="muted">Most platforms show you the data.</span><br>
+      <span class="accent">Undertow shows you where the data disagrees.</span>
+    </p>
+  </div>
+</section>
 
-    <div class="feature-grid">
-      <div class="feature-card surface surface-hover reveal reveal-1"><div class="emoji">⚡</div><h3>Signals</h3><p>Auto-flagged divergences — price vs. chatter, volume spikes, media vs. retail — so you scan five callouts, not fifty rows.</p></div>
-      <div class="feature-card surface surface-hover reveal reveal-2"><div class="emoji">🧠</div><h3>AI Analysis</h3><p>A reasoned score, verdict, and bullish/bearish factors per stock — synthesized from fundamentals, sentiment, and news, not a fixed formula.</p></div>
-      <div class="feature-card surface surface-hover reveal reveal-3"><div class="emoji">📊</div><h3>Bullish / Bearish Leaders</h3><p>Ranked by net sentiment, with bull/bear split, price, and day-over-day sentiment shift.</p></div>
-      <div class="feature-card surface surface-hover reveal reveal-1"><div class="emoji">🔊</div><h3>Most Discussed</h3><p>Pure volume ranking kept separate from sentiment — loud and bullish are not the same thing.</p></div>
-      <div class="feature-card surface surface-hover reveal reveal-2"><div class="emoji">👁️</div><h3>Your Watchlist</h3><p>Every ticker you track, whether or not it made noise today, filterable in one click.</p></div>
-      <div class="feature-card surface surface-hover reveal reveal-3"><div class="emoji">🗞️</div><h3>Scored News</h3><p>Headlines from your configured feeds, each tagged with its own sentiment lean.</p></div>
+<section class="section" style="padding-top:0;">
+  <div class="wrap">
+    <span class="section-kicker reveal">A DIVERGENCE, MADE VISIBLE</span>
+    <h2 class="section-title reveal reveal-1">When the signals disagree, that's the story.</h2>
+    <div class="divergence-card surface reveal reveal-2">
+      <div class="divergence-label">Crowd vs. Wall Street — example read</div>
+      <div class="divergence-bars">
+        <div class="div-row"><span class="div-row-label">Crowd</span><div class="div-row-track"><div class="div-row-fill" style="width:82%;background:var(--bull);"></div></div><span class="div-row-val">82</span></div>
+        <div class="div-row"><span class="div-row-label">Wall Street</span><div class="div-row-track"><div class="div-row-fill" style="width:61%;background:var(--amber);"></div></div><span class="div-row-val">61</span></div>
+        <div class="div-row"><span class="div-row-label">Business</span><div class="div-row-track"><div class="div-row-fill" style="width:76%;background:var(--bull);"></div></div><span class="div-row-val">76</span></div>
+        <div class="div-row"><span class="div-row-label">Market</span><div class="div-row-track"><div class="div-row-fill" style="width:88%;background:var(--bull);"></div></div><span class="div-row-val">88</span></div>
+      </div>
+      <div class="divergence-callout">
+        <span class="divergence-callout-icon">▲</span>
+        <div class="divergence-callout-text"><strong>Retail conviction is accelerating faster than analyst expectations.</strong> The crowd and the business fundamentals agree — but Wall Street hasn't caught up yet, and the stock is already extended. That gap is worth understanding before following either signal alone.</div>
+      </div>
+    </div>
+    <div class="illustrative-tag">Illustrative example — see live divergences for the current flagship set on the dashboard</div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <span class="section-kicker reveal">WHY UNDERTOW</span>
+    <h2 class="section-title reveal reveal-1">Six things reconciled into one honest read</h2>
+    <div class="why-grid">
+      <div class="why-tile surface surface-hover reveal reveal-1"><h4>Retail sentiment</h4><p>StockTwits and Reddit, self-tagged bullish/bearish, cross-checked against Google Trends attention.</p></div>
+      <div class="why-tile surface surface-hover reveal reveal-2"><h4>Emerging narratives</h4><p>What's actually being said, filtered and ranked — not just headline volume.</p></div>
+      <div class="why-tile surface surface-hover reveal reveal-3"><h4>Analyst expectations</h4><p>Consensus ratings, price targets, and whether the tone is shifting.</p></div>
+      <div class="why-tile surface surface-hover reveal reveal-4"><h4>Business fundamentals</h4><p>Growth, profitability, cash flow, balance sheet, and valuation — scored transparently.</p></div>
+      <div class="why-tile surface surface-hover reveal reveal-1"><h4>Market behavior</h4><p>Momentum, extension, and volatility — what's already priced in.</p></div>
+      <div class="why-tile surface surface-hover reveal reveal-2"><h4>AI synthesis</h4><p>Reasoned, not formulaic — explains why the pillars agree or conflict, in plain language.</p></div>
     </div>
   </div>
 </section>
 
 <section class="section">
   <div class="wrap">
-    <div class="philosophy">
-      <div class="reveal">
-        <span class="section-kicker" style="text-align:left;">PHILOSOPHY</span>
-        <h2 class="section-title" style="text-align:left;margin-left:0;">Built on one simple idea</h2>
-        <p style="margin-top:20px;">Sentiment tools that read a single feed and call it "the crowd" are guessing. We wanted a tool that shows its work — every ticker's mention count is broken down by source, right there in the UI, so you can see exactly how much data a read is built on.</p>
-        <p>No paywalled black box, no single point of failure. Free, public data sources, stitched together transparently, refreshed once a day for free on GitHub's own infrastructure — because an honest sentiment read shouldn't require a subscription.</p>
-      </div>
-      <div class="value-list">
-        <div class="value-row surface reveal reveal-1"><span class="num">01</span><div><h4>Transparency</h4><p>Every number shows its source mix — hover any mention count to see the breakdown.</p></div></div>
-        <div class="value-row surface reveal reveal-2"><span class="num">02</span><div><h4>Independence</h4><p>Four sources that don't share a bias by construction — corroboration means something here.</p></div></div>
-        <div class="value-row surface reveal reveal-3"><span class="num">03</span><div><h4>Signal over noise</h4><p>Auto-generated signals surface the handful of tickers worth a second look — not a wall of numbers.</p></div></div>
-        <div class="value-row surface reveal reveal-4"><span class="num">04</span><div><h4>Free &amp; open</h4><p>No hosting bill, no ads, no dark patterns — runs on free infrastructure by design.</p></div></div>
+    <span class="section-kicker reveal">HISTORICAL TRACK RECORD</span>
+    <h2 class="section-title reveal reveal-1">Every signal, timestamped — so it can be checked, not just trusted</h2>
+    <p class="section-sub reveal reveal-2">A competitor can copy the interface in a weekend. They can't copy years of recorded signals and what actually happened afterward.</p>
+    <div class="track-record-card surface reveal reveal-3">
+      <div class="track-record-steps">
+        <div class="track-step"><div class="track-step-num">01</div><div class="track-step-label">Every pillar score and divergence recorded daily, starting the day it's computed</div></div>
+        <div class="track-step"><div class="track-step-num">02</div><div class="track-step-label">Nothing back-filled or cherry-picked — the record starts when the engine does</div></div>
+        <div class="track-step"><div class="track-step-num">03</div><div class="track-step-label">Outcomes shown as they mature — 7 and 30 days first, 90 and 180 as they become real</div></div>
       </div>
     </div>
   </div>
@@ -248,8 +303,8 @@
 <section class="section" style="padding-top:0;">
   <div class="wrap">
     <div class="cta-band reveal">
-      <h2>See today's read.</h2>
-      <p>Fresh every day — bullish leaders, bearish leaders, and the signals that disagree with the tape.</p>
+      <h2>See what's moving now.</h2>
+      <p>Fresh every day — where the crowd, Wall Street, the business, and the market agree, and where they don't.</p>
       <div class="hero-ctas"><a class="btn btn-primary" href="dashboard.html">Open the live dashboard →</a></div>
     </div>
   </div>
@@ -259,15 +314,10 @@
   <div class="footer-grid">
     <div class="footer-brand">
       <a class="brand" href="index.html">
-        <div class="brand-mark">
-          <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-            <path d="M3,20 C7,10 11,10 16,17 C21,24 25,24 29,12" stroke="url(#g2)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-            <defs><linearGradient id="g2" x1="0" y1="0" x2="32" y2="0"><stop offset="0" stop-color="#2C5FF0"/><stop offset="1" stop-color="#B8862F"/></linearGradient></defs>
-          </svg>
-        </div>
-        <span class="brand-word"><span class="dot">U</span>ndertow</span>
+        <div class="brand-mark"><svg width="15" height="15" viewBox="0 0 32 32" fill="none"><path d="M4,20 C8,11 12,11 16,17.5 C20,24 24,24 28,13" stroke="#3B82F6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <span class="brand-word">UNDERTOW</span>
       </a>
-      <p>Retail sentiment, cross-checked against reality. An independent project, built in the open.</p>
+      <p>Market intelligence for the modern investor. An independent project, built in the open.</p>
     </div>
     <div class="footer-col">
       <h5>Product</h5>
