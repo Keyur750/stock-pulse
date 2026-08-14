@@ -10662,6 +10662,13 @@ function signClass(v) {
   return v >= 0 ? 'bull-text' : 'bear-text';
 }
 
+// Neutral accent line, not bull/bear: this draws from chart_history_period
+// (3 months) but sits right next to .sec-price-chg, which is today's
+// change_pct only. Coloring the line by its own 3-month shape meant it
+// regularly disagreed with that badge (down today, up over 3 months, or
+// vice versa) — both individually correct, but reads as a contradiction
+// side by side. The explicit %change badge already owns the up/down
+// claim; the line just needs to show shape.
 function sparklineSvg(history, cls, width, height) {
   width = width || 60; height = height || 24;
   if (!history || history.length < 2) return `<span class="spark-empty" style="color:var(--text-faint);font-size:11px;">—</span>`;
@@ -10670,9 +10677,8 @@ function sparklineSvg(history, cls, width, height) {
   const range = (max - min) || (max * 0.01) || 1;
   const stepX = width / (closes.length - 1);
   const pts = closes.map((c, i) => `${(i * stepX).toFixed(1)},${(height - ((c - min) / range) * height).toFixed(1)}`).join(' ');
-  const up = closes[closes.length - 1] >= closes[0];
   return `<svg class="${cls || ''}" width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">` +
-    `<polyline points="${pts}" fill="none" style="stroke:${up ? 'var(--bull)' : 'var(--bear)'}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    `<polyline points="${pts}" fill="none" style="stroke:var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 
 // --- Chart modal (identical mechanics to the other pages) ---
