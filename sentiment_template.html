@@ -46,8 +46,8 @@
   body {
     margin: 0; color: var(--text-primary); font-family: 'Inter', sans-serif;
     background:
-      radial-gradient(1200px 600px at 10% -12%, rgba(59,130,246,0.06), transparent 60%),
-      radial-gradient(900px 500px at 100% 0%, rgba(59,130,246,0.04), transparent 55%),
+      radial-gradient(1200px 600px at 10% -12%, rgba(59,130,246,0.05), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(59,130,246,0.035), transparent 55%),
       var(--bg-primary);
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
@@ -60,7 +60,7 @@
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-  /* Site nav — identical to the main dashboard */
+  /* Site nav — identical to the other pages */
   .site-nav-wrap { position: sticky; top: 0; z-index: 30; background: rgba(11,22,38,0.92); backdrop-filter: blur(14px) saturate(140%); border-bottom: 1px solid var(--border); }
   .site-nav { max-width: 1520px; margin: 0 auto; padding: 12px 28px; display: flex; align-items: center; gap: 28px; }
   .site-brand { display: flex; align-items: center; gap: 9px; text-decoration: none; flex-shrink: 0; }
@@ -78,61 +78,112 @@
   .nav-logout-btn { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: var(--text-faint); background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 11px; cursor: pointer; }
   .nav-logout-btn:hover { color: var(--text-primary); border-color: var(--border-hover); }
 
-  main { max-width: 1180px; margin: 0 auto; padding: 32px 28px 64px; }
+  main { max-width: 1320px; margin: 0 auto; padding: 26px 28px 64px; }
 
-  /* Page header + coverage strip — states the scope honestly before
-     anything else, the way real research desks always name their
-     universe up front. */
-  .page-header { margin-bottom: 22px; }
-  .page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; margin: 0; }
-  .page-sub { color: var(--text-faint); font-size: 13px; margin: 5px 0 0; }
-  .coverage-strip {
-    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint);
-    padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-md);
-    background: var(--surface-1); margin-top: 18px;
+  /* ---------- App header ---------- */
+  .app-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .page-title { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; margin: 0; line-height: 1.2; }
+  .page-sub { color: var(--text-faint); font-size: 12.5px; margin: 4px 0 0; max-width: 520px; line-height: 1.5; }
+  .app-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .header-updated { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-faint); white-space: nowrap; }
+  .header-updated strong { color: var(--text-secondary); font-weight: 600; }
+  .methodology-wrap { position: relative; }
+  .header-pill {
+    display: inline-flex; align-items: center; gap: 6px; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+    color: var(--text-secondary); background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px;
+    padding: 7px 13px; cursor: pointer; transition: border-color .15s ease, color .15s ease;
   }
-  .coverage-strip .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border-hover); flex-shrink: 0; }
-  .coverage-strip button.methodology-link {
-    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); background: none; border: none;
-    cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 2px;
+  .header-pill:hover, .header-pill[aria-expanded="true"] { border-color: var(--accent-border); color: var(--accent); }
+  .header-pill .chevron { transition: transform .15s ease; }
+  .header-pill[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+  .methodology-panel {
+    position: absolute; top: calc(100% + 8px); right: 0; width: 360px; max-width: calc(100vw - 56px); z-index: 25;
+    display: none; padding: 16px 18px; font-size: 12.5px; color: var(--text-secondary); line-height: 1.65;
+    border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-2); box-shadow: var(--shadow-md);
   }
+  .methodology-panel.open { display: block; }
+  .methodology-panel p { margin: 0 0 10px; }
+  .methodology-panel p:last-child { margin-bottom: 0; }
+  .icon-btn {
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text-secondary);
+    cursor: pointer; transition: color .15s ease, border-color .15s ease;
+  }
+  .icon-btn:hover { color: var(--text-primary); border-color: var(--border-hover); }
+  .icon-btn svg { transition: transform .5s ease; }
+  .icon-btn.spinning svg { animation: spin .6s linear; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Aggregate status line — deliberately compact. This is a coverage-list
-     summary stat, not a market index; it does not get hero treatment. */
-  .aggregate-bar {
-    display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
-    padding: 16px 20px; margin-top: 14px; border-radius: var(--radius-lg);
-    border: 1px solid var(--border); background: var(--surface-1);
-  }
-  .aggregate-label-group { display: flex; align-items: baseline; gap: 10px; }
-  .aggregate-label { font-size: 17px; font-weight: 700; }
-  .aggregate-label.up { color: var(--bull); }
-  .aggregate-label.down { color: var(--bear); }
-  .aggregate-label.flat { color: var(--text-secondary); }
-  .aggregate-score { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-faint); }
-  .aggregate-delta { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; padding: 3px 8px; border-radius: 999px; }
-  .aggregate-delta.up { color: var(--bull); background: var(--bull-soft); }
-  .aggregate-delta.down { color: var(--bear); background: var(--bear-soft); }
-  .aggregate-delta.flat { color: var(--text-faint); background: var(--gray-soft); }
-  .aggregate-breadth { display: flex; align-items: center; gap: 14px; margin-left: auto; font-size: 12.5px; }
-  .breadth-item { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
-  .breadth-item .swatch { width: 8px; height: 8px; border-radius: 2px; }
-  .breadth-item .swatch.bull { background: var(--bull); }
-  .breadth-item .swatch.neutral { background: var(--gray); }
-  .breadth-item .swatch.bear { background: var(--bear); }
-  .breadth-item strong { color: var(--text-primary); font-family: 'JetBrains Mono', monospace; }
-  @media (max-width: 700px) { .aggregate-breadth { margin-left: 0; width: 100%; justify-content: space-between; } }
+  /* ---------- Hero: Market Sentiment / Breakdown / Coverage ---------- */
+  .hero-grid { display: grid; grid-template-columns: 1.35fr 1fr 0.85fr; gap: 12px; margin-top: 18px; }
+  @media (max-width: 920px) { .hero-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 620px) { .hero-grid { grid-template-columns: 1fr; } }
+  .hero-panel { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; }
+  .hero-panel-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-faint); font-weight: 700; margin-bottom: 14px; display: block; }
 
-  /* Securities table — the actual product. */
-  section.block { margin-top: 34px; }
+  .hero-sentiment-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; }
+  .hero-sentiment-label { font-size: 23px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.1; transition: opacity .2s ease; }
+  .hero-sentiment-label.up { color: var(--bull); }
+  .hero-sentiment-label.down { color: var(--bear); }
+  .hero-sentiment-label.flat { color: var(--text-secondary); }
+  .hero-sentiment-meta { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-faint); margin-top: 7px; }
+  .hero-sentiment-delta { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 700; margin-top: 10px; display: inline-block; }
+  .hero-sentiment-delta.up { color: var(--bull); }
+  .hero-sentiment-delta.down { color: var(--bear); }
+  .hero-sentiment-delta.flat { color: var(--text-faint); }
+  .hero-trend { width: 128px; height: 54px; flex-shrink: 0; }
+  @media (max-width: 460px) { .hero-sentiment-row { flex-direction: column; align-items: flex-start; } .hero-trend { width: 100%; margin-top: 10px; } }
+
+  .breakdown-list { display: flex; flex-direction: column; gap: 11px; }
+  .breakdown-row { display: grid; grid-template-columns: 68px 1fr 22px; align-items: center; gap: 10px; }
+  .breakdown-name { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+  .breakdown-name .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .breakdown-name .dot.bull { background: var(--bull); }
+  .breakdown-name .dot.neutral { background: var(--gray); }
+  .breakdown-name .dot.bear { background: var(--bear); }
+  .breakdown-track { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+  .breakdown-fill { height: 100%; border-radius: 3px; transition: width .3s ease; }
+  .breakdown-fill.bull { background: var(--bull); }
+  .breakdown-fill.neutral { background: var(--gray); }
+  .breakdown-fill.bear { background: var(--bear); }
+  .breakdown-count { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; text-align: right; }
+
+  .coverage-value { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; line-height: 1; }
+  .coverage-value-label { font-size: 11px; color: var(--text-faint); margin-top: 5px; }
+  .coverage-days-row { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .coverage-dots { display: flex; gap: 4px; }
+  .coverage-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--surface-3); border: 1px solid var(--border); }
+  .coverage-dot.filled { background: var(--accent); border-color: var(--accent); }
+  .coverage-days-label { font-size: 10.5px; color: var(--text-faint); }
+
+  /* ---------- Table toolbar ---------- */
+  section.block { margin-top: 30px; }
   .block-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
   .block-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); }
   .block-sub { color: var(--text-faint); font-size: 12.5px; margin: 3px 0 14px; }
   .empty-state { color: var(--text-faint); font-size: 13px; padding: 22px 0; text-align: center; border: 1px dashed var(--border); border-radius: var(--radius-md); }
 
+  .table-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .search-wrap { position: relative; flex: 1; min-width: 180px; max-width: 280px; }
+  .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-faint); pointer-events: none; }
+  .search-wrap input {
+    width: 100%; background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 13px; padding: 8px 12px 8px 32px; outline: none;
+    transition: border-color .15s ease;
+  }
+  .search-wrap input:focus { border-color: var(--accent-border); }
+  .search-wrap input::placeholder { color: var(--text-faint); }
+  .toolbar-select {
+    appearance: none; -webkit-appearance: none; background: var(--surface-1) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394A3B8' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 11px center;
+    border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-secondary); font-family: 'Inter', sans-serif;
+    font-size: 12.5px; font-weight: 600; padding: 8px 30px 8px 12px; cursor: pointer; outline: none; transition: border-color .15s ease;
+  }
+  .toolbar-select:hover, .toolbar-select:focus { border-color: var(--border-hover); color: var(--text-primary); }
+  .toolbar-spacer { flex: 1; }
+
+  /* ---------- Table ---------- */
   .sec-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-1); }
-  table.sec-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 640px; }
+  table.sec-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px; }
   .sec-table thead th {
     position: sticky; top: 0; z-index: 2; background: var(--surface-2); text-align: left; font-weight: 600;
     font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint);
@@ -154,35 +205,75 @@
   .sec-row.selected td:first-child { background: var(--accent-dim); }
   .sec-row.selected .sec-sym { color: var(--accent); }
 
-  .sec-sym-cell { display: flex; flex-direction: column; gap: 1px; }
+  .ticker-avatar {
+    width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .sec-sym-cell { display: flex; align-items: center; gap: 10px; }
+  .sec-sym-text { display: flex; flex-direction: column; gap: 1px; }
   .sec-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
-  .sec-subtext { font-size: 10.5px; color: var(--text-faint); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sec-subtext { font-size: 10.5px; color: var(--text-faint); }
   .sec-score-cell { display: flex; align-items: baseline; gap: 7px; }
-  .sec-score { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13.5px; }
+  .sec-score { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px; }
   .sec-label { font-size: 11px; color: var(--text-faint); }
-  .sec-delta { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; }
+  .sec-delta { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; }
   .sec-delta.up { color: var(--bull); }
   .sec-delta.down { color: var(--bear); }
   .sec-delta.flat { color: var(--text-faint); }
-  .sec-comp-bar { width: 64px; height: 5px; border-radius: 3px; overflow: hidden; display: flex; background: var(--surface-3); }
+  .sec-comp-bar { width: 64px; height: 5px; border-radius: 3px; overflow: hidden; display: flex; background: var(--surface-3); cursor: help; }
   .sec-comp-seg.bull { background: var(--bull); }
   .sec-comp-seg.neutral { background: var(--gray); }
   .sec-comp-seg.bear { background: var(--bear); }
-  .sec-confidence { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--amber); background: var(--amber-soft); border: 1px solid var(--amber-border); padding: 2px 6px; border-radius: 999px; }
+  .confidence-cell { display: flex; align-items: center; gap: 7px; }
+  .conf-dots { display: flex; gap: 2.5px; }
+  .conf-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--surface-3); }
+  .conf-dot.filled { background: var(--accent); }
+  .conf-label { font-size: 10.5px; color: var(--text-faint); }
   .sec-price-cell { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
   .sec-price-chg { font-size: 11px; margin-top: 1px; }
   .sec-price-chg.up { color: var(--bull); }
   .sec-price-chg.down { color: var(--bear); }
   .sec-price-chg.na { color: var(--text-faint); }
-  .sec-spark-cell { width: 76px; }
-  .col-comp, .col-confidence { }
-  @media (max-width: 680px) {
+  .sec-spark-cell { width: 78px; cursor: pointer; border-radius: var(--radius-sm); transition: background-color .12s ease; }
+  .sec-spark-cell:hover { background: var(--surface-3); }
+  .mobile-summary { display: none; }
+
+  @media (max-width: 780px) {
     .col-comp, .col-confidence { display: none; }
   }
+  @media (max-width: 640px) {
+    .table-toolbar { flex-wrap: wrap; }
+    .search-wrap { max-width: none; flex: 1 1 100%; order: 1; }
+    .toolbar-select { flex: 1; order: 2; }
+    .sec-table-wrap { border: none; background: none; }
+    table.sec-table, .sec-table thead, .sec-table tbody, .sec-table tr, .sec-table td { display: block; width: 100%; }
+    .sec-table thead { display: none; }
+    .sec-table tr.sec-row {
+      border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-1);
+      margin-bottom: 8px; padding: 13px 15px;
+    }
+    .sec-table tr.sec-row td { border-bottom: none; padding: 0; position: static; background: transparent; }
+    .sec-table td:not(:first-child) { display: none; }
+    .sec-sym-cell { display: none; }
+    .mobile-summary { display: block; }
+    .mobile-summary-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .mobile-summary-id { display: flex; align-items: center; gap: 9px; }
+    .mobile-summary-score { text-align: right; }
+    .mobile-summary-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 11px; padding-top: 11px; border-top: 1px solid var(--border); }
+    .mobile-summary-price { text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
+  }
 
-  /* Detail pane — expands in place within the table, list stays visible.
-     No modal for this: the whole point of the page is moving between
-     aggregate/security/evidence without losing your place. */
+  /* ---------- Pagination ---------- */
+  .pagination-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 14px; }
+  .page-size-group { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text-faint); }
+  .page-size-group select { padding: 5px 24px 5px 9px; font-size: 11.5px; }
+  .page-info { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-faint); }
+  .page-controls { display: flex; gap: 6px; }
+  .page-btn { width: 28px; height: 28px; }
+  .page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .page-btn:disabled:hover { color: var(--text-secondary); border-color: var(--border); }
+
+  /* ---------- Detail pane ---------- */
   .detail-row td { padding: 0; border-bottom: 1px solid var(--border); background: var(--bg-secondary); }
   .detail-pane { padding: 0; max-height: 0; overflow: hidden; opacity: 0; transition: max-height .28s ease, opacity .22s ease; }
   .detail-pane.open { max-height: 1400px; opacity: 1; padding: 20px 22px 24px; }
@@ -191,7 +282,6 @@
   .detail-narrative { font-size: 14px; line-height: 1.6; color: var(--text-primary); }
   .detail-narrative-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--accent); margin-bottom: 7px; display: block; }
   .detail-composition { display: flex; gap: 18px; margin-top: 16px; flex-wrap: wrap; }
-  .comp-stat { }
   .comp-stat-val { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; }
   .comp-stat-val.bull { color: var(--bull); }
   .comp-stat-val.bear { color: var(--bear); }
@@ -221,32 +311,41 @@
   .evidence-tag.ai-read { background: var(--accent-dim); color: var(--accent); }
   .evidence-empty { font-size: 12px; color: var(--text-faint); }
 
-  /* Breadth over time — secondary, honestly sized to real history depth */
-  .breadth-chart-wrap { padding: 18px 20px; }
-  .breadth-chart-note { font-size: 11.5px; color: var(--text-faint); margin-top: 10px; }
-  .breadth-bars { display: flex; align-items: flex-end; gap: 10px; height: 120px; padding: 6px 0; }
-  .breadth-day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
-  .breadth-day-stack { width: 100%; max-width: 40px; height: 100%; border-radius: 4px 4px 0 0; overflow: hidden; display: flex; flex-direction: column-reverse; background: var(--surface-3); }
+  /* ---------- Breadth over time — a continuation of the table, not a
+     separate floating box ---------- */
+  .breadth-panel { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-1); padding: 20px 22px; }
+  .breadth-chart-note { font-size: 11.5px; color: var(--text-faint); margin-top: 12px; }
+  .breadth-bars { display: flex; align-items: flex-end; gap: 12px; height: 140px; padding: 6px 0; }
+  .breadth-day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 7px; height: 100%; justify-content: flex-end; cursor: default; }
+  .breadth-day-stack {
+    width: 100%; max-width: 44px; height: 100%; border-radius: 5px 5px 0 0; overflow: hidden; display: flex;
+    flex-direction: column-reverse; background: var(--surface-3); transition: filter .12s ease; position: relative;
+  }
+  .breadth-day:hover .breadth-day-stack { filter: brightness(1.12); }
   .breadth-seg.bull { background: var(--bull); }
   .breadth-seg.neutral { background: var(--gray); }
   .breadth-seg.bear { background: var(--bear); }
   .breadth-day-label { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--text-faint); white-space: nowrap; }
-
-  /* Methodology detail (expandable, plain, no marketing language) */
-  .methodology-panel {
-    display: none; margin-top: 8px; padding: 16px 18px; font-size: 12.5px; color: var(--text-secondary); line-height: 1.65;
-    border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-1);
+  .breadth-tooltip {
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    background: var(--surface-3); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; white-space: nowrap; box-shadow: var(--shadow-md);
+    opacity: 0; pointer-events: none; transition: opacity .12s ease; z-index: 5;
   }
-  .methodology-panel.open { display: block; }
-  .methodology-panel p { margin: 0 0 10px; }
-  .methodology-panel p:last-child { margin-bottom: 0; }
+  .breadth-day:hover .breadth-tooltip { opacity: 1; }
+  .breadth-legend { display: flex; gap: 16px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .breadth-legend-item { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-secondary); }
+  .breadth-legend-item .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .breadth-legend-item .dot.bull { background: var(--bull); }
+  .breadth-legend-item .dot.neutral { background: var(--gray); }
+  .breadth-legend-item .dot.bear { background: var(--bear); }
 
   footer { text-align: center; padding: 30px 28px; color: var(--text-faint); font-size: 10.5px; font-family: 'JetBrains Mono', monospace; border-top: 1px solid var(--border); margin-top: 20px; }
   .footer-links { display: flex; justify-content: center; gap: 18px; margin-bottom: 12px; }
   .footer-links a { color: var(--text-secondary); text-decoration: none; font-size: 11px; }
   .footer-links a:hover { color: var(--accent); }
 
-  /* Auth modal — identical to the main dashboard */
+  /* Auth modal — identical to the other pages */
   .auth-modal-backdrop { position: fixed; inset: 0; background: rgba(4,8,16,0.7); backdrop-filter: blur(6px); z-index: 110; display: none; align-items: center; justify-content: center; padding: 20px; }
   .auth-modal-card { position: relative; width: 100%; max-width: 380px; border-radius: var(--radius-lg); padding: 28px 26px; background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-md); }
   .auth-modal-close { position: absolute; top: 14px; right: 14px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-secondary); font-size: 16px; cursor: pointer; line-height: 1; }
@@ -273,7 +372,7 @@
   .auth-message.success, .auth-message.info { background: var(--accent-dim); color: var(--accent); }
   .auth-message.error { background: var(--bear-soft); color: var(--bear); }
 
-  /* Chart modal — identical to the main dashboard (minus watchlist star) */
+  /* Chart modal — identical to the other pages */
   .chart-modal-backdrop { position: fixed; inset: 0; background: rgba(4,8,16,0.7); backdrop-filter: blur(6px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
   .chart-modal-card { position: relative; width: 100%; max-width: 740px; max-height: 88vh; overflow-y: auto; border-radius: var(--radius-lg); padding: 24px 26px 20px; background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-md); }
   .chart-modal-close { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-secondary); font-size: 17px; cursor: pointer; line-height: 1; transition: color .15s ease, background-color .15s ease; }
@@ -360,33 +459,91 @@
 </div>
 
 <main>
-  <div class="page-header">
-    <h1 class="page-title">Sentiment Intelligence</h1>
-    <p class="page-sub">Crowd sentiment across the securities Undertow covers — what it is, how it's changing, and what's behind it.</p>
-    <div class="coverage-strip">
-      <span id="coverage-count"></span>
-      <span class="dot"></span>
-      <span id="coverage-updated"></span>
-      <span class="dot"></span>
-      <button class="methodology-link" id="methodology-toggle" type="button" aria-expanded="false" aria-controls="methodology-panel">Methodology</button>
+  <div class="app-header">
+    <div>
+      <h1 class="page-title">Sentiment Intelligence</h1>
+      <p class="page-sub">Crowd sentiment across the securities Undertow covers — what it is, how it's changing, and what's behind it.</p>
     </div>
-    <div class="methodology-panel" id="methodology-panel">
-      <p>Each security's score blends two sources. When a trader self-tags their own StockTwits post as Bullish or Bearish, that stated opinion counts as ground truth and is weighted twice as heavily as an inferred read. Everything else — untagged StockTwits posts and Reddit chatter — is classified by an AI model reading the actual message text for real meaning, including sarcasm and negation, not just keyword matches. A VADER lexicon model is used only as an offline fallback if the AI call is unavailable.</p>
-      <p>Mention counts reflect real message volume from the last 24 hours (up to a safety ceiling), not a fixed sample size. Sentiment scoring itself runs on the most recent 60 messages per security to keep AI usage bounded.</p>
-      <p>This is not financial advice. It reflects retail chatter, not fundamentals or professional analysis.</p>
+    <div class="app-header-actions">
+      <span class="header-updated">Updated <strong id="coverage-updated"></strong></span>
+      <div class="methodology-wrap">
+        <button class="header-pill" id="methodology-toggle" type="button" aria-expanded="false" aria-controls="methodology-panel">
+          Methodology
+          <svg class="chevron" width="9" height="6" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+        </button>
+        <div class="methodology-panel" id="methodology-panel">
+          <p>Each security's score blends two sources. When a trader self-tags their own StockTwits post as Bullish or Bearish, that stated opinion counts as ground truth and is weighted twice as heavily as an inferred read. Everything else — untagged StockTwits posts and Reddit chatter — is classified by an AI model reading the actual message text for real meaning, including sarcasm and negation, not just keyword matches. A VADER lexicon model is used only as an offline fallback if the AI call is unavailable.</p>
+          <p>Mention counts reflect real message volume from the last 24 hours (up to a safety ceiling), not a fixed sample size. Sentiment scoring itself runs on the most recent 60 messages per security to keep AI usage bounded. Confidence reflects how many of the 4 intelligence pillars (crowd, Wall Street, business, market) have real data for a security.</p>
+          <p>This is not financial advice. It reflects retail chatter, not fundamentals or professional analysis.</p>
+        </div>
+      </div>
+      <button class="icon-btn" id="refresh-btn" type="button" title="Refresh" aria-label="Refresh page">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4v6h6M20 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 15a8 8 0 1 0 1-9.5L4 8M18.5 9a8 8 0 0 1-1 9.5L20 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>
   </div>
 
-  <div class="aggregate-bar" id="aggregate-bar"></div>
+  <div class="hero-grid">
+    <div class="hero-panel">
+      <span class="hero-panel-label">Market Sentiment</span>
+      <div class="hero-sentiment-row">
+        <div>
+          <div class="hero-sentiment-label" id="hero-sentiment-label"></div>
+          <div class="hero-sentiment-meta" id="hero-sentiment-meta"></div>
+          <div class="hero-sentiment-delta" id="hero-sentiment-delta"></div>
+        </div>
+        <div class="hero-trend" id="hero-trend"></div>
+      </div>
+    </div>
+    <div class="hero-panel">
+      <span class="hero-panel-label">Sentiment Breakdown</span>
+      <div class="breakdown-list" id="breakdown-list"></div>
+    </div>
+    <div class="hero-panel">
+      <span class="hero-panel-label">Coverage</span>
+      <div class="coverage-value" id="coverage-value"></div>
+      <div class="coverage-value-label">securities covered</div>
+      <div class="coverage-days-row">
+        <div class="coverage-dots" id="coverage-dots"></div>
+        <span class="coverage-days-label" id="coverage-days-label"></span>
+      </div>
+    </div>
+  </div>
 
   <section class="block">
     <div class="block-header">
       <span class="block-title">Securities</span>
     </div>
     <p class="block-sub" id="securities-sub"></p>
+
+    <div class="table-toolbar">
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="text" id="search-input" placeholder="Search securities..." autocomplete="off" aria-label="Search securities by ticker">
+      </div>
+      <select class="toolbar-select" id="filter-select" aria-label="Filter by sentiment">
+        <option value="all">All Sentiments</option>
+        <option value="bull">Bullish</option>
+        <option value="neutral">Neutral</option>
+        <option value="bear">Bearish</option>
+      </select>
+      <select class="toolbar-select" id="sort-select" aria-label="Sort securities">
+        <option value="delta-desc">Sort: 1D Change</option>
+        <option value="score-desc">Sort: Sentiment (High → Low)</option>
+        <option value="score-asc">Sort: Sentiment (Low → High)</option>
+        <option value="price-desc">Sort: Price (High → Low)</option>
+        <option value="mentions-desc">Sort: Mentions</option>
+        <option value="ticker-asc">Sort: Ticker (A → Z)</option>
+      </select>
+      <div class="toolbar-spacer"></div>
+      <button class="icon-btn" id="export-btn" type="button" title="Export visible securities as CSV" aria-label="Export as CSV">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v13m0 0l-4-4m4 4l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
     <div class="sec-table-wrap">
       <table class="sec-table" id="sec-table">
-        <caption class="sr-only">Sentiment by security, sortable by column, select a row for details</caption>
+        <caption class="sr-only">Sentiment by security, sortable and filterable, select a row for details</caption>
         <thead>
           <tr>
             <th scope="col">Security</th>
@@ -400,13 +557,32 @@
         </thead>
         <tbody id="sec-table-body"></tbody>
       </table>
+      <div class="pagination-bar">
+        <div class="page-size-group">
+          Rows per page
+          <select class="toolbar-select" id="page-size-select" aria-label="Rows per page">
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+        <span class="page-info" id="page-info"></span>
+        <div class="page-controls">
+          <button class="icon-btn page-btn" id="page-prev" type="button" aria-label="Previous page">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="icon-btn page-btn" id="page-next" type="button" aria-label="Next page">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
     </div>
   </section>
 
   <section class="block">
     <div class="block-header"><span class="block-title">Breadth Over Time</span></div>
     <p class="block-sub" id="breadth-sub"></p>
-    <div class="breadth-chart-wrap surface" id="breadth-chart"></div>
+    <div class="breadth-panel" id="breadth-chart"></div>
   </section>
 </main>
 
@@ -553,7 +729,28 @@ function sparklineSvg(history, cls, width, height) {
     `<polyline points="${pts}" fill="none" style="stroke:${up ? 'var(--bull)' : 'var(--bear)'}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 
-// --- Chart modal (identical mechanics to the main dashboard) ---
+// Deterministic ticker avatar color — a fixed hash into a palette that
+// deliberately avoids bull/bear/amber hues, so an avatar color is never
+// mistaken for a sentiment signal.
+const AVATAR_PALETTE = ['#6366F1', '#0EA5E9', '#8B5CF6', '#EC4899', '#D946EF', '#06B6D4', '#3B82F6', '#64748B'];
+function avatarColor(ticker) {
+  let hash = 0;
+  for (let i = 0; i < ticker.length; i++) hash = (hash * 31 + ticker.charCodeAt(i)) >>> 0;
+  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+}
+function avatarHtml(ticker) {
+  return `<span class="ticker-avatar" style="background:${avatarColor(ticker)}">${ticker.charAt(0)}</span>`;
+}
+
+function confidenceCellHtml(confidence) {
+  if (confidence === null || confidence === undefined) return '<span class="sec-subtext">—</span>';
+  const filled = Math.round(confidence / 20);
+  const label = confidence >= 80 ? 'High' : confidence >= 50 ? 'Medium' : 'Low';
+  const dots = Array.from({ length: 5 }, (_, i) => `<span class="conf-dot${i < filled ? ' filled' : ''}"></span>`).join('');
+  return `<span class="confidence-cell" title="${confidence}% of intelligence pillars have real data for this security"><span class="conf-dots">${dots}</span><span class="conf-label">${label}</span></span>`;
+}
+
+// --- Chart modal (identical mechanics to the other pages) ---
 const tickerInfo = {};
 (DATA.watchlist_grid || []).forEach(t => { tickerInfo[t.ticker] = t; });
 
@@ -797,12 +994,23 @@ document.getElementById('chart-modal-close').addEventListener('click', closeChar
 document.getElementById('chart-modal').addEventListener('click', (e) => { if (e.target.id === 'chart-modal') closeChartModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeChartModal(); });
 
-// --- Methodology disclosure ---
+// --- Header: methodology popover + refresh ---
 const methodologyToggle = document.getElementById('methodology-toggle');
 const methodologyPanel = document.getElementById('methodology-panel');
-methodologyToggle.addEventListener('click', () => {
+methodologyToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
   const open = methodologyPanel.classList.toggle('open');
   methodologyToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.methodology-wrap')) {
+    methodologyPanel.classList.remove('open');
+    methodologyToggle.setAttribute('aria-expanded', 'false');
+  }
+});
+document.getElementById('refresh-btn').addEventListener('click', function () {
+  this.classList.add('spinning');
+  setTimeout(() => window.location.reload(), 350);
 });
 
 // --- Build the per-security dataset this whole page reads from ---
@@ -822,85 +1030,248 @@ const securities = (DATA.watchlist_grid || []).map(t => {
   return { ...t, score, label, scoreDelta, pillars, observations };
 });
 
-// --- Aggregate status line ---
-function renderAggregate() {
+// --- Hero: Market Sentiment / Breakdown / Coverage ---
+function renderHero() {
   const withScore = securities.filter(s => s.score !== null);
-  const el = document.getElementById('aggregate-bar');
+
   if (withScore.length === 0) {
-    el.innerHTML = '<div class="empty-state" style="border:none;padding:4px 0;">No sentiment data available yet.</div>';
-    return;
+    document.getElementById('hero-sentiment-label').textContent = 'No data yet';
+    document.getElementById('hero-sentiment-meta').textContent = '';
+    document.getElementById('breakdown-list').innerHTML = '<div class="empty-state" style="border:none;padding:4px 0;">No sentiment data available yet.</div>';
+  } else {
+    const avgScore = withScore.reduce((sum, s) => sum + s.score, 0) / withScore.length;
+    const avgRaw = withScore.reduce((sum, s) => sum + s.avg_sentiment, 0) / withScore.length;
+    const aggLabel = labelForScore(avgRaw);
+    const cls = aggLabel.includes('Bullish') ? 'up' : aggLabel.includes('Bearish') ? 'down' : 'flat';
+
+    const labelEl = document.getElementById('hero-sentiment-label');
+    labelEl.textContent = aggLabel;
+    labelEl.className = 'hero-sentiment-label ' + cls;
+    document.getElementById('hero-sentiment-meta').textContent = `${avgScore.toFixed(0)}/100 · ${withScore.length} securities`;
+
+    // Aggregate delta: today's average vs. yesterday's average, from each
+    // security's own most recent prior observation — real, not estimated.
+    const deltaEl = document.getElementById('hero-sentiment-delta');
+    const yesterdayVals = securities
+      .map(s => { const h = (DATA.sentiment_history || {})[s.ticker] || []; return h.length ? h[h.length - 1].avg_sentiment : null; })
+      .filter(v => v !== null);
+    if (yesterdayVals.length >= Math.max(3, withScore.length * 0.5)) {
+      const yesterdayAvg = yesterdayVals.reduce((a, b) => a + b, 0) / yesterdayVals.length;
+      const deltaScore = normalizeScore(avgRaw) - normalizeScore(yesterdayAvg);
+      const dcls = deltaScore > 0.5 ? 'up' : deltaScore < -0.5 ? 'down' : 'flat';
+      const sign = deltaScore >= 0 ? '+' : '';
+      deltaEl.textContent = `${sign}${deltaScore.toFixed(1)} vs yesterday`;
+      deltaEl.className = 'hero-sentiment-delta ' + dcls;
+    } else {
+      deltaEl.textContent = '';
+    }
+
+    // Real aggregate trend — per-day average across every security that
+    // has an observation that day, not a fabricated smoothed line.
+    const dateSet = new Set();
+    securities.forEach(s => s.observations.forEach(o => dateSet.add(o.date)));
+    const dates = [...dateSet].sort();
+    const trendVals = dates.map(date => {
+      const vals = securities
+        .map(s => { const obs = s.observations.find(o => o.date === date); return obs ? normalizeScore(obs.avg_sentiment) : null; })
+        .filter(v => v !== null);
+      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    }).filter(v => v !== null);
+    document.getElementById('hero-trend').innerHTML = trendSparkSvg(trendVals, 128, 54);
+
+    const counts = { bull: 0, neutral: 0, bear: 0 };
+    withScore.forEach(s => counts[breadthBucket(s.label)]++);
+    const maxCount = Math.max(counts.bull, counts.neutral, counts.bear, 1);
+    document.getElementById('breakdown-list').innerHTML = `
+      <div class="breakdown-row">
+        <span class="breakdown-name"><span class="dot bull"></span>Bullish</span>
+        <div class="breakdown-track"><div class="breakdown-fill bull" style="width:${(counts.bull / maxCount) * 100}%"></div></div>
+        <span class="breakdown-count">${counts.bull}</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="breakdown-name"><span class="dot neutral"></span>Neutral</span>
+        <div class="breakdown-track"><div class="breakdown-fill neutral" style="width:${(counts.neutral / maxCount) * 100}%"></div></div>
+        <span class="breakdown-count">${counts.neutral}</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="breakdown-name"><span class="dot bear"></span>Bearish</span>
+        <div class="breakdown-track"><div class="breakdown-fill bear" style="width:${(counts.bear / maxCount) * 100}%"></div></div>
+        <span class="breakdown-count">${counts.bear}</span>
+      </div>
+    `;
   }
 
-  const avgScore = withScore.reduce((sum, s) => sum + s.score, 0) / withScore.length;
-  const avgRaw = withScore.reduce((sum, s) => sum + s.avg_sentiment, 0) / withScore.length;
-  const aggLabel = labelForScore(avgRaw);
-  const cls = aggLabel.includes('Bullish') ? 'up' : aggLabel.includes('Bearish') ? 'down' : 'flat';
-
-  // Aggregate delta: today's average vs. yesterday's average, from each
-  // security's own most recent prior observation — real, not estimated.
-  let deltaHtml = '';
-  const yesterdayVals = securities
-    .map(s => { const h = (DATA.sentiment_history || {})[s.ticker] || []; return h.length ? h[h.length - 1].avg_sentiment : null; })
-    .filter(v => v !== null);
-  if (yesterdayVals.length >= Math.max(3, withScore.length * 0.5)) {
-    const yesterdayAvg = yesterdayVals.reduce((a, b) => a + b, 0) / yesterdayVals.length;
-    const deltaScore = normalizeScore(avgRaw) - normalizeScore(yesterdayAvg);
-    const dcls = deltaScore > 0.5 ? 'up' : deltaScore < -0.5 ? 'down' : 'flat';
-    const sign = deltaScore >= 0 ? '+' : '';
-    deltaHtml = `<span class="aggregate-delta ${dcls}">${sign}${deltaScore.toFixed(1)} vs yesterday</span>`;
-  }
-
-  const counts = { bull: 0, neutral: 0, bear: 0 };
-  withScore.forEach(s => counts[breadthBucket(s.label)]++);
-
-  el.innerHTML = `
-    <div class="aggregate-label-group">
-      <span class="aggregate-label ${cls}">${aggLabel}</span>
-      <span class="aggregate-score mono">${avgScore.toFixed(0)}/100 · ${withScore.length} securities</span>
-    </div>
-    ${deltaHtml}
-    <div class="aggregate-breadth">
-      <span class="breadth-item"><span class="swatch bull"></span><strong>${counts.bull}</strong>&nbsp;Bullish</span>
-      <span class="breadth-item"><span class="swatch neutral"></span><strong>${counts.neutral}</strong>&nbsp;Neutral</span>
-      <span class="breadth-item"><span class="swatch bear"></span><strong>${counts.bear}</strong>&nbsp;Bearish</span>
-    </div>
-  `;
+  document.getElementById('coverage-value').textContent = securities.length;
+  const dateSet2 = new Set();
+  securities.forEach(s => s.observations.forEach(o => dateSet2.add(o.date)));
+  const obsCount = dateSet2.size;
+  const dotsMax = Math.max(obsCount, 7);
+  document.getElementById('coverage-dots').innerHTML = Array.from({ length: dotsMax }, (_, i) =>
+    `<span class="coverage-dot${i < obsCount ? ' filled' : ''}"></span>`
+  ).join('');
+  document.getElementById('coverage-days-label').textContent = `${obsCount} observation${obsCount === 1 ? '' : 's'} recorded`;
 }
 
-// --- Coverage strip ---
-document.getElementById('coverage-count').textContent = `${securities.length} securities covered`;
-document.getElementById('coverage-updated').textContent = `Updated ${DATA.generated_at}`;
+function trendSparkSvg(vals, width, height) {
+  if (!vals || vals.length < 2) return `<span style="color:var(--text-faint);font-size:10.5px;">Building history</span>`;
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const range = (max - min) || 1;
+  const stepX = width / (vals.length - 1);
+  const pts = vals.map((v, i) => `${(i * stepX).toFixed(1)},${(height - ((v - min) / range) * height).toFixed(1)}`).join(' ');
+  const areaPts = `0,${height} ${pts} ${width},${height}`;
+  const up = vals[vals.length - 1] >= vals[0];
+  const color = up ? 'var(--bull)' : 'var(--bear)';
+  const lastX = ((vals.length - 1) * stepX).toFixed(1);
+  const lastY = (height - ((vals[vals.length - 1] - min) / range) * height).toFixed(1);
+  const gid = 'heroTrendFill';
+  return `<svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity="0.30"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <polygon points="${areaPts}" fill="url(#${gid})"/>
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${lastX}" cy="${lastY}" r="3" fill="${color}"/>
+  </svg>`;
+}
 
-// --- Securities table ---
+// --- Coverage strip (header) ---
+document.getElementById('coverage-updated').textContent = DATA.generated_at;
+
+// --- Securities table: search, filter, sort, pagination ---
+let searchQuery = '';
+let sentimentFilter = 'all';
 let sortKey = 'delta';
-let sortDir = -1; // descending by default — today's biggest movers surface first
+let sortDir = -1;
+let pageSize = 10;
+let currentPage = 1;
+let selectedTicker = null;
+
+function filteredSecurities() {
+  let arr = securities;
+  if (searchQuery) {
+    const q = searchQuery.toUpperCase();
+    arr = arr.filter(s => s.ticker.includes(q));
+  }
+  if (sentimentFilter !== 'all') {
+    arr = arr.filter(s => s.score !== null && breadthBucket(s.label) === sentimentFilter);
+  }
+  return arr;
+}
 
 function sortedSecurities() {
-  const withData = securities.filter(s => s.score !== null);
-  const withoutData = securities.filter(s => s.score === null);
+  const filtered = filteredSecurities();
+  const withData = filtered.filter(s => sortKey === 'ticker' || sortKey === 'mentions' || s.score !== null);
+  const withoutData = filtered.filter(s => !(sortKey === 'ticker' || sortKey === 'mentions' || s.score !== null));
   withData.sort((a, b) => {
     let av, bv;
     if (sortKey === 'score') { av = a.score; bv = b.score; }
     else if (sortKey === 'delta') { av = a.scoreDelta ?? -Infinity; bv = b.scoreDelta ?? -Infinity; }
     else if (sortKey === 'price') { av = a.price ?? -Infinity; bv = b.price ?? -Infinity; }
+    else if (sortKey === 'mentions') { av = a.mentions ?? 0; bv = b.mentions ?? 0; }
+    else if (sortKey === 'ticker') { return a.ticker.localeCompare(b.ticker) * sortDir; }
     return (av - bv) * sortDir;
   });
   return withData.concat(withoutData);
 }
 
-let selectedTicker = null;
+function resetToFirstPageAndRender() {
+  selectedTicker = null;
+  currentPage = 1;
+  renderTable();
+}
+
+const searchInput = document.getElementById('search-input');
+searchInput.addEventListener('input', () => { searchQuery = searchInput.value.trim(); resetToFirstPageAndRender(); });
+
+const filterSelect = document.getElementById('filter-select');
+filterSelect.addEventListener('change', () => { sentimentFilter = filterSelect.value; resetToFirstPageAndRender(); });
+
+const SORT_OPTIONS = {
+  'delta-desc': ['delta', -1], 'score-desc': ['score', -1], 'score-asc': ['score', 1],
+  'price-desc': ['price', -1], 'mentions-desc': ['mentions', -1], 'ticker-asc': ['ticker', 1],
+};
+const sortSelect = document.getElementById('sort-select');
+sortSelect.addEventListener('change', () => {
+  [sortKey, sortDir] = SORT_OPTIONS[sortSelect.value];
+  syncColumnSortIndicators();
+  resetToFirstPageAndRender();
+});
+
+function syncColumnSortIndicators() {
+  document.querySelectorAll('.sec-table th.sortable').forEach(h => h.classList.remove('active-sort'));
+  const th = document.querySelector(`.sec-table th.sortable[data-sort="${sortKey}"]`);
+  if (th) {
+    th.classList.add('active-sort');
+    th.querySelector('.sort-arrow').textContent = sortDir === -1 ? '↓' : '↑';
+  }
+}
+
+document.querySelectorAll('.sec-table th.sortable').forEach(th => {
+  const activate = () => {
+    const key = th.dataset.sort;
+    if (sortKey === key) { sortDir *= -1; } else { sortKey = key; sortDir = -1; }
+    syncColumnSortIndicators();
+    // Keep the dropdown in sync when it has a matching option.
+    const match = Object.entries(SORT_OPTIONS).find(([, [k, d]]) => k === sortKey && d === sortDir);
+    if (match) sortSelect.value = match[0];
+    resetToFirstPageAndRender();
+  };
+  th.addEventListener('click', activate);
+  th.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } });
+});
+syncColumnSortIndicators();
+
+const pageSizeSelect = document.getElementById('page-size-select');
+pageSizeSelect.addEventListener('change', () => { pageSize = parseInt(pageSizeSelect.value, 10); resetToFirstPageAndRender(); });
+document.getElementById('page-prev').addEventListener('click', () => { if (currentPage > 1) { currentPage--; selectedTicker = null; renderTable(); } });
+document.getElementById('page-next').addEventListener('click', () => { currentPage++; selectedTicker = null; renderTable(); });
+
+function exportCsv() {
+  const rows = sortedSecurities();
+  const headers = ['Ticker', 'Mentions (24h)', 'Sentiment Score', 'Label', 'Delta 1D', 'Bullish %', 'Neutral %', 'Bearish %', 'Confidence %', 'Price', 'Change %'];
+  const lines = [headers.join(',')];
+  rows.forEach(s => {
+    const neutralPct = s.score !== null ? Math.max(0, 100 - (s.bullish_pct || 0) - (s.bearish_pct || 0)) : '';
+    const vals = [
+      s.ticker, s.mentions ?? '', s.score !== null ? s.score.toFixed(1) : '', s.label,
+      s.scoreDelta !== null ? s.scoreDelta.toFixed(2) : '', s.bullish_pct ?? '', neutralPct, s.bearish_pct ?? '',
+      s.pillars.confidence ?? '', s.price ?? '', s.change_pct ?? '',
+    ];
+    lines.push(vals.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `undertow-sentiment-${DATA.generated_at.replace(/[^0-9A-Za-z]/g, '-')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+document.getElementById('export-btn').addEventListener('click', exportCsv);
 
 function renderTable() {
   const tbody = document.getElementById('sec-table-body');
-  const rows = sortedSecurities();
+  const allSorted = sortedSecurities();
+  const totalPages = Math.max(1, Math.ceil(allSorted.length / pageSize));
+  currentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const start = (currentPage - 1) * pageSize;
+  const rows = allSorted.slice(start, start + pageSize);
 
-  const sortDesc = sortKey === 'delta' ? '1-day change' : sortKey === 'score' ? 'sentiment score' : 'price';
+  const scopeText = (searchQuery || sentimentFilter !== 'all')
+    ? `${allSorted.length} of ${securities.length} securities match`
+    : `${securities.length} covered securities`;
   document.getElementById('securities-sub').textContent = selectedTicker
-    ? `All ${securities.length} covered securities, sorted by ${sortDesc} — showing the full breakdown for ${selectedTicker} below`
-    : `All ${securities.length} covered securities, sorted by ${sortDesc} — select a row for the full breakdown`;
+    ? `${scopeText} — showing the full breakdown for ${selectedTicker} below`
+    : `${scopeText} — select a row for the full breakdown`;
+
+  document.getElementById('page-info').textContent = allSorted.length === 0
+    ? '0 of 0'
+    : `${start + 1}–${Math.min(start + pageSize, allSorted.length)} of ${allSorted.length}`;
+  document.getElementById('page-prev').disabled = currentPage <= 1;
+  document.getElementById('page-next').disabled = currentPage >= totalPages;
 
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">No securities to show.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">No securities match your search or filter.</div></td></tr>';
     return;
   }
 
@@ -913,13 +1284,27 @@ function renderTable() {
     const neutralPct = Math.max(0, 100 - bullPct - bearPct);
     const confidence = s.pillars.confidence;
     const isSelected = s.ticker === selectedTicker;
+    const subtext = hasData ? `${s.mentions} mentions (24h)` : 'No recent chatter';
 
     const row = `<tr class="sec-row${isSelected ? ' selected' : ''}" data-ticker="${s.ticker}" tabindex="0" role="button"
         aria-expanded="${isSelected ? 'true' : 'false'}" aria-label="${s.ticker}, ${hasData ? s.label : 'no data'}, select for details">
       <td>
         <div class="sec-sym-cell">
-          <span class="sec-sym">${s.ticker}</span>
-          <span class="sec-subtext">${hasData ? `${s.mentions} mentions (24h)` : 'No recent chatter'}</span>
+          ${avatarHtml(s.ticker)}
+          <div class="sec-sym-text">
+            <span class="sec-sym">${s.ticker}</span>
+            <span class="sec-subtext">${subtext}</span>
+          </div>
+        </div>
+        <div class="mobile-summary">
+          <div class="mobile-summary-top">
+            <div class="mobile-summary-id">${avatarHtml(s.ticker)}<div class="sec-sym-text"><span class="sec-sym">${s.ticker}</span><span class="sec-subtext">${subtext}</span></div></div>
+            <div class="mobile-summary-score">${hasData ? `<div class="sec-score-cell" style="justify-content:flex-end;"><span class="sec-score">${s.score.toFixed(0)}</span></div><span class="sec-label">${s.label}</span>` : '<span class="sec-label">No data</span>'}</div>
+          </div>
+          <div class="mobile-summary-bottom">
+            <span class="sec-delta ${deltaCls}">${deltaText}</span>
+            <div class="mobile-summary-price">${fmtPrice(s.price)}<div class="sec-price-chg ${chgClass(s.change_pct)}">${fmtChg(s.change_pct)}</div></div>
+          </div>
         </div>
       </td>
       <td>
@@ -935,14 +1320,14 @@ function renderTable() {
           <div class="sec-comp-seg bear" style="width:${bearPct}%"></div>
         </div>` : '—'}
       </td>
-      <td class="col-confidence">${confidence !== undefined && confidence !== null && confidence < 100 ? `<span class="sec-confidence">${confidence}%</span>` : ''}</td>
+      <td class="col-confidence">${confidenceCellHtml(confidence)}</td>
       <td>
         <div class="sec-price-cell">
           ${fmtPrice(s.price)}
           <div class="sec-price-chg ${chgClass(s.change_pct)}">${fmtChg(s.change_pct)}</div>
         </div>
       </td>
-      <td class="sec-spark-cell">${sparklineSvg(DATA.price_history ? DATA.price_history[s.ticker] : null, 'sec-spark', 60, 22)}</td>
+      <td class="sec-spark-cell" data-chart-ticker="${s.ticker}" title="View full chart">${sparklineSvg(DATA.price_history ? DATA.price_history[s.ticker] : null, 'sec-spark', 60, 22)}</td>
     </tr>`;
 
     if (!isSelected) return row;
@@ -954,6 +1339,9 @@ function renderTable() {
     tr.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectTicker(tr.dataset.ticker); }
     });
+  });
+  tbody.querySelectorAll('.sec-spark-cell').forEach(cell => {
+    cell.addEventListener('click', (e) => { e.stopPropagation(); openChartModal(cell.dataset.chartTicker); });
   });
 
   // Open on a short delay so the max-height transition actually animates
@@ -975,20 +1363,6 @@ function selectTicker(ticker) {
   }
 }
 
-document.querySelectorAll('.sec-table th.sortable').forEach(th => {
-  const activate = () => {
-    const key = th.dataset.sort;
-    if (sortKey === key) { sortDir *= -1; } else { sortKey = key; sortDir = -1; }
-    document.querySelectorAll('.sec-table th.sortable').forEach(h => h.classList.remove('active-sort'));
-    th.classList.add('active-sort');
-    th.querySelector('.sort-arrow').textContent = sortDir === -1 ? '↓' : '↑';
-    renderTable();
-  };
-  th.addEventListener('click', activate);
-  th.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } });
-});
-document.querySelector('.sec-table th.sortable[data-sort="delta"]').classList.add('active-sort');
-
 // --- Detail pane: signal → why → evidence → context ---
 function renderDetailPane(s) {
   const reads = ((DATA.analyst || {})[s.ticker] || {}).pillar_reads;
@@ -997,15 +1371,10 @@ function renderDetailPane(s) {
     : (s.mentions ? 'No AI narrative available for this security yet.' : 'Not enough recent chatter to generate a narrative.');
 
   const divKey = s.pillars.divergence;
-  // A real button, not static text implying an action that isn't there —
-  // clicking it opens the same chart modal as "View full chart" below,
-  // scoped to the 4-pillar breakdown that explains this classification.
   const divergenceHtml = (divKey && DIVERGENCE_META[divKey])
     ? `<button class="detail-divergence ${DIVERGENCE_META[divKey].cls}" type="button" onclick="openChartModal('${s.ticker}')">${DIVERGENCE_META[divKey].icon} ${DIVERGENCE_META[divKey].label} — view 4-pillar breakdown →</button>`
     : `<div class="detail-context" style="border-top:none;padding-top:0;margin-top:14px;">No notable pillar divergence for ${s.ticker} today.</div>`;
 
-  // Honest short-history context — a real min/max over however many
-  // observations actually exist, not a fabricated percentile.
   let contextHtml = '';
   if (s.observations.length >= 2) {
     const vals = s.observations.map(o => o.avg_sentiment);
@@ -1062,7 +1431,8 @@ function renderDetailPane(s) {
   </div>`;
 }
 
-// --- Breadth over time ---
+// --- Breadth over time — continuous with the rest of the page, hover
+// reveals exact counts, never fabricates missing days ---
 function renderBreadthChart() {
   const el = document.getElementById('breadth-chart');
   const dateSet = new Set();
@@ -1091,20 +1461,26 @@ function renderBreadthChart() {
     const total = d.counts.bull + d.counts.neutral + d.counts.bear;
     const pct = k => total ? (d.counts[k] / total) * 100 : 0;
     return `<div class="breadth-day">
-      <div class="breadth-day-stack" title="${d.date}: ${d.counts.bull} bullish, ${d.counts.neutral} neutral, ${d.counts.bear} bearish">
+      <div class="breadth-tooltip">${d.date}: ${d.counts.bull} bullish · ${d.counts.neutral} neutral · ${d.counts.bear} bearish</div>
+      <div class="breadth-day-stack">
         <div class="breadth-seg bear" style="height:${pct('bear')}%"></div>
         <div class="breadth-seg neutral" style="height:${pct('neutral')}%"></div>
         <div class="breadth-seg bull" style="height:${pct('bull')}%"></div>
       </div>
-      <div class="breadth-day-label">${d.date.slice(5)}</div>
+      <div class="breadth-day-label">${d.date.length > 10 ? d.date.slice(5, 16) : d.date.slice(5)}</div>
     </div>`;
   }).join('');
 
   el.innerHTML = `<div class="breadth-bars">${bars}</div>
+    <div class="breadth-legend">
+      <span class="breadth-legend-item"><span class="dot bull"></span>Bullish</span>
+      <span class="breadth-legend-item"><span class="dot neutral"></span>Neutral</span>
+      <span class="breadth-legend-item"><span class="dot bear"></span>Bearish</span>
+    </div>
     <div class="breadth-chart-note">Grows by one observation with each daily update. Short history today means this chart will become more informative over the coming days/weeks — it is not filled in artificially.</div>`;
 }
 
-renderAggregate();
+renderHero();
 renderTable();
 renderBreadthChart();
 
