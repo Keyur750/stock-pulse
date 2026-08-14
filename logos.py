@@ -19,14 +19,46 @@ was checked first and no longer resolves at all — dropped.)
 If no real logo can be fetched for a ticker, ensure_logo() returns False
 and nothing is written — the frontend falls back to the existing colored-
 letter avatar rather than showing a broken image or a fabricated stand-in.
+
+Logo art arrives on a transparent background, and some marks (Nike,
+Boeing) are pure white — built for a dark surface, invisible on a plain
+white chip. Rather than assume every logo suits the same backing, each
+one is flattened once onto a backing plate chosen from its own visible-
+pixel luminance (dark backing for a light/white mark, white backing for
+a dark or colored one) and saved that way, so the cached file is correct
+on its own no matter what the page around it does.
 """
 
+import io
 import os
 
 import requests
+from PIL import Image
 
 LOGO_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "logos")
 LOGO_URL = "https://financialmodelingprep.com/image-stock/{ticker}.png"
+
+# Matches this app's dark theme (--surface-1 in the templates) so a
+# dark-backed logo sits flush with the page; white for everything else.
+DARK_BACKING = (16, 28, 45)
+LIGHT_BACKING = (255, 255, 255)
+LIGHT_MARK_LUMINANCE_THRESHOLD = 200
+
+
+def _flatten_onto_backing(content: bytes) -> bytes:
+    img = Image.open(io.BytesIO(content)).convert("RGBA")
+    visible = [(r, g, b) for r, g, b, a in img.getdata() if a > 40]
+    if visible:
+        avg_luminance = sum(0.299 * r + 0.587 * g + 0.114 * b for r, g, b in visible) / len(visible)
+        backing_rgb = DARK_BACKING if avg_luminance > LIGHT_MARK_LUMINANCE_THRESHOLD else LIGHT_BACKING
+    else:
+        backing_rgb = LIGHT_BACKING
+
+    backing = Image.new("RGBA", img.size, backing_rgb + (255,))
+    flattened = Image.alpha_composite(backing, img).convert("RGB")
+    buf = io.BytesIO()
+    flattened.save(buf, format="PNG")
+    return buf.getvalue()
 
 
 def ensure_logo(ticker: str, timeout=8) -> bool:
@@ -47,11 +79,12 @@ def ensure_logo(ticker: str, timeout=8) -> bool:
             return False
         if len(resp.content) < 100:
             return False
+        flattened = _flatten_onto_backing(resp.content)
     except Exception:
         return False
 
     with open(path, "wb") as f:
-        f.write(resp.content)
+        f.write(flattened)
     return True
 
 
