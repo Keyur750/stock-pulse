@@ -51,6 +51,14 @@ TAGGED_WEIGHT = 2.0
 UNTAGGED_WEIGHT = 1.0
 LLM_SENTIMENT_SCORE = {"bullish": 0.4, "bearish": -0.4, "neutral": 0.0}
 
+# A weighted average of bounded per-message scores can never exceed the
+# most extreme individual score — so avg_sentiment is mathematically
+# bounded to [-0.6, +0.6], not the [-1, +1] a naive normalization would
+# assume. Anything rescaling avg_sentiment to a 0-100 score should divide
+# by this, not by 1.0, or it silently compresses the real range into
+# ~20-80 and never reaches the ends of the scale.
+MAX_SCORE_MAGNITUDE = max(abs(v) for v in TAG_SCORE.values())
+
 # Provisional — set from the shape of the new scoring formula, not yet
 # calibrated against a real distribution of live results the way the
 # Wall Street pillar's thresholds were. Revisit once a few days of
@@ -121,7 +129,7 @@ def label_for_score(score: float) -> str:
     return "Neutral"
 
 
-def _tag_of(msg: dict):
+def tag_of(msg: dict):
     entities = msg.get("entities") or {}
     sentiment = entities.get("sentiment") or {}
     return sentiment.get("basic")
@@ -192,7 +200,7 @@ def classify_and_score_messages(ticker: str, messages: list) -> list:
     with `_sentiment`, `_score`, and `_weight` attached."""
     tagged, untagged = [], []
     for m in messages:
-        tag = _tag_of(m)
+        tag = tag_of(m)
         if tag in TAG_SCORE:
             m["_sentiment"] = tag.lower()
             m["_score"] = TAG_SCORE[tag]

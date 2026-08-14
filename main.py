@@ -21,7 +21,10 @@ from apewisdom import fetch_mentions as fetch_reddit_mentions
 from news_fetcher import fetch_news, fetch_ticker_news
 from news_ranker import rank_news
 from sec_filings import fetch_recent_8ks
-from sentiment import classify_and_score_messages, weighted_average, score_text, label_for_score
+from sentiment import (
+    classify_and_score_messages, weighted_average, score_text, label_for_score,
+    MAX_SCORE_MAGNITUDE, tag_of,
+)
 from reddit import extract_tickers
 from market_data import fetch_quotes
 from fundamentals import fetch_fundamentals, score_fundamentals
@@ -39,6 +42,8 @@ SIGNAL_HISTORY_PATH = os.path.join(DATA_DIR, "signal_history.json")
 # script); the live data dashboard is served from docs/dashboard.html.
 DASHBOARD_PATH = os.path.join(ROOT, "docs", "dashboard.html")
 TEMPLATE_PATH = os.path.join(ROOT, "dashboard_template.html")
+SENTIMENT_PAGE_PATH = os.path.join(ROOT, "docs", "sentiment.html")
+SENTIMENT_TEMPLATE_PATH = os.path.join(ROOT, "sentiment_template.html")
 
 
 def load_config():
@@ -167,9 +172,19 @@ def analyze(symbol_messages: dict, trending_symbols: set, watchlist: set,
         bullish_pct = round(100 * bullish_count / sample_size) if sample_size else 0
         bearish_pct = round(100 * bearish_count / sample_size) if sample_size else 0
 
+        # Most recent 3 from the scored sample, not cherry-picked to make
+        # a case — carries real source/tag metadata so evidence can be
+        # shown honestly (e.g. "self-tagged Bearish on StockTwits" vs
+        # "AI-read as bullish"), not just a bare quote.
         examples = []
-        for m in messages[:3]:
-            examples.append({"title": (m.get("body") or "")[:120]})
+        for m in scored[:3]:
+            tag = tag_of(m)
+            examples.append({
+                "title": (m.get("body") or "")[:200],
+                "source": m.get("chatter_source", "stocktwits"),
+                "tagged": tag if tag in ("Bullish", "Bearish") else None,
+                "sentiment": m.get("_sentiment"),
+            })
 
         prev_avg = prev_value(prev_snapshot, symbol, "avg_sentiment")
         delta = round(avg - prev_avg, 3) if prev_avg is not None else None
@@ -634,11 +649,15 @@ def _news_for_ticker(news_items, ticker):
 
 
 def _normalize_crowd_score(sentiment):
-    """avg_sentiment lives on a -1..1 scale; every other pillar is 0-100.
-    Normalize so the Divergence Engine can compare them directly."""
+    """avg_sentiment is mathematically bounded to [-MAX_SCORE_MAGNITUDE,
+    +MAX_SCORE_MAGNITUDE] (see sentiment.py), not [-1, +1] — every other
+    pillar is 0-100, so normalize against the real bound. Using 1.0 here
+    would silently compress the whole real range into ~20-80 and the
+    score could never reach either end of the scale."""
     if not sentiment or sentiment.get("avg_sentiment") is None or not sentiment.get("mentions"):
         return None
-    return round((sentiment["avg_sentiment"] + 1) * 50, 1)
+    normalized = (sentiment["avg_sentiment"] / MAX_SCORE_MAGNITUDE + 1) * 50
+    return round(max(0.0, min(100.0, normalized)), 1)
 
 
 def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_history,
@@ -711,6 +730,18 @@ def render_dashboard(payload):
     html = template.replace("/*__DATA__*/", json.dumps(payload, indent=2))
     os.makedirs(os.path.dirname(DASHBOARD_PATH), exist_ok=True)
     with open(DASHBOARD_PATH, "w", encoding="utf-8") as f:
+        f.write(html)
+
+
+def render_sentiment_page(payload):
+    """Same embed-and-write pattern as render_dashboard, same payload —
+    the Sentiment Intelligence page is a new view over data the pipeline
+    already computes, not a new data source."""
+    with open(SENTIMENT_TEMPLATE_PATH, encoding="utf-8") as f:
+        template = f.read()
+    html = template.replace("/*__DATA__*/", json.dumps(payload, indent=2))
+    os.makedirs(os.path.dirname(SENTIMENT_PAGE_PATH), exist_ok=True)
+    with open(SENTIMENT_PAGE_PATH, "w", encoding="utf-8") as f:
         f.write(html)
 
 
@@ -857,6 +888,7 @@ def main():
         "company_news": company_news,
     }
     render_dashboard(payload)
+    render_sentiment_page(payload)
 
     save_history(history, {
         "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
