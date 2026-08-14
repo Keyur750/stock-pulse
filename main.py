@@ -23,7 +23,7 @@ from news_ranker import rank_news
 from sec_filings import fetch_recent_8ks
 from sentiment import (
     classify_and_score_messages, weighted_average, score_text, label_for_score,
-    MAX_SCORE_MAGNITUDE, tag_of,
+    MAX_SCORE_MAGNITUDE, tag_of, build_market_insight,
 )
 from reddit import extract_tickers
 from market_data import fetch_quotes
@@ -186,6 +186,7 @@ def analyze(symbol_messages: dict, trending_symbols: set, watchlist: set,
                 "source": m.get("chatter_source", "stocktwits"),
                 "tagged": tag if tag in ("Bullish", "Bearish") else None,
                 "sentiment": m.get("_sentiment"),
+                "created_at": m.get("created_at"),
             })
 
         prev_avg = prev_value(prev_snapshot, symbol, "avg_sentiment")
@@ -894,6 +895,10 @@ def main():
         ticker_results, watchlist, min_mentions, quotes
     )
 
+    print("Generating today's market insight (one real LLM call, not a template)...")
+    market_insight = build_market_insight(watchlist_grid)
+    print(f"  {'generated' if market_insight else 'unavailable — will show an honest empty state'}")
+
     sentiment_history = build_sentiment_history(history, ticker_results, watchlist)
 
     generated_at = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %I:%M %p %Z")
@@ -914,6 +919,7 @@ def main():
         "analyst": analyst_results,
         "pillar_scores": pillar_scores,
         "fundamentals": fundamentals_data,
+        "market_insight": market_insight,
         "material_events": material_events,
         "company_news": company_news,
     }

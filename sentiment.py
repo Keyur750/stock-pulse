@@ -225,3 +225,68 @@ def weighted_average(scored_messages: list) -> float:
     if not total_weight:
         return 0.0
     return sum(m["_score"] * m["_weight"] for m in scored_messages) / total_weight
+
+
+MARKET_INSIGHT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "insight": {
+            "type": "string",
+            "description": "One to two sentences summarizing today's real crowd sentiment picture across the covered securities — overall direction, which specific securities are driving it, and whether the shift is broad or narrow across the group. Factual and specific, referencing only the real data given. No hype, no generic filler, no speculation about causes not shown in the data.",
+        },
+    },
+    "required": ["insight"],
+}
+
+INSIGHT_PROMPT = """You are writing a one-to-two sentence summary of today's retail crowd \
+sentiment picture for a financial intelligence dashboard, based only on the real data below. \
+Name the actual securities driving the picture — don't generalize. No hype, no filler, no \
+speculation about causes not shown in the data. If most securities show little day-over-day \
+change, say so plainly instead of manufacturing drama.
+
+TODAY'S SENTIMENT SNAPSHOT (ticker: label, score/100, change vs yesterday, mentions in 24h):
+{snapshot_block}
+
+Write the summary now."""
+
+
+def build_market_insight(watchlist_grid: list) -> str | None:
+    """One real LLM call per day synthesizing the day's aggregate crowd
+    sentiment into a short natural-language summary — real breadth counts
+    and real movers as input, not a fabricated narrative. Returns None if
+    the LLM is unavailable or the call fails, so the page can show an
+    honest empty state rather than templated text pretending to be
+    AI-written."""
+    rows = [r for r in watchlist_grid if r.get("avg_sentiment") is not None]
+    if not rows:
+        return None
+
+    client = get_client()
+    if client is None:
+        return None
+
+    lines = []
+    for r in rows:
+        score = round((r["avg_sentiment"] / MAX_SCORE_MAGNITUDE + 1) * 50)
+        delta_txt = ""
+        if r.get("delta") is not None:
+            delta_score = r["delta"] * (50 / MAX_SCORE_MAGNITUDE)
+            delta_txt = f", change {delta_score:+.1f} vs yesterday"
+        lines.append(f"{r['ticker']}: {r.get('label', 'Neutral')}, {score}/100{delta_txt}, {r.get('mentions', 0)} mentions")
+    prompt = INSIGHT_PROMPT.format(snapshot_block="\n".join(lines))
+
+    try:
+        response = client.models.generate_content(
+            model=MODEL,
+            contents=prompt,
+            config={
+                "response_mime_type": "application/json",
+                "response_schema": MARKET_INSIGHT_SCHEMA,
+                "temperature": 0.25,
+                "max_output_tokens": 300,
+            },
+        )
+        return json.loads(response.text)["insight"]
+    except Exception as e:
+        print(f"  [sentiment] market insight generation failed: {type(e).__name__}: {e}")
+        return None

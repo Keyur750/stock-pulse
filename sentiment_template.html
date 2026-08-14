@@ -131,6 +131,18 @@
   .hero-sentiment-delta.up { color: var(--bull); }
   .hero-sentiment-delta.down { color: var(--bear); }
   .hero-sentiment-delta.flat { color: var(--text-faint); }
+  .hero-sentiment-extra { font-size: 11px; color: var(--text-faint); margin-top: 8px; }
+
+  /* AI Insight — a slim, quiet banner, not a decorative card. The icon +
+     eyebrow signal "this is a product feature," the accent rule on the
+     left is the only color accent, everything else is quiet typography. */
+  .ai-insight-banner {
+    display: flex; align-items: flex-start; gap: 11px; margin-top: 18px; padding: 13px 16px;
+    border-left: 2px solid var(--accent); background: var(--accent-dim); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    color: var(--accent);
+  }
+  .ai-insight-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 4px; }
+  .ai-insight-text { font-size: 13px; color: var(--text-primary); line-height: 1.55; margin: 0; max-width: 780px; }
   .hero-trend { width: 128px; height: 54px; flex-shrink: 0; }
   @media (max-width: 460px) { .hero-sentiment-row { flex-direction: column; align-items: flex-start; } .hero-trend { width: 100%; margin-top: 10px; } }
 
@@ -234,7 +246,7 @@
   .sec-price-chg.up { color: var(--bull); }
   .sec-price-chg.down { color: var(--bear); }
   .sec-price-chg.na { color: var(--text-faint); }
-  .sec-spark-cell { width: 78px; cursor: pointer; border-radius: var(--radius-sm); transition: background-color .12s ease; }
+  .sec-spark-cell { width: 104px; cursor: pointer; border-radius: var(--radius-sm); transition: background-color .12s ease; }
   .sec-spark-cell:hover { background: var(--surface-3); }
   .mobile-summary { display: none; }
 
@@ -287,6 +299,7 @@
   .comp-stat-val.bear { color: var(--bear); }
   .comp-stat-val.neutral { color: var(--text-secondary); }
   .comp-stat-label { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+  .comp-stat-pct { font-size: 11px; color: var(--text-faint); font-weight: 500; margin-left: 4px; }
   .detail-context { font-size: 12px; color: var(--text-faint); margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); line-height: 1.6; }
   .detail-divergence { display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; padding: 5px 11px; border-radius: var(--radius-sm); margin-top: 14px; cursor: pointer; transition: filter .12s ease; }
   .detail-divergence:hover { filter: brightness(1.15); }
@@ -304,12 +317,24 @@
   .evidence-quote { font-size: 12.5px; color: var(--text-secondary); line-height: 1.55; }
   .evidence-meta { display: flex; align-items: center; gap: 7px; margin-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10px; }
   .evidence-source { color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+  .evidence-time { color: var(--text-faint); }
+  .evidence-dot { color: var(--text-faint); }
   .evidence-tag { padding: 2px 7px; border-radius: 999px; font-weight: 700; }
   .evidence-tag.bullish { background: var(--bull-soft); color: var(--bull); }
   .evidence-tag.bearish { background: var(--bear-soft); color: var(--bear); }
   .evidence-tag.neutral { background: var(--gray-soft); color: var(--text-faint); }
   .evidence-tag.ai-read { background: var(--accent-dim); color: var(--accent); }
   .evidence-empty { font-size: 12px; color: var(--text-faint); }
+  .evidence-eyebrow { display: block; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 6px; }
+  .evidence-eyebrow.bullish { color: var(--bull); }
+  .evidence-eyebrow.bearish { color: var(--bear); }
+  .evidence-eyebrow.neutral { color: var(--text-faint); }
+  .evidence-eyebrow.ai-read { color: var(--accent); }
+
+  .detail-confidence { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .detail-confidence-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-faint); display: block; margin-bottom: 4px; }
+  .detail-confidence-value { font-size: 13px; color: var(--text-primary); font-weight: 600; }
+  .detail-confidence-note { font-size: 11.5px; color: var(--text-faint); margin-top: 3px; line-height: 1.5; }
 
   /* ---------- Breadth over time — a continuation of the table, not a
      separate floating box ---------- */
@@ -483,6 +508,14 @@
     </div>
   </div>
 
+  <div class="ai-insight-banner" id="ai-insight-banner" style="display:none;">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9L12 3z" fill="currentColor"/></svg>
+    <div>
+      <span class="ai-insight-eyebrow">AI Insight</span>
+      <p class="ai-insight-text" id="ai-insight-text"></p>
+    </div>
+  </div>
+
   <div class="hero-grid">
     <div class="hero-panel">
       <span class="hero-panel-label">Market Sentiment</span>
@@ -491,6 +524,7 @@
           <div class="hero-sentiment-label" id="hero-sentiment-label"></div>
           <div class="hero-sentiment-meta" id="hero-sentiment-meta"></div>
           <div class="hero-sentiment-delta" id="hero-sentiment-delta"></div>
+          <div class="hero-sentiment-extra" id="hero-sentiment-extra"></div>
         </div>
         <div class="hero-trend" id="hero-trend"></div>
       </div>
@@ -549,8 +583,8 @@
             <th scope="col">Security</th>
             <th scope="col" class="sortable" data-sort="score" tabindex="0" role="button" aria-label="Sort by sentiment score">Sentiment <span class="sort-arrow">↓</span></th>
             <th scope="col" class="sortable" data-sort="delta" tabindex="0" role="button" aria-label="Sort by 1-day change" title="Change in sentiment score vs. yesterday">Δ 1D <span class="sort-arrow">↓</span></th>
-            <th scope="col" class="col-comp">Composition</th>
-            <th scope="col" class="col-confidence">Confidence</th>
+            <th scope="col" class="col-comp" title="Share of bullish, neutral, and bearish messages for this security">Composition</th>
+            <th scope="col" class="col-confidence" title="Share of the 4 intelligence pillars (Crowd, Business, Market, Wall Street) with real data for this security">Confidence</th>
             <th scope="col" class="sortable" data-sort="price" tabindex="0" role="button" aria-label="Sort by price">Price <span class="sort-arrow">↓</span></th>
             <th scope="col">7-Day</th>
           </tr>
@@ -708,6 +742,18 @@ function fmtScoreDelta(rawDelta) {
   return rawDelta * (50 / MAX_SCORE_MAGNITUDE);
 }
 function scoreClass(score) { if (score >= 65) return 'up'; if (score <= 40) return 'down'; return 'na'; }
+function timeAgo(iso) {
+  if (!iso) return null;
+  const then = new Date(iso).getTime();
+  if (isNaN(then)) return null;
+  const mins = Math.round((Date.now() - then) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  const days = Math.round(hrs / 24);
+  return `${days} d ago`;
+}
 function sourceTitle(t) {
   const sc = t.source_counts || {};
   const parts = [];
@@ -732,7 +778,7 @@ function sparklineSvg(history, cls, width, height) {
 // Deterministic ticker avatar color — a fixed hash into a palette that
 // deliberately avoids bull/bear/amber hues, so an avatar color is never
 // mistaken for a sentiment signal.
-const AVATAR_PALETTE = ['#6366F1', '#0EA5E9', '#8B5CF6', '#EC4899', '#D946EF', '#06B6D4', '#3B82F6', '#64748B'];
+const AVATAR_PALETTE = ['#8B5CF6', '#EC4899', '#D946EF', '#0891B2', '#64748B', '#6366F1'];
 function avatarColor(ticker) {
   let hash = 0;
   for (let i = 0; i < ticker.length; i++) hash = (hash * 31 + ticker.charCodeAt(i)) >>> 0;
@@ -743,7 +789,9 @@ function avatarHtml(ticker) {
 }
 
 function confidenceCellHtml(confidence) {
-  if (confidence === null || confidence === undefined) return '<span class="sec-subtext">—</span>';
+  if (confidence === null || confidence === undefined) {
+    return `<span class="confidence-cell confidence-cell--limited" title="This security isn't yet covered by the 4-pillar intelligence engine, so a confidence read isn't available."><span class="conf-dots"><span class="conf-dot"></span><span class="conf-dot"></span><span class="conf-dot"></span><span class="conf-dot"></span><span class="conf-dot"></span></span><span class="conf-label">Limited</span></span>`;
+  }
   const filled = Math.round(confidence / 20);
   const label = confidence >= 80 ? 'High' : confidence >= 50 ? 'Medium' : 'Low';
   const dots = Array.from({ length: 5 }, (_, i) => `<span class="conf-dot${i < filled ? ' filled' : ''}"></span>`).join('');
@@ -1018,11 +1066,25 @@ document.getElementById('refresh-btn').addEventListener('click', function () {
 // produces; nothing is fetched or computed server-side just for this
 // page. sentiment_history excludes today by construction, so today's
 // value from watchlist_grid is appended to get the full observed set.
+// Confidence = share of the 4 intelligence pillars (crowd/wall_street/
+// business/market) that have real data for this security — computed here
+// from the real pillar_scores payload, mirroring main.py's
+// build_signal_snapshot() formula exactly (that field is written to
+// signal_history.json for the track-record feature but never reaches this
+// page's payload directly, so it can't just be read off DATA).
+function pillarConfidence(pillars) {
+  if (!pillars) return null;
+  const vals = [pillars.crowd, pillars.wall_street, pillars.business, pillars.market];
+  const present = vals.filter(v => v !== null && v !== undefined).length;
+  return Math.round((present / 4) * 100);
+}
+
 const securities = (DATA.watchlist_grid || []).map(t => {
   const score = t.avg_sentiment != null ? normalizeScore(t.avg_sentiment) : null;
   const label = t.avg_sentiment != null ? labelForScore(t.avg_sentiment) : 'Neutral';
   const scoreDelta = fmtScoreDelta(t.delta);
-  const pillars = (DATA.pillar_scores || {})[t.ticker] || {};
+  const rawPillars = (DATA.pillar_scores || {})[t.ticker] || null;
+  const pillars = { ...(rawPillars || {}), confidence: pillarConfidence(rawPillars) };
   const history = ((DATA.sentiment_history || {})[t.ticker] || []).slice();
   const observations = history.concat(
     t.avg_sentiment != null ? [{ date: DATA.generated_at, avg_sentiment: t.avg_sentiment }] : []
@@ -1038,6 +1100,8 @@ function renderHero() {
     document.getElementById('hero-sentiment-label').textContent = 'No data yet';
     document.getElementById('hero-sentiment-meta').textContent = '';
     document.getElementById('breakdown-list').innerHTML = '<div class="empty-state" style="border:none;padding:4px 0;">No sentiment data available yet.</div>';
+    document.getElementById('hero-sentiment-extra').textContent = '';
+    document.getElementById('ai-insight-banner').style.display = 'none';
   } else {
     const avgScore = withScore.reduce((sum, s) => sum + s.score, 0) / withScore.length;
     const avgRaw = withScore.reduce((sum, s) => sum + s.avg_sentiment, 0) / withScore.length;
@@ -1064,6 +1128,31 @@ function renderHero() {
       deltaEl.className = 'hero-sentiment-delta ' + dcls;
     } else {
       deltaEl.textContent = '';
+    }
+
+    // Two extra real stats: average 1D sentiment change across securities
+    // that have one, and how many crossed the same "significant" threshold
+    // already used for the per-row Δ1D up/down coloring (0.3).
+    const withDelta = withScore.filter(s => s.scoreDelta !== null && s.scoreDelta !== undefined);
+    const extraEl = document.getElementById('hero-sentiment-extra');
+    if (withDelta.length) {
+      const avgDelta = withDelta.reduce((sum, s) => sum + s.scoreDelta, 0) / withDelta.length;
+      const shifts = withDelta.filter(s => Math.abs(s.scoreDelta) > 0.3).length;
+      const sign = avgDelta >= 0 ? '+' : '';
+      extraEl.textContent = `${sign}${avgDelta.toFixed(1)} avg 1D change · ${shifts} significant shift${shifts === 1 ? '' : 's'}`;
+    } else {
+      extraEl.textContent = '';
+    }
+
+    // AI Insight — a real per-day LLM summary of the crowd sentiment
+    // picture (see sentiment.py build_market_insight); shown only when the
+    // backend actually produced one, never templated filler.
+    const insightBanner = document.getElementById('ai-insight-banner');
+    if (DATA.market_insight) {
+      document.getElementById('ai-insight-text').textContent = DATA.market_insight;
+      insightBanner.style.display = 'flex';
+    } else {
+      insightBanner.style.display = 'none';
     }
 
     // Real aggregate trend — per-day average across every security that
@@ -1327,7 +1416,7 @@ function renderTable() {
           <div class="sec-price-chg ${chgClass(s.change_pct)}">${fmtChg(s.change_pct)}</div>
         </div>
       </td>
-      <td class="sec-spark-cell" data-chart-ticker="${s.ticker}" title="View full chart">${sparklineSvg(DATA.price_history ? DATA.price_history[s.ticker] : null, 'sec-spark', 60, 22)}</td>
+      <td class="sec-spark-cell" data-chart-ticker="${s.ticker}" title="View full chart">${sparklineSvg(DATA.price_history ? DATA.price_history[s.ticker] : null, 'sec-spark', 88, 30)}</td>
     </tr>`;
 
     if (!isSelected) return row;
@@ -1366,9 +1455,7 @@ function selectTicker(ticker) {
 // --- Detail pane: signal → why → evidence → context ---
 function renderDetailPane(s) {
   const reads = ((DATA.analyst || {})[s.ticker] || {}).pillar_reads;
-  const narrative = reads && reads.crowd
-    ? reads.crowd
-    : (s.mentions ? 'No AI narrative available for this security yet.' : 'Not enough recent chatter to generate a narrative.');
+  const narrative = (reads && reads.crowd) ? reads.crowd : 'Not enough evidence to generate a reliable AI explanation yet.';
 
   const divKey = s.pillars.divergence;
   const divergenceHtml = (divKey && DIVERGENCE_META[divKey])
@@ -1391,18 +1478,39 @@ function renderDetailPane(s) {
     contextHtml = `<div class="detail-context">Only ${s.observations.length} observation recorded for ${s.ticker} — context builds as history accumulates.</div>`;
   }
 
+  const bull = s.bullish_count || 0, neu = s.neutral_count || 0, bear = s.bearish_count || 0;
+  const compTotal = bull + neu + bear;
+  const pct = n => compTotal ? Math.round((n / compTotal) * 100) : null;
+  const pctHtml = n => { const p = pct(n); return p === null ? '' : `<span class="comp-stat-pct">(${p}%)</span>`; };
+
+  const confidence = s.pillars.confidence;
+  const confidenceHtml = (confidence === null || confidence === undefined)
+    ? `<div class="detail-confidence">
+        <span class="detail-confidence-label">Signal confidence</span>
+        <div class="detail-confidence-value">Limited</div>
+        <div class="detail-confidence-note">This security isn't yet covered by the 4-pillar intelligence engine, so a confidence read isn't available.</div>
+      </div>`
+    : `<div class="detail-confidence">
+        <span class="detail-confidence-label">Signal confidence</span>
+        <div class="detail-confidence-value">${confidence >= 80 ? 'High' : confidence >= 50 ? 'Medium' : 'Low'}</div>
+        <div class="detail-confidence-note">${confidence}% of intelligence pillars (Crowd, Business, Market, Wall Street) have real data for ${s.ticker}.</div>
+      </div>`;
+
   const evidenceItems = (s.examples || []);
   const evidenceHtml = evidenceItems.length === 0
     ? `<div class="evidence-empty">No individual messages available as evidence for ${s.ticker}.</div>`
     : evidenceItems.map(ex => {
-        const tagHtml = ex.tagged
-          ? `<span class="evidence-tag ${ex.tagged.toLowerCase()}">Self-tagged ${ex.tagged}</span>`
-          : `<span class="evidence-tag ai-read">AI-read: ${ex.sentiment || 'neutral'}</span>`;
+        const cls = ex.tagged ? ex.tagged.toLowerCase() : (ex.sentiment && ex.sentiment !== 'neutral' ? 'ai-read' : 'neutral');
+        const eyebrow = ex.tagged
+          ? `${ex.tagged.toUpperCase()} SIGNAL — SELF-TAGGED`
+          : `AI READ: ${(ex.sentiment || 'neutral').toUpperCase()}`;
+        const ago = timeAgo(ex.created_at);
         return `<div class="evidence-item">
+          <span class="evidence-eyebrow ${cls}">${eyebrow}</span>
           <div class="evidence-quote">"${(ex.title || '').replace(/</g, '&lt;')}"</div>
           <div class="evidence-meta">
             <span class="evidence-source">${ex.source === 'reddit' ? 'Reddit' : 'StockTwits'}</span>
-            ${tagHtml}
+            ${ago ? `<span class="evidence-dot">·</span><span class="evidence-time">${ago}</span>` : ''}
           </div>
         </div>`;
       }).join('');
@@ -1413,12 +1521,13 @@ function renderDetailPane(s) {
         <span class="detail-narrative-label">Why</span>
         <div class="detail-narrative">${narrative}</div>
         <div class="detail-composition">
-          <div class="comp-stat"><div class="comp-stat-val bull">${s.bullish_count || 0}</div><div class="comp-stat-label">Bullish</div></div>
-          <div class="comp-stat"><div class="comp-stat-val neutral">${s.neutral_count || 0}</div><div class="comp-stat-label">Neutral</div></div>
-          <div class="comp-stat"><div class="comp-stat-val bear">${s.bearish_count || 0}</div><div class="comp-stat-label">Bearish</div></div>
+          <div class="comp-stat"><div class="comp-stat-val bull">${bull}${pctHtml(bull)}</div><div class="comp-stat-label">Bullish</div></div>
+          <div class="comp-stat"><div class="comp-stat-val neutral">${neu}${pctHtml(neu)}</div><div class="comp-stat-label">Neutral</div></div>
+          <div class="comp-stat"><div class="comp-stat-val bear">${bear}${pctHtml(bear)}</div><div class="comp-stat-label">Bearish</div></div>
         </div>
         ${divergenceHtml}
         ${contextHtml}
+        ${confidenceHtml}
         <div class="detail-actions">
           <button class="detail-btn" type="button" onclick="openChartModal('${s.ticker}')">View full chart →</button>
         </div>
