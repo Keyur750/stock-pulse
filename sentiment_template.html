@@ -121,7 +121,6 @@
   .hero-panel { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; }
   .hero-panel-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-faint); font-weight: 700; margin-bottom: 14px; display: block; }
 
-  .hero-sentiment-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; }
   .hero-sentiment-label { font-size: 23px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.1; transition: opacity .2s ease; }
   .hero-sentiment-label.up { color: var(--bull); }
   .hero-sentiment-label.down { color: var(--bear); }
@@ -154,10 +153,20 @@
   .ai-insight-stat { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint); }
   .ai-insight-stat strong { color: var(--text-secondary); font-weight: 700; }
 
-  .hero-trend-wrap { display: flex; flex-direction: column; align-items: center; gap: 7px; flex-shrink: 0; }
-  .hero-trend { width: 128px; height: 54px; }
-  .hero-trend-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.06em; color: var(--text-faint); text-transform: uppercase; }
-  @media (max-width: 460px) { .hero-sentiment-row { flex-direction: column; align-items: flex-start; } .hero-trend-wrap { width: 100%; margin-top: 10px; } .hero-trend { width: 100%; } }
+  /* Trend sits full-width below the score, not squeezed into leftover
+     side space — and it's a real button: the whole chart area is the
+     click target that opens the detail view, with its own hover state
+     and keyboard support (not just a decorative image). */
+  .hero-trend-wrap {
+    display: flex; flex-direction: column; gap: 6px; margin: 16px -10px -4px; padding: 10px;
+    border-radius: var(--radius-sm); cursor: pointer; transition: background-color .12s ease;
+  }
+  .hero-trend-wrap:hover, .hero-trend-wrap:focus-visible { background: var(--surface-2); }
+  .hero-trend-wrap:focus-visible { outline: 1px solid var(--accent-border); outline-offset: -1px; }
+  .hero-trend { width: 100%; height: 68px; }
+  .hero-trend-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.06em; color: var(--text-faint); text-transform: uppercase; display: flex; align-items: center; gap: 5px; }
+  .hero-trend-label::after { content: '↗ expand'; opacity: 0; transition: opacity .12s ease; margin-left: auto; text-transform: none; }
+  .hero-trend-wrap:hover .hero-trend-label::after, .hero-trend-wrap:focus-visible .hero-trend-label::after { opacity: 0.7; }
 
   .breakdown-list { display: flex; flex-direction: column; gap: 11px; }
   .breakdown-row { display: grid; grid-template-columns: 68px 1fr 22px; align-items: center; gap: 10px; }
@@ -537,16 +546,14 @@
   <div class="hero-grid">
     <div class="hero-panel">
       <span class="hero-panel-label">Market Sentiment</span>
-      <div class="hero-sentiment-row">
-        <div>
-          <div class="hero-sentiment-label" id="hero-sentiment-label"></div>
-          <div class="hero-sentiment-meta" id="hero-sentiment-meta"></div>
-          <div class="hero-sentiment-delta" id="hero-sentiment-delta"></div>
-        </div>
-        <div class="hero-trend-wrap">
-          <div class="hero-trend" id="hero-trend"></div>
-          <span class="hero-trend-label" id="hero-trend-label"></span>
-        </div>
+      <div class="hero-sentiment-main">
+        <div class="hero-sentiment-label" id="hero-sentiment-label"></div>
+        <div class="hero-sentiment-meta" id="hero-sentiment-meta"></div>
+        <div class="hero-sentiment-delta" id="hero-sentiment-delta"></div>
+      </div>
+      <div class="hero-trend-wrap" id="hero-trend-wrap" role="button" tabindex="0" title="View full trend">
+        <div class="hero-trend" id="hero-trend"></div>
+        <span class="hero-trend-label" id="hero-trend-label"></span>
       </div>
     </div>
     <div class="hero-panel">
@@ -682,6 +689,22 @@
       <p class="cm-ai-disclaimer">AI-generated synthesis of fundamentals, sentiment, and news — not financial advice.</p>
     </div>
     <div class="cm-ai-empty" id="cm-ai-empty" style="display:none;">AI analysis isn't run for every ticker yet — currently limited to a small flagship set while the model is being refined.</div>
+  </div>
+</div>
+
+<div class="chart-modal-backdrop" id="trend-modal">
+  <div class="chart-modal-card" style="max-width:660px;">
+    <button class="chart-modal-close" id="trend-modal-close" aria-label="Close">&times;</button>
+    <div class="chart-modal-header">
+      <div>
+        <div class="chart-modal-sym">Market Sentiment Trend</div>
+        <div class="chart-modal-meta" id="trend-modal-meta"></div>
+      </div>
+    </div>
+    <div class="chart-modal-chart" id="trend-modal-chart"></div>
+    <div class="chart-modal-footer">
+      <span>Fixed 0-100 scale — a flat line means genuinely flat sentiment, not a zoomed-in view.</span>
+    </div>
   </div>
 </div>
 
@@ -991,6 +1014,140 @@ function attachChartHover() {
   });
 }
 
+// --- Market Sentiment trend detail modal — the hero sparkline's "open
+// this and look" view. Fixed 0-100 y-axis on purpose: the small inline
+// sparkline auto-scales to its own min/max (fine for "what's the shape"
+// at a glance), but a detail view claiming to show real values must use
+// the real fixed scale the score actually lives on, or a genuinely flat
+// week could get rendered as a dramatic-looking swing. ---
+let trendChartMeta = null;
+
+function buildTrendDetailChart(dates, vals, breakdownByDate) {
+  const width = 600, height = 260;
+  const padL = 34, padR = 16, padT = 16, padB = 26;
+  const plotW = width - padL - padR, plotH = height - padT - padB;
+  const n = vals.length;
+  const stepX = n > 1 ? plotW / (n - 1) : 0;
+  const xAt = i => padL + i * stepX;
+  const yAt = v => padT + plotH - (Math.max(0, Math.min(100, v)) / 100) * plotH;
+  const pts = vals.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
+  const areaPts = `${xAt(0).toFixed(1)},${(padT + plotH).toFixed(1)} ${pts} ${xAt(n - 1).toFixed(1)},${(padT + plotH).toFixed(1)}`;
+  const color = 'var(--accent)';
+
+  const gridSvg = [0, 25, 50, 75, 100].map(v => {
+    const y = yAt(v);
+    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + plotW}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>` +
+           `<text x="${padL - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end" class="chart-axis-label">${v}</text>`;
+  }).join('');
+
+  const dateLabel = s => s.length > 10 ? s.slice(5, 10) : s.slice(5);
+  const dateSvg = n > 1
+    ? `<text x="${xAt(0)}" y="${height - 6}" text-anchor="start" class="chart-date-label">${dateLabel(dates[0])}</text>` +
+      `<text x="${xAt(n - 1)}" y="${height - 6}" text-anchor="end" class="chart-date-label">${dateLabel(dates[n - 1])}</text>`
+    : '';
+
+  const svg = `<svg id="tm-svg" width="100%" viewBox="0 0 ${width} ${height}" style="display:block;">
+      ${gridSvg}
+      <polygon points="${areaPts}" style="fill:${color}" opacity="0.12"/>
+      <polyline points="${pts}" fill="none" style="stroke:${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dateSvg}
+      <line id="tm-crosshair" x1="0" y1="${padT}" x2="0" y2="${padT + plotH}" stroke="var(--text-faint)" stroke-width="1" style="display:none;"/>
+      <circle id="tm-dot" r="4" style="display:none;fill:${color}"/>
+    </svg>
+    <div class="chart-tooltip" id="tm-tooltip"></div>`;
+
+  return { svg, meta: { width, height, padL, plotW, n, xAt, yAt, vals, dates, breakdownByDate } };
+}
+
+function attachTrendChartHover() {
+  const svg = document.getElementById('tm-svg');
+  const crosshair = document.getElementById('tm-crosshair');
+  const dot = document.getElementById('tm-dot');
+  const tooltip = document.getElementById('tm-tooltip');
+  if (!svg || !trendChartMeta) return;
+
+  svg.addEventListener('mousemove', (e) => {
+    const rect = svg.getBoundingClientRect();
+    if (!rect.width) return;
+    const scaleX = trendChartMeta.width / rect.width;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const step = trendChartMeta.n > 1 ? trendChartMeta.plotW / (trendChartMeta.n - 1) : 1;
+    let idx = Math.round((mx - trendChartMeta.padL) / step);
+    idx = Math.max(0, Math.min(trendChartMeta.n - 1, idx));
+    const x = trendChartMeta.xAt(idx);
+    const y = trendChartMeta.yAt(trendChartMeta.vals[idx]);
+
+    crosshair.setAttribute('x1', x); crosshair.setAttribute('x2', x);
+    crosshair.style.display = 'block';
+    dot.setAttribute('cx', x); dot.setAttribute('cy', y);
+    dot.style.display = 'block';
+
+    const sx = rect.width / trendChartMeta.width, sy = rect.height / trendChartMeta.height;
+    const date = trendChartMeta.dates[idx];
+    const b = trendChartMeta.breakdownByDate[date];
+    const bd = b ? ` · ${b.bull} bullish / ${b.neutral} neutral / ${b.bear} bearish` : '';
+    tooltip.textContent = `${date} · ${trendChartMeta.vals[idx].toFixed(0)}/100${bd}`;
+    tooltip.style.left = (x * sx) + 'px';
+    tooltip.style.top = Math.max(0, y * sy - 32) + 'px';
+    tooltip.style.opacity = '1';
+  });
+  svg.addEventListener('mouseleave', () => {
+    crosshair.style.display = 'none';
+    dot.style.display = 'none';
+    tooltip.style.opacity = '0';
+  });
+}
+
+function openTrendModal() {
+  const dateSet = new Set();
+  securities.forEach(s => s.observations.forEach(o => dateSet.add(o.date)));
+  const dates = [...dateSet].sort();
+  const breakdownByDate = {};
+  const rawVals = dates.map(date => {
+    const dayVals = [];
+    const counts = { bull: 0, neutral: 0, bear: 0 };
+    securities.forEach(s => {
+      const obs = s.observations.find(o => o.date === date);
+      if (obs) {
+        dayVals.push(normalizeScore(obs.avg_sentiment));
+        counts[breadthBucket(labelForScore(obs.avg_sentiment))]++;
+      }
+    });
+    breakdownByDate[date] = counts;
+    return dayVals.length ? dayVals.reduce((a, b) => a + b, 0) / dayVals.length : null;
+  });
+  const filteredDates = dates.filter((_, i) => rawVals[i] !== null);
+  const filteredVals = rawVals.filter(v => v !== null);
+
+  const chartEl = document.getElementById('trend-modal-chart');
+  if (filteredVals.length < 2) {
+    chartEl.innerHTML = `<div class="chart-empty">Not enough history yet to chart a trend — check back after a few more daily updates.</div>`;
+    trendChartMeta = null;
+  } else {
+    const built = buildTrendDetailChart(filteredDates, filteredVals, breakdownByDate);
+    chartEl.innerHTML = built.svg;
+    trendChartMeta = built.meta;
+    attachTrendChartHover();
+  }
+
+  const covered = securities.filter(s => s.score !== null).length;
+  document.getElementById('trend-modal-meta').textContent =
+    `Daily average across all ${covered} covered securities · ${filteredVals.length} observation${filteredVals.length === 1 ? '' : 's'} recorded`;
+
+  document.getElementById('trend-modal').style.display = 'flex';
+  document.body.classList.add('modal-open');
+}
+function closeTrendModal() {
+  document.getElementById('trend-modal').style.display = 'none';
+  document.body.classList.remove('modal-open');
+}
+document.getElementById('trend-modal-close').addEventListener('click', closeTrendModal);
+document.getElementById('trend-modal').addEventListener('click', (e) => { if (e.target.id === 'trend-modal') closeTrendModal(); });
+document.getElementById('hero-trend-wrap').addEventListener('click', openTrendModal);
+document.getElementById('hero-trend-wrap').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTrendModal(); }
+});
+
 function fillList(id, items) {
   const el = document.getElementById(id);
   el.innerHTML = (items || []).map(t => `<li>${t}</li>`).join('') || '<li style="color:var(--text-faint)">None flagged</li>';
@@ -1108,7 +1265,7 @@ function closeChartModal() {
 }
 document.getElementById('chart-modal-close').addEventListener('click', closeChartModal);
 document.getElementById('chart-modal').addEventListener('click', (e) => { if (e.target.id === 'chart-modal') closeChartModal(); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeChartModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeChartModal(); closeTrendModal(); } });
 
 // --- Header: methodology popover + refresh ---
 const methodologyToggle = document.getElementById('methodology-toggle');
