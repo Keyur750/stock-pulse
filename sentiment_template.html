@@ -127,24 +127,37 @@
   .hero-sentiment-label.down { color: var(--bear); }
   .hero-sentiment-label.flat { color: var(--text-secondary); }
   .hero-sentiment-meta { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-faint); margin-top: 7px; }
-  .hero-sentiment-delta { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 700; margin-top: 10px; display: inline-block; }
+  .hero-sentiment-delta { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; margin-top: 12px; display: inline-flex; align-items: center; gap: 5px; }
+  .hero-sentiment-delta .delta-arrow { font-size: 9px; }
   .hero-sentiment-delta.up { color: var(--bull); }
   .hero-sentiment-delta.down { color: var(--bear); }
   .hero-sentiment-delta.flat { color: var(--text-faint); }
-  .hero-sentiment-extra { font-size: 11px; color: var(--text-faint); margin-top: 8px; }
 
   /* AI Insight — a slim, quiet banner, not a decorative card. The icon +
      eyebrow signal "this is a product feature," the accent rule on the
-     left is the only color accent, everything else is quiet typography. */
+     left is the only color accent, everything else is quiet typography.
+     The stats row is the real math behind the AI sentence — a visible
+     divider marks it as "evidence," distinct from the generated prose
+     above it. */
   .ai-insight-banner {
     display: flex; align-items: flex-start; gap: 11px; margin-top: 18px; padding: 13px 16px;
     border-left: 2px solid var(--accent); background: var(--accent-dim); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
     color: var(--accent);
   }
+  .ai-insight-body { flex: 1; min-width: 0; }
   .ai-insight-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 4px; }
   .ai-insight-text { font-size: 13px; color: var(--text-primary); line-height: 1.55; margin: 0; max-width: 780px; }
-  .hero-trend { width: 128px; height: 54px; flex-shrink: 0; }
-  @media (max-width: 460px) { .hero-sentiment-row { flex-direction: column; align-items: flex-start; } .hero-trend { width: 100%; margin-top: 10px; } }
+  .insight-ticker { font-weight: 700; }
+  .insight-ticker.up { color: var(--bull); }
+  .insight-ticker.down { color: var(--bear); }
+  .ai-insight-stats { display: none; flex-wrap: wrap; gap: 6px 18px; margin-top: 11px; padding-top: 11px; border-top: 1px solid var(--accent-border); }
+  .ai-insight-stat { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint); }
+  .ai-insight-stat strong { color: var(--text-secondary); font-weight: 700; }
+
+  .hero-trend-wrap { display: flex; flex-direction: column; align-items: center; gap: 7px; flex-shrink: 0; }
+  .hero-trend { width: 128px; height: 54px; }
+  .hero-trend-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.06em; color: var(--text-faint); text-transform: uppercase; }
+  @media (max-width: 460px) { .hero-sentiment-row { flex-direction: column; align-items: flex-start; } .hero-trend-wrap { width: 100%; margin-top: 10px; } .hero-trend { width: 100%; } }
 
   .breakdown-list { display: flex; flex-direction: column; gap: 11px; }
   .breakdown-row { display: grid; grid-template-columns: 68px 1fr 22px; align-items: center; gap: 10px; }
@@ -514,9 +527,10 @@
 
   <div class="ai-insight-banner" id="ai-insight-banner" style="display:none;">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9L12 3z" fill="currentColor"/></svg>
-    <div>
+    <div class="ai-insight-body">
       <span class="ai-insight-eyebrow">AI Insight</span>
       <p class="ai-insight-text" id="ai-insight-text"></p>
+      <div class="ai-insight-stats" id="ai-insight-stats"></div>
     </div>
   </div>
 
@@ -528,9 +542,11 @@
           <div class="hero-sentiment-label" id="hero-sentiment-label"></div>
           <div class="hero-sentiment-meta" id="hero-sentiment-meta"></div>
           <div class="hero-sentiment-delta" id="hero-sentiment-delta"></div>
-          <div class="hero-sentiment-extra" id="hero-sentiment-extra"></div>
         </div>
-        <div class="hero-trend" id="hero-trend"></div>
+        <div class="hero-trend-wrap">
+          <div class="hero-trend" id="hero-trend"></div>
+          <span class="hero-trend-label" id="hero-trend-label"></span>
+        </div>
       </div>
     </div>
     <div class="hero-panel">
@@ -720,6 +736,14 @@ const MAX_SCORE_MAGNITUDE = 0.6;
 const BULLISH_THRESHOLD = 0.30, LEANING_BULLISH_THRESHOLD = 0.10;
 const BEARISH_THRESHOLD = -0.30, LEANING_BEARISH_THRESHOLD = -0.10;
 
+// A 1-day move on the 0-100 sentiment score worth calling "significant" —
+// grounded in the real observed distribution, not a guess: on a recent
+// day the 15 flagship tickers split cleanly into a cluster under 2 points
+// and a cluster above 7, with nothing in between 4.5 and 7.3. 5 sits in
+// that real gap. Used consistently everywhere a delta needs an up/down/
+// flat classification, not just a raw number.
+const SIGNIFICANT_SCORE_DELTA = 5;
+
 function normalizeScore(avgSentiment) {
   const n = (avgSentiment / MAX_SCORE_MAGNITUDE + 1) * 50;
   return Math.max(0, Math.min(100, n));
@@ -758,6 +782,34 @@ function timeAgo(iso) {
   const days = Math.round(hrs / 24);
   return `${days} d ago`;
 }
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// Bolds real ticker symbols inside the AI-generated insight sentence and
+// color-codes each by that security's own real scoreDelta — not a guess,
+// just surfacing data already on the page so the sentence's claims ("led
+// by NBIS", "declines in META") are visibly backed by real numbers, not
+// just prose to take on faith.
+function highlightTickers(text, securitiesList) {
+  const escaped = escapeHtml(text);
+  const byTicker = {};
+  securitiesList.forEach(s => { byTicker[s.ticker] = s; });
+  const tickers = Object.keys(byTicker).sort((a, b) => b.length - a.length);
+  if (!tickers.length) return escaped;
+  const escapedForRegex = tickers.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pattern = new RegExp(`\\b(${escapedForRegex.join('|')})\\b`, 'g');
+  return escaped.replace(pattern, (match) => {
+    const s = byTicker[match];
+    const d = s ? s.scoreDelta : null;
+    const cls = (d !== null && d !== undefined) ? (d > SIGNIFICANT_SCORE_DELTA ? 'up' : d < -SIGNIFICANT_SCORE_DELTA ? 'down' : '') : '';
+    return `<strong class="insight-ticker ${cls}">${match}</strong>`;
+  });
+}
+
 function sourceTitle(t) {
   const sc = t.source_counts || {};
   const parts = [];
@@ -1116,7 +1168,6 @@ function renderHero() {
     document.getElementById('hero-sentiment-label').textContent = 'No data yet';
     document.getElementById('hero-sentiment-meta').textContent = '';
     document.getElementById('breakdown-list').innerHTML = '<div class="empty-state" style="border:none;padding:4px 0;">No sentiment data available yet.</div>';
-    document.getElementById('hero-sentiment-extra').textContent = '';
     document.getElementById('ai-insight-banner').style.display = 'none';
   } else {
     const avgScore = withScore.reduce((sum, s) => sum + s.score, 0) / withScore.length;
@@ -1140,32 +1191,40 @@ function renderHero() {
       const deltaScore = normalizeScore(avgRaw) - normalizeScore(yesterdayAvg);
       const dcls = deltaScore > 0.5 ? 'up' : deltaScore < -0.5 ? 'down' : 'flat';
       const sign = deltaScore >= 0 ? '+' : '';
-      deltaEl.textContent = `${sign}${deltaScore.toFixed(1)} vs yesterday`;
+      const arrow = dcls === 'up' ? '▲' : dcls === 'down' ? '▼' : '–';
+      deltaEl.innerHTML = `<span class="delta-arrow">${arrow}</span>${sign}${deltaScore.toFixed(1)} vs yesterday`;
       deltaEl.className = 'hero-sentiment-delta ' + dcls;
     } else {
       deltaEl.textContent = '';
     }
 
-    // Two extra real stats: average 1D sentiment change across securities
-    // that have one, and how many crossed the same "significant" threshold
-    // already used for the per-row Δ1D up/down coloring (0.3).
-    const withDelta = withScore.filter(s => s.scoreDelta !== null && s.scoreDelta !== undefined);
-    const extraEl = document.getElementById('hero-sentiment-extra');
-    if (withDelta.length) {
-      const avgDelta = withDelta.reduce((sum, s) => sum + s.scoreDelta, 0) / withDelta.length;
-      const shifts = withDelta.filter(s => Math.abs(s.scoreDelta) > 0.3).length;
-      const sign = avgDelta >= 0 ? '+' : '';
-      extraEl.textContent = `${sign}${avgDelta.toFixed(1)} avg 1D change · ${shifts} significant shift${shifts === 1 ? '' : 's'}`;
-    } else {
-      extraEl.textContent = '';
-    }
-
     // AI Insight — a real per-day LLM summary of the crowd sentiment
     // picture (see sentiment.py build_market_insight); shown only when the
-    // backend actually produced one, never templated filler.
+    // backend actually produced one, never templated filler. The two
+    // stats underneath are the real numbers behind it — dispersion/churn
+    // info that belongs here as "here's the math," not stacked as a
+    // second, competing change figure next to "vs yesterday" (that read
+    // as a contradiction: the aggregate can sit flat while individual
+    // securities move a lot in offsetting directions — that's a real,
+    // interesting fact, not a bug, but it needs framing to read as one).
     const insightBanner = document.getElementById('ai-insight-banner');
+    const withDelta = withScore.filter(s => s.scoreDelta !== null && s.scoreDelta !== undefined);
     if (DATA.market_insight) {
-      document.getElementById('ai-insight-text').textContent = DATA.market_insight;
+      document.getElementById('ai-insight-text').innerHTML = highlightTickers(DATA.market_insight, withScore);
+      const statsEl = document.getElementById('ai-insight-stats');
+      if (withDelta.length) {
+        const avgDelta = withDelta.reduce((sum, s) => sum + s.scoreDelta, 0) / withDelta.length;
+        const shifts = withDelta.filter(s => Math.abs(s.scoreDelta) > SIGNIFICANT_SCORE_DELTA).length;
+        const sign = avgDelta >= 0 ? '+' : '';
+        statsEl.innerHTML = `
+          <span class="ai-insight-stat"><strong>${sign}${avgDelta.toFixed(1)}</strong> avg 1D change</span>
+          <span class="ai-insight-stat"><strong>${shifts} of ${withDelta.length}</strong> moved ${SIGNIFICANT_SCORE_DELTA}+ points today</span>
+        `;
+        statsEl.style.display = 'flex';
+      } else {
+        statsEl.innerHTML = '';
+        statsEl.style.display = 'none';
+      }
       insightBanner.style.display = 'flex';
     } else {
       insightBanner.style.display = 'none';
@@ -1183,6 +1242,7 @@ function renderHero() {
       return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
     }).filter(v => v !== null);
     document.getElementById('hero-trend').innerHTML = trendSparkSvg(trendVals, 128, 54);
+    document.getElementById('hero-trend-label').textContent = dates.length > 1 ? `${dates.length}-DAY TREND` : 'TREND';
 
     const counts = { bull: 0, neutral: 0, bear: 0 };
     withScore.forEach(s => counts[breadthBucket(s.label)]++);
@@ -1224,8 +1284,13 @@ function trendSparkSvg(vals, width, height) {
   const stepX = width / (vals.length - 1);
   const pts = vals.map((v, i) => `${(i * stepX).toFixed(1)},${(height - ((v - min) / range) * height).toFixed(1)}`).join(' ');
   const areaPts = `0,${height} ${pts} ${width},${height}`;
-  const up = vals[vals.length - 1] >= vals[0];
-  const color = up ? 'var(--bull)' : 'var(--bear)';
+  // Neutral accent, not bull/bear: this line shows multi-day shape, and
+  // the explicit delta line right above it already owns the up/down call
+  // with its own arrow + color — coloring the line too just risks the two
+  // disagreeing at a glance (a line can dip over 6 days while still being
+  // net "+0.0 vs yesterday", which is a real, correct, unremarkable state,
+  // not a contradiction worth flagging in red).
+  const color = 'var(--accent)';
   const lastX = ((vals.length - 1) * stepX).toFixed(1);
   const lastY = (height - ((vals[vals.length - 1] - min) / range) * height).toFixed(1);
   const gid = 'heroTrendFill';
@@ -1382,7 +1447,7 @@ function renderTable() {
 
   tbody.innerHTML = rows.map(s => {
     const hasData = s.score !== null;
-    const deltaCls = !hasData || s.scoreDelta === null ? 'flat' : s.scoreDelta > 0.3 ? 'up' : s.scoreDelta < -0.3 ? 'down' : 'flat';
+    const deltaCls = !hasData || s.scoreDelta === null ? 'flat' : s.scoreDelta > SIGNIFICANT_SCORE_DELTA ? 'up' : s.scoreDelta < -SIGNIFICANT_SCORE_DELTA ? 'down' : 'flat';
     const deltaText = !hasData || s.scoreDelta === null ? '—' : `${s.scoreDelta >= 0 ? '+' : ''}${s.scoreDelta.toFixed(1)}`;
     const bullPct = hasData ? (s.bullish_pct || 0) : 0;
     const bearPct = hasData ? (s.bearish_pct || 0) : 0;
