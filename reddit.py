@@ -16,12 +16,21 @@ required.
 
 import os
 import re
+from datetime import datetime, timezone
 
 _CASHTAG_RE = re.compile(r"\$([A-Za-z]{1,5})\b")
 _BARE_TICKER_RE = re.compile(r"\b([A-Z]{1,5})\b")
 
 _client = None
 _client_checked = False
+
+
+def _iso(unix_ts):
+    """Matches stocktwits.py's created_at format so the two sources can
+    be sorted together by true recency."""
+    if unix_ts is None:
+        return None
+    return datetime.fromtimestamp(unix_ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _get_client():
@@ -111,6 +120,7 @@ def collect_reddit(known_symbols: set, watchlist: set, subreddits: list,
                 "chatter_source": "reddit",
                 "score": post.score,
                 "id": post.id,
+                "created_at": _iso(post.created_utc),
             }
             for t in tickers:
                 result.setdefault(t, []).append(msg)
@@ -129,6 +139,7 @@ def collect_reddit(known_symbols: set, watchlist: set, subreddits: list,
                             "chatter_source": "reddit",
                             "score": getattr(c, "score", 0),
                             "id": c.id,
+                            "created_at": _iso(getattr(c, "created_utc", None)),
                         }
                         for t in watchlist_hits:
                             result.setdefault(t, []).append(cmsg)

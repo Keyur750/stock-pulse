@@ -7,6 +7,8 @@ sentiment than inferring it from raw text alone.
 """
 
 import time
+from datetime import datetime, timedelta, timezone
+
 import requests
 
 HEADERS = {
@@ -45,16 +47,30 @@ def fetch_trending_symbols(limit: int = 30):
     return [s["symbol"] for s in symbols if s.get("symbol")]
 
 
-def fetch_symbol_stream(symbol: str, limit: int = 30, page_sleep: float = 0.3):
-    """Returns list of recent messages for a ticker symbol. Each message
-    includes 'body' text and, when the author tagged it, 'entities.sentiment.basic'
-    ('Bullish' or 'Bearish'). StockTwits caps each request at 30 messages, so
-    for limits above that we page backwards using the `max` param (return
-    messages older than a given message id) until we hit the limit or run
-    out of history."""
+def _parse_created_at(msg):
+    ts = msg.get("created_at")
+    if not ts:
+        return None
+    try:
+        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def fetch_symbol_stream(symbol: str, max_age_hours: float = 24.0, hard_limit: int = 400,
+                         page_sleep: float = 0.3):
+    """Returns every message for a ticker from the last `max_age_hours` —
+    a real volume count, not a fixed sample. Pages backwards using the
+    `max` param (return messages older than a given message id) until a
+    message older than the window shows up, history runs out, or
+    `hard_limit` is hit (safety valve so one viral ticker can't blow up
+    the run). Some tickers will come back with 20 messages, others 400 —
+    that's the point; a flat cap was hiding real differences in chatter
+    volume behind an identical number for every actively-traded ticker."""
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
     messages = []
     max_id = None
-    while len(messages) < limit:
+    while len(messages) < hard_limit:
         url = f"{BASE}/streams/symbol/{symbol}.json"
         if max_id is not None:
             url += f"?max={max_id}"
@@ -64,27 +80,37 @@ def fetch_symbol_stream(symbol: str, limit: int = 30, page_sleep: float = 0.3):
         batch = data.get("messages", [])
         if not batch:
             break
-        messages.extend(batch)
-        if len(batch) < 30:
-            break  # fewer than a full page means no more history
+
+        ran_out_of_window = False
+        for m in batch:
+            created = _parse_created_at(m)
+            if created is not None and created < cutoff:
+                ran_out_of_window = True
+                break
+            messages.append(m)
+
+        if ran_out_of_window or len(batch) < 30:
+            break  # crossed the time window, or fewer than a full page means no more history
         max_id = batch[-1]["id"] - 1
         time.sleep(page_sleep)
-    return messages[:limit]
+    return messages[:hard_limit]
 
 
-def collect_all(watchlist: list, trending_limit: int = 30,
-                 messages_per_symbol: int = 30, sleep_between: float = 0.6):
+def collect_all(watchlist: list, trending_limit: int = 0,
+                 max_age_hours: float = 24.0, hard_limit: int = 400,
+                 sleep_between: float = 0.6):
     """Fetch trending symbols + guarantee coverage of the watchlist, then
-    pull message streams for the union of both. Returns
-    {symbol: [message_dicts]}."""
-    trending = fetch_trending_symbols(trending_limit)
-    time.sleep(sleep_between)
+    pull every message from the last `max_age_hours` for the union of
+    both. Returns {symbol: [message_dicts]}."""
+    trending = fetch_trending_symbols(trending_limit) if trending_limit else []
+    if trending:
+        time.sleep(sleep_between)
 
     all_symbols = list(dict.fromkeys(trending + list(watchlist)))  # dedupe, keep order
 
     result = {}
     for sym in all_symbols:
-        messages = fetch_symbol_stream(sym, messages_per_symbol)
+        messages = fetch_symbol_stream(sym, max_age_hours=max_age_hours, hard_limit=hard_limit)
         if messages:
             result[sym] = messages
         time.sleep(sleep_between)

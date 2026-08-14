@@ -5,7 +5,10 @@
   ],
 
   "trending_limit": 0,
-  "messages_per_symbol": 60,
+  "mentions_window_hours": 24.0,
+  "mentions_hard_ceiling": 400,
+  "sentiment_sample_size": 60,
+  "sentiment_call_sleep_seconds": 3.0,
 
   "flagship_tickers": [
     "META", "AMZN", "NOW", "NVDA", "RDDT", "NBIS", "SOFI", "IONQ", "PANW", "TEAM",

@@ -254,8 +254,10 @@ inside that chart, for anyone who wants the full real-time view.
 ## How it works under the hood
 
 - **StockTwits**: public, unauthenticated read API — trending symbols plus
-  a message stream per watchlist ticker. No login required. Paginated up
-  to `messages_per_symbol` (default 60) instead of a flat 30.
+  a message stream per watchlist ticker. No login required. Paginated by
+  time window (`mentions_window_hours`, default 24h), not a fixed message
+  count — so a quiet ticker and a viral one report genuinely different
+  mention counts instead of both hitting the same cap.
 - **Reddit** (`reddit.py`): official read-only API (`praw`) — hot posts from
   `reddit_subreddits` in `config.json` (default: r/wallstreetbets,
   r/stocks, r/investing, r/StockMarket), plus top-level comments on posts
@@ -281,10 +283,15 @@ inside that chart, for anyone who wants the full real-time view.
   same VADER pipeline as chatter, and matched to your flagship tickers by
   symbol mention — giving a media-sentiment read distinct from retail
   sentiment, which is what the media-divergence signal compares.
-- **Sentiment**: StockTwits users' own Bullish/Bearish tags are weighted
-  heavily; untagged posts (all of Reddit, plus untagged StockTwits posts)
-  fall back to VADER (offline lexicon-based sentiment), extended with
-  retail trading slang.
+- **Sentiment** (`sentiment.py`): StockTwits users' own Bullish/Bearish
+  tags are ground truth and weighted 2x in each ticker's aggregate score.
+  Everything else (untagged StockTwits posts, all of Reddit) is read by
+  the same Gemini model used elsewhere in the pipeline, batched one call
+  per ticker — an LLM reads sarcasm, negation, and financial slang in
+  context, which a keyword-matching tool structurally can't. VADER
+  (offline lexicon-based sentiment, extended with retail slang) is kept
+  only as the fallback when no API key is set or a call fails, so the
+  pipeline never breaks.
 - **Prices**: `yfinance` pulls current price, day change, and 3-month
   history for every flagship ticker.
 - **Wall Street pillar** (`wallstreet.py`): analyst consensus rating,

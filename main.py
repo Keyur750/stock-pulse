@@ -21,7 +21,7 @@ from apewisdom import fetch_mentions as fetch_reddit_mentions
 from news_fetcher import fetch_news, fetch_ticker_news
 from news_ranker import rank_news
 from sec_filings import fetch_recent_8ks
-from sentiment import score_message, score_text, label_for_score, classify_message
+from sentiment import classify_and_score_messages, weighted_average, score_text, label_for_score
 from reddit import extract_tickers
 from market_data import fetch_quotes
 from fundamentals import fetch_fundamentals, score_fundamentals
@@ -128,25 +128,44 @@ def prev_value(prev_snapshot, ticker, field, default=None):
     return default
 
 
+def _sort_key(m):
+    # Messages without a parseable timestamp sort as oldest, not newest,
+    # so they never crowd out real recent chatter from the sample.
+    return m.get("created_at") or ""
+
+
 def analyze(symbol_messages: dict, trending_symbols: set, watchlist: set,
-            prev_snapshot: Optional[dict]):
+            prev_snapshot: Optional[dict], sentiment_sample_size: int = 60,
+            sentiment_call_sleep_seconds: float = 3.0):
     """Aggregate mention counts, bull/bear breakdown, and sentiment per
-    ticker, with day-over-day sentiment shift where history allows."""
+    ticker, with day-over-day sentiment shift where history allows.
+
+    `mentions` is the true chatter volume — every message from the
+    configured time window, StockTwits + Reddit combined, uncapped except
+    for stocktwits.py's own safety ceiling. Sentiment scoring runs on a
+    bounded, most-recent sample of that (`sentiment_sample_size`) rather
+    than the full set, since scoring is now an LLM call — bounding it
+    keeps a single viral ticker from blowing up run time/cost while still
+    reporting its real volume honestly."""
     results = []
     for symbol, messages in symbol_messages.items():
         if not messages:
             continue
 
-        scores = [score_message(m) for m in messages]
-        avg = sum(scores) / len(scores)
+        total = len(messages)
+        sample = sorted(messages, key=_sort_key, reverse=True)[:sentiment_sample_size]
 
-        classes = [classify_message(m) for m in messages]
-        bullish_count = classes.count("bullish")
-        bearish_count = classes.count("bearish")
-        neutral_count = classes.count("neutral")
-        total = len(classes)
-        bullish_pct = round(100 * bullish_count / total) if total else 0
-        bearish_pct = round(100 * bearish_count / total) if total else 0
+        scored = classify_and_score_messages(symbol, sample)
+        avg = weighted_average(scored)
+        if any(m.get("_weight") == 1.0 for m in scored):  # an LLM call was made for this ticker
+            time.sleep(sentiment_call_sleep_seconds)
+
+        bullish_count = sum(1 for m in scored if m["_sentiment"] == "bullish")
+        bearish_count = sum(1 for m in scored if m["_sentiment"] == "bearish")
+        neutral_count = sum(1 for m in scored if m["_sentiment"] == "neutral")
+        sample_size = len(scored)
+        bullish_pct = round(100 * bullish_count / sample_size) if sample_size else 0
+        bearish_pct = round(100 * bearish_count / sample_size) if sample_size else 0
 
         examples = []
         for m in messages[:3]:
@@ -703,8 +722,9 @@ def main():
     print("Fetching StockTwits trending + watchlist activity...")
     symbol_messages, trending_symbols = collect_all(
         watchlist,
-        trending_limit=config.get("trending_limit", 30),
-        messages_per_symbol=config.get("messages_per_symbol", 30),
+        trending_limit=config.get("trending_limit", 0),
+        max_age_hours=config.get("mentions_window_hours", 24.0),
+        hard_limit=config.get("mentions_hard_ceiling", 400),
     )
     st_messages = sum(len(v) for v in symbol_messages.values())
     print(f"  collected {st_messages} messages across {len(symbol_messages)} tickers")
@@ -728,7 +748,11 @@ def main():
     prev_snapshot = history[-1]["tickers"] if history else None
 
     print("Scoring sentiment per ticker...")
-    ticker_results = analyze(symbol_messages, trending_symbols, watchlist, prev_snapshot)
+    ticker_results = analyze(
+        symbol_messages, trending_symbols, watchlist, prev_snapshot,
+        sentiment_sample_size=config.get("sentiment_sample_size", 60),
+        sentiment_call_sleep_seconds=config.get("sentiment_call_sleep_seconds", 3.0),
+    )
 
     # Union with the full watchlist, not just tickers with chatter today —
     # a watchlist ticker should still get a price/chart even on a quiet day.
