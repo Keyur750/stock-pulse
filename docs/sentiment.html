@@ -979,10 +979,13 @@ function formatAxisLabel(date, kind) {
 // Every real point is a candidate for 'time'/'day' (thinned by pixel
 // budget below); 'month'/'month-day'/'year' generate one candidate per
 // real calendar boundary crossed, each snapped to the closest actual
-// data point rather than assumed to exist exactly on the 1st.
+// data point rather than assumed to exist exactly on the 1st. Candidates
+// carry only the real `date` (and `slot` for month-day) — positioning
+// downstream is time-proportional, not index-based, so no array index
+// is needed here.
 function candidateAxisTicks(seriesDates, kind) {
   if (kind === 'time' || kind === 'day') {
-    return seriesDates.map((d, i) => ({ date: d, index: i }));
+    return seriesDates.map(d => ({ date: d }));
   }
   const first = seriesDates[0], last = seriesDates[seriesDates.length - 1];
   // `slot` identifies WHICH tick within a month a target represents (0 =
@@ -1010,62 +1013,77 @@ function candidateAxisTicks(seriesDates, kind) {
   const snapped = targets
     .filter(t => t.target <= last)
     .map(t => {
-      let idx = seriesDates.length - 1;
+      let snappedDate = seriesDates[seriesDates.length - 1];
       for (let i = 0; i < seriesDates.length; i++) {
-        if (seriesDates[i] >= t.target) { idx = i; break; }
+        if (seriesDates[i] >= t.target) { snappedDate = seriesDates[i]; break; }
       }
-      return { date: seriesDates[idx], index: idx, slot: t.slot };
+      return { date: snappedDate, slot: t.slot };
     });
-  // De-dupe by both the actual snapped calendar period (+ slot) and by
-  // the resulting real index: a target from before the very first real
-  // date (or two targets that end up snapping to the same real point)
-  // must not render two labels stacked at the same x position.
+  // A "year" tick is meant to mark a real Jan-1 boundary. When the chart's
+  // data window itself starts well into a year (e.g. a 5Y view whose
+  // start is "5 years ago from today" -- typically mid-year, not Jan 1),
+  // the leading candidate snaps forward to that arbitrary window edge
+  // rather than a real year boundary. Labeling it with the year anyway
+  // manufactures a tick that sits close in time to the FOLLOWING year's
+  // real Jan-1 tick (e.g. Aug 2021 next to Jan 2022), forcing the evenly-
+  // spaced selection below to drop the genuine boundary instead. Drop
+  // this misleading leading tick so the axis starts at the first real
+  // year boundary and every remaining tick is a genuine, evenly-spaced
+  // year-to-year gap.
+  if (kind === 'year' && snapped.length > 1) {
+    const lead = snapped[0];
+    const yearStart = new Date(lead.date.getFullYear(), 0, 1);
+    const daysIntoYear = (lead.date - yearStart) / 86400000;
+    if (daysIntoYear > 60) snapped.shift();
+  }
+  // De-dupe by the actual snapped calendar period (+ slot): a target
+  // from before the very first real date, or two targets that end up
+  // snapping to the same real point, must not render two labels stacked
+  // at the same x position. (thinAxisTicks separately de-dupes by exact
+  // timestamp too, catching anything left over.)
   const seenPeriods = new Set();
-  const seenIndex = new Set();
   return snapped.filter(s => {
     const key = kind === 'year'
       ? String(s.date.getFullYear())
       : `${s.date.getFullYear()}-${s.date.getMonth()}-${s.slot}`;
-    if (seenPeriods.has(key) || seenIndex.has(s.index)) return false;
+    if (seenPeriods.has(key)) return false;
     seenPeriods.add(key);
-    seenIndex.add(s.index);
     return true;
   });
 }
 
-// Evenly thins a candidate list down to maxTicks (keeping first/last),
-// so labels stay spaced out no matter how many real candidates exist.
-// Picks up to `maxTicks` candidates whose spacing is as even as
-// mathematically possible, by MAXIMIZING THE MINIMUM GAP between chosen
-// picks (binary search over the gap size + a greedy feasibility check —
-// the standard, provably-optimal approach for "choose K points from N
-// to spread them out evenly"). This replaced two weaker attempts: plain
-// array-order sampling (silently inherits unevenness when the real
-// candidates — month/year boundaries — aren't themselves evenly spaced
-// by index, e.g. a young ticker's first two yearly ticks landing only
-// ~3 months apart while later ones are a full year apart), and greedy
-// nearest-candidate-per-target matching (each target satisfied
-// independently, so consecutive picks can still cluster unevenly since
-// earlier choices aren't rebalanced against later ones). Maximizing the
-// minimum gap directly optimizes what actually matters: no two labels
-// too close together, spread as uniformly as the real data allows.
+// Picks up to `maxTicks` candidates whose spacing in REAL TIME is as
+// even as mathematically possible, by MAXIMIZING THE MINIMUM TIME GAP
+// between chosen picks (binary search over the gap size + a greedy
+// feasibility check — the standard, provably-optimal approach for
+// "choose K points from N to spread them out evenly"). Operates on real
+// timestamps, not array position: candidates for month/year kinds
+// aren't evenly spaced in time by construction (a young ticker's first
+// two yearly ticks can land only ~3 months apart while later ones are a
+// full year apart — real data, not a bug), so this is what makes the
+// final selection genuinely even instead of inheriting that unevenness.
 function thinAxisTicks(candidates, maxTicks) {
   const dedupe = list => {
     const seen = new Set();
-    return list.filter(c => (seen.has(c.index) ? false : (seen.add(c.index), true)));
+    return list.filter(c => {
+      const t = c.date.getTime();
+      if (seen.has(t)) return false;
+      seen.add(t);
+      return true;
+    });
   };
-  const uniq = dedupe(candidates).sort((a, b) => a.index - b.index);
+  const uniq = dedupe(candidates).sort((a, b) => a.date - b.date);
   if (uniq.length <= maxTicks || maxTicks <= 1) return uniq;
 
-  const indices = uniq.map(c => c.index);
+  const times = uniq.map(c => c.date.getTime());
   const countAtGap = (minGap) => {
-    let count = 1, last = indices[0];
-    for (let i = 1; i < indices.length; i++) {
-      if (indices[i] - last >= minGap) { count++; last = indices[i]; }
+    let count = 1, last = times[0];
+    for (let i = 1; i < times.length; i++) {
+      if (times[i] - last >= minGap) { count++; last = times[i]; }
     }
     return count;
   };
-  let lo = 0, hi = indices[indices.length - 1] - indices[0];
+  let lo = 0, hi = times[times.length - 1] - times[0];
   while (lo < hi) {
     const mid = Math.ceil((lo + hi + 1) / 2);
     if (countAtGap(mid) >= maxTicks) lo = mid; else hi = mid - 1;
@@ -1074,16 +1092,16 @@ function thinAxisTicks(candidates, maxTicks) {
 
   const picked = [uniq[0]];
   for (let i = 1; i < uniq.length && picked.length < maxTicks; i++) {
-    if (uniq[i].index - picked[picked.length - 1].index >= minGap) picked.push(uniq[i]);
+    if (uniq[i].date.getTime() - picked[picked.length - 1].date.getTime() >= minGap) picked.push(uniq[i]);
   }
   // Prefer showing the true last candidate (the range's real end date)
   // over whatever the greedy pass happened to land on last, as long as
   // swapping it in still respects the minimum gap from the pick before it.
   const lastCandidate = uniq[uniq.length - 1];
-  if (picked[picked.length - 1].index !== lastCandidate.index) {
+  if (picked[picked.length - 1].date.getTime() !== lastCandidate.date.getTime()) {
     if (picked.length < maxTicks) {
       picked.push(lastCandidate);
-    } else if (picked.length >= 2 && lastCandidate.index - picked[picked.length - 2].index >= minGap) {
+    } else if (picked.length >= 2 && lastCandidate.date.getTime() - picked[picked.length - 2].date.getTime() >= minGap) {
       picked[picked.length - 1] = lastCandidate;
     }
   }
@@ -1104,22 +1122,24 @@ function buildAxisTicksForCount(dates, timeframe, tickCount) {
   const kind = TIMEFRAME_AXIS_KIND[timeframe] || 'day';
   const seriesDates = dates.map(parseSeriesDate);
   const ticks = thinAxisTicks(candidateAxisTicks(seriesDates, kind), tickCount);
-  const labeled = ticks.map(t => ({ index: t.index, date: t.date, label: formatAxisLabel(t.date, kind) }));
+  const labeled = ticks.map(t => ({ date: t.date, label: formatAxisLabel(t.date, kind) }));
 
   // A range spanning just over 12 months (e.g. Aug 2025 -> Aug 2026) has
   // the same month name at both ends — exactly the "start and end look
-  // like the same date" confusion to avoid. Only month-only labels can
-  // collide this way (day/time/year labels are already unambiguous), so
-  // when a month name repeats in the final tick set, add a year to just
-  // those repeated instances rather than cluttering every label.
+  // like the same date" confusion to avoid. Standard financial-chart
+  // convention (matching Yahoo/Google Finance): the first tick whose
+  // calendar year differs from the tick before it shows the bare year
+  // instead of a month name — one label swaps, not every label getting
+  // a suffix. Only month-only labels can collide this way (day/time/
+  // year labels are already unambiguous).
   if (kind === 'month' || kind === 'month-day') {
-    const counts = {};
-    labeled.forEach(t => { counts[t.label] = (counts[t.label] || 0) + 1; });
-    labeled.forEach(t => {
-      if (counts[t.label] > 1) t.label += ` '${String(t.date.getFullYear()).slice(2)}`;
-    });
+    for (let i = 1; i < labeled.length; i++) {
+      if (labeled[i].date.getFullYear() !== labeled[i - 1].date.getFullYear()) {
+        labeled[i].label = String(labeled[i].date.getFullYear());
+      }
+    }
   }
-  return labeled.map(t => ({ index: t.index, label: t.label }));
+  return labeled;
 }
 
 function axisTickBudget(timeframe, plotWidthPx) {
@@ -1166,11 +1186,21 @@ function buildTimeframeChart(series, timeframe, color, tickCount) {
   const closes = series.map(r => r.close);
   const dates = series.map(r => r.date);
   const volumes = series.map(r => r.volume);
+  const times = dates.map(d => parseSeriesDate(d).getTime());
   const n = closes.length;
   const min = Math.min(...closes), max = Math.max(...closes);
   const range = (max - min) || (max * 0.01) || 1;
-  const stepX = n > 1 ? plotW / (n - 1) : 0;
-  const xAt = i => padL + i * stepX;
+  const t0 = times[0], t1 = times[n - 1];
+  const tSpan = (t1 - t0) || 1;
+  // Time-proportional positioning (matches Yahoo/Google Finance): each
+  // point sits at its real elapsed calendar time from the series start,
+  // not its array index. This is what makes axis tick spacing genuinely
+  // even across real calendar time -- weekends, holidays, and varying
+  // month lengths all naturally compress or expand the plotted gap
+  // instead of every point getting an identical pixel width regardless
+  // of how much real time it represents.
+  const xAtTime = t => padL + ((t - t0) / tSpan) * plotW;
+  const xAt = i => n > 1 ? xAtTime(times[i]) : padL;
   const yAt = c => padT + plotH - ((c - min) / range) * plotH;
   const pts = closes.map((c, i) => `${xAt(i).toFixed(1)},${yAt(c).toFixed(1)}`).join(' ');
   const areaPts = `${xAt(0).toFixed(1)},${(padT + plotH).toFixed(1)} ${pts} ${xAt(n - 1).toFixed(1)},${(padT + plotH).toFixed(1)}`;
@@ -1193,7 +1223,7 @@ function buildTimeframeChart(series, timeframe, color, tickCount) {
   const axisTicks = n > 1 ? buildAxisTicksForCount(dates, timeframe, tickCount) : [];
   const dateSvg = axisTicks.map((t, i) => {
     const anchor = i === 0 ? 'start' : (i === axisTicks.length - 1 ? 'end' : 'middle');
-    return `<text x="${xAt(t.index).toFixed(1)}" y="${height - 6}" text-anchor="${anchor}" class="chart-date-label">${t.label}</text>`;
+    return `<text x="${xAtTime(t.date.getTime()).toFixed(1)}" y="${height - 6}" text-anchor="${anchor}" class="chart-date-label">${t.label}</text>`;
   }).join('');
 
   const svg = `<svg id="cm-svg" width="100%" viewBox="0 0 ${width} ${height}" style="display:block;">
@@ -1206,7 +1236,25 @@ function buildTimeframeChart(series, timeframe, color, tickCount) {
     </svg>
     <div class="chart-tooltip" id="cm-tooltip"></div>`;
 
-  return { svg, meta: { width, height, padL, plotW, n, xAt, yAt, closes, dates, volumes, timeframe } };
+  return { svg, meta: { width, height, padL, plotW, n, xAt, yAt, closes, dates, volumes, times, t0, tSpan, timeframe } };
+}
+
+// Binary search for the series index whose real timestamp is closest to
+// `target` -- needed because xAt is now time-proportional rather than a
+// uniform per-index step, so a uniform-step formula can no longer be
+// inverted to find the nearest point under the cursor.
+function nearestIndexByTime(times, target) {
+  const n = times.length;
+  if (target <= times[0]) return 0;
+  if (target >= times[n - 1]) return n - 1;
+  let lo = 0, hi = n - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (times[mid] === target) return mid;
+    if (times[mid] < target) lo = mid + 1; else hi = mid;
+  }
+  const after = lo, before = lo - 1;
+  return (target - times[before] <= times[after] - target) ? before : after;
 }
 
 function attachChartHover() {
@@ -1221,9 +1269,8 @@ function attachChartHover() {
     if (!rect.width) return;
     const scaleX = chartMeta.width / rect.width;
     const mx = (e.clientX - rect.left) * scaleX;
-    const step = chartMeta.n > 1 ? chartMeta.plotW / (chartMeta.n - 1) : 1;
-    let idx = Math.round((mx - chartMeta.padL) / step);
-    idx = Math.max(0, Math.min(chartMeta.n - 1, idx));
+    const targetTime = chartMeta.t0 + ((mx - chartMeta.padL) / chartMeta.plotW) * chartMeta.tSpan;
+    const idx = chartMeta.n > 1 ? nearestIndexByTime(chartMeta.times, targetTime) : 0;
     const x = chartMeta.xAt(idx);
     const y = chartMeta.yAt(chartMeta.closes[idx]);
 
