@@ -1071,6 +1071,49 @@ function buildAxisTicks(dates, timeframe, plotWidthPx) {
   return labeled.map(t => ({ index: t.index, label: t.label }));
 }
 
+// Empirical, MEASURED anti-crowding pass — runs after the tick <text>
+// elements are actually in the DOM, using getBBox() on the real
+// rendered glyphs rather than a predicted character-width budget. This
+// is what actually guarantees no overlap and no near-overlap: predicted
+// budgets got this wrong in practice (real monospace glyph metrics,
+// text-anchor positioning, and rounding in the earlier index-thinning
+// pass all shift real spacing enough that a pixel estimate isn't
+// reliable on its own). It also catches a case pure overlap-detection
+// would miss: two labels sitting a couple of pixels apart without
+// technically touching still read as cramped/misleading (e.g. a young
+// ticker's real history starting mid-year makes its first two yearly
+// ticks land only ~3 months apart while every later gap is a full
+// year) — a minimum breathing-room requirement, not just "don't
+// overlap", is what a real chart needs. Walks left to right, keeping a
+// label only once it clears real breathing room from the last kept
+// one; always tries to preserve the true last tick (the chart's right
+// edge) by evicting whichever kept tick it collides with instead of
+// dropping the range's own end date.
+function thinRenderedAxisLabels(svgEl) {
+  const texts = Array.from(svgEl.querySelectorAll('.chart-date-label'));
+  if (texts.length < 2) return;
+  const GAP = 10; // viewBox units of required breathing room between labels
+  const boxes = texts.map(t => ({ el: t, box: t.getBBox() }));
+
+  const visible = [boxes[0]];
+  for (let i = 1; i < boxes.length; i++) {
+    const b = boxes[i];
+    const last = visible[visible.length - 1];
+    const clears = b.box.x >= last.box.x + last.box.width + GAP;
+    if (clears) {
+      visible.push(b);
+    } else if (i === boxes.length - 1) {
+      while (visible.length > 1 && b.box.x < visible[visible.length - 1].box.x + visible[visible.length - 1].box.width + GAP) {
+        visible.pop();
+      }
+      visible.push(b);
+    }
+  }
+
+  const keep = new Set(visible.map(v => v.el));
+  boxes.forEach(b => { if (!keep.has(b.el)) b.el.style.display = 'none'; });
+}
+
 // Real rendered width of the chart container when available (so mobile
 // gets fewer ticks than desktop); falls back to an estimate from the
 // viewport when the modal isn't visible yet (its first paint happens
@@ -1270,6 +1313,7 @@ function selectTimeframe(sym, timeframe) {
   chartEl.innerHTML = built.svg;
   chartMeta = built.meta;
   attachChartHover();
+  thinRenderedAxisLabels(document.getElementById('cm-svg'));
 }
 
 function renderTimeframeButtons(sym) {
