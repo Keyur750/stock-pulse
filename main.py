@@ -762,21 +762,33 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
 
 
 def render_dashboard(payload):
+    # timeframe_history is real OHLCV across 9 timeframes for every
+    # ticker — sizable, and only the Sentiment Intelligence page's chart
+    # modal reads it today. Dropping it here keeps this page's payload to
+    # what it actually uses instead of quadrupling its size for data
+    # nothing on it touches.
+    slim = {k: v for k, v in payload.items() if k != "timeframe_history"}
     with open(TEMPLATE_PATH, encoding="utf-8") as f:
         template = f.read()
-    html = template.replace("/*__DATA__*/", json.dumps(payload, indent=2))
+    html = template.replace("/*__DATA__*/", json.dumps(slim, indent=2))
     os.makedirs(os.path.dirname(DASHBOARD_PATH), exist_ok=True)
     with open(DASHBOARD_PATH, "w", encoding="utf-8") as f:
         f.write(html)
 
 
 def render_sentiment_page(payload):
-    """Same embed-and-write pattern as render_dashboard, same payload —
-    the Sentiment Intelligence page is a new view over data the pipeline
-    already computes, not a new data source."""
+    """Same embed-and-write pattern as render_dashboard, same source
+    payload — the Sentiment Intelligence page is a new view over data the
+    pipeline already computes, not a new data source. Unlike the other
+    two pages, this one keeps timeframe_history: its chart modal is the
+    thing that actually reads it. Serialized compact (no indent) rather
+    than the pretty-printed style the other two pages use — nobody reads
+    this JSON by eye in the shipped page, and at this page's real data
+    volume (9 timeframes of real OHLCV per ticker) indent=2's whitespace
+    alone roughly doubles the file for no benefit."""
     with open(SENTIMENT_TEMPLATE_PATH, encoding="utf-8") as f:
         template = f.read()
-    html = template.replace("/*__DATA__*/", json.dumps(payload, indent=2))
+    html = template.replace("/*__DATA__*/", json.dumps(payload, separators=(",", ":")))
     os.makedirs(os.path.dirname(SENTIMENT_PAGE_PATH), exist_ok=True)
     with open(SENTIMENT_PAGE_PATH, "w", encoding="utf-8") as f:
         f.write(html)
@@ -784,10 +796,12 @@ def render_sentiment_page(payload):
 
 def render_fundamentals_page(payload):
     """Same pattern again — the Fundamental Intelligence page reads the
-    same payload's `fundamentals` key, no separate data source."""
+    same payload's `fundamentals` key, no separate data source. Also
+    drops timeframe_history for the same size reason as render_dashboard."""
+    slim = {k: v for k, v in payload.items() if k != "timeframe_history"}
     with open(FUNDAMENTALS_TEMPLATE_PATH, encoding="utf-8") as f:
         template = f.read()
-    html = template.replace("/*__DATA__*/", json.dumps(payload, indent=2))
+    html = template.replace("/*__DATA__*/", json.dumps(slim, indent=2))
     os.makedirs(os.path.dirname(FUNDAMENTALS_PAGE_PATH), exist_ok=True)
     with open(FUNDAMENTALS_PAGE_PATH, "w", encoding="utf-8") as f:
         f.write(html)
