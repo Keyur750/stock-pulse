@@ -446,7 +446,30 @@
   .chart-legend-swatch.sentiment { background-image: linear-gradient(90deg, var(--amber) 60%, transparent 40%); background-size: 7px 2px; }
   .chart-sentiment-note { font-size: 10.5px; color: var(--text-faint); margin-top: 10px; }
   .chart-tooltip { position: absolute; pointer-events: none; background: var(--surface-3); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 11px; font-family: 'JetBrains Mono', monospace; box-shadow: var(--shadow-md); opacity: 0; transition: opacity .1s ease; white-space: nowrap; transform: translate(-50%, 0); }
-  .chart-empty { padding: 44px 0; text-align: center; color: var(--text-faint); font-size: 13px; }
+  .chart-empty { padding: 44px 0; text-align: center; color: var(--text-faint); font-size: 13px; line-height: 1.6; }
+
+  /* Timeframe selector — every requirement (chart data, $/% change,
+     color, tooltip) is driven by whichever button is active. Selecting
+     one is a single function (selectTimeframe) so these can never fall
+     out of sync with each other. */
+  .cm-timeframes { display: flex; gap: 4px; margin-top: 16px; flex-wrap: wrap; }
+  .cm-tf-btn {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+    padding: 5px 11px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text-secondary); cursor: pointer; transition: all .12s ease;
+  }
+  .cm-tf-btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
+  .cm-tf-btn.active { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent); }
+  .cm-tf-btn.unavailable { opacity: 0.4; }
+  .cm-tf-btn.unavailable:hover { opacity: 0.7; }
+
+  .chart-modal-asof { font-size: 10.5px; color: var(--text-faint); margin-top: 4px; }
+  .chart-modal-asof.live { color: var(--bull); display: inline-flex; align-items: center; gap: 5px; }
+  .chart-modal-asof.live::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--bull); flex-shrink: 0; animation: livePulse 2s ease-in-out infinite; }
+  @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  .chart-empty-timeframe { padding: 40px 24px; text-align: center; color: var(--text-faint); font-size: 12.5px; line-height: 1.65; }
+  .chart-empty-timeframe strong { color: var(--text-secondary); }
   .chart-modal-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-faint); }
   .chart-modal-footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
   .chart-modal-footer a:hover { text-decoration: underline; }
@@ -658,8 +681,10 @@
       <div class="chart-modal-price">
         <div class="chart-modal-px" id="cm-price"></div>
         <div class="chart-modal-chg" id="cm-chg"></div>
+        <div class="chart-modal-asof" id="cm-asof"></div>
       </div>
     </div>
+    <div class="cm-timeframes" id="cm-timeframes" role="tablist" aria-label="Select chart timeframe"></div>
     <div class="chart-modal-chart" id="cm-chart"></div>
     <div class="chart-modal-footer">
       <span id="cm-source"></span>
@@ -899,15 +924,32 @@ function confidenceCellHtml(confidence) {
 const tickerInfo = {};
 (DATA.watchlist_grid || []).forEach(t => { tickerInfo[t.ticker] = t; });
 
+const TIMEFRAME_ORDER = ['1D', '1W', '1M', '3M', '6M', '1Y', '5Y', '10Y', '20Y'];
 let chartMeta = null;
 let currentModalTicker = null;
+let currentTimeframe = '1D';
+let latestQuotes = {}; // populated by pollQuotes() — real, freshly-polled price/previous_close/market_status
 
-function buildLineChart(history, sentimentHistory) {
+function formatVolume(v) {
+  if (v === null || v === undefined) return null;
+  if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+  if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+  if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+  return String(v);
+}
+
+// The price chart is deliberately price-only — no sentiment overlay.
+// Stock performance and sentiment are two different systems; showing
+// them on the same axis implies a relationship ("price is up, so
+// sentiment must be too") that isn't necessarily true. Sentiment stays
+// in the surrounding detail pane.
+function buildTimeframeChart(series, timeframe, color) {
   const width = 600, height = 240;
   const padL = 54, padR = 40, padT = 14, padB = 24;
   const plotW = width - padL - padR, plotH = height - padT - padB;
-  const closes = history.map(h => h.close);
-  const dates = history.map(h => h.date);
+  const closes = series.map(r => r.close);
+  const dates = series.map(r => r.date);
+  const volumes = series.map(r => r.volume);
   const n = closes.length;
   const min = Math.min(...closes), max = Math.max(...closes);
   const range = (max - min) || (max * 0.01) || 1;
@@ -916,8 +958,6 @@ function buildLineChart(history, sentimentHistory) {
   const yAt = c => padT + plotH - ((c - min) / range) * plotH;
   const pts = closes.map((c, i) => `${xAt(i).toFixed(1)},${yAt(c).toFixed(1)}`).join(' ');
   const areaPts = `${xAt(0).toFixed(1)},${(padT + plotH).toFixed(1)} ${pts} ${xAt(n - 1).toFixed(1)},${(padT + plotH).toFixed(1)}`;
-  const up = closes[n - 1] >= closes[0];
-  const seriesColor = up ? 'var(--bull)' : 'var(--bear)';
 
   const gridVals = [max, (max + min) / 2, min];
   const gridSvg = gridVals.map(v => {
@@ -926,62 +966,26 @@ function buildLineChart(history, sentimentHistory) {
            `<text x="${padL - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end" class="chart-axis-label">${v.toFixed(2)}</text>`;
   }).join('');
 
-  const dateLabel = s => s.slice(5);
+  // Intraday points carry "YYYY-MM-DD HH:MM"; show time-of-day for 1D,
+  // the calendar date otherwise — always in the exchange's own values
+  // (yfinance returns America/New_York-local timestamps for US tickers).
+  const dateLabel = s => (timeframe === '1D' && s.includes(' ')) ? s.split(' ')[1] : s.slice(5);
   const dateSvg = n > 1
-    ? `<text x="${xAt(0)}" y="${height - 6}" text-anchor="start" class="chart-date-label">${dateLabel(history[0].date)}</text>` +
-      `<text x="${xAt(n - 1)}" y="${height - 6}" text-anchor="end" class="chart-date-label">${dateLabel(history[n - 1].date)}</text>`
+    ? `<text x="${xAt(0)}" y="${height - 6}" text-anchor="start" class="chart-date-label">${dateLabel(dates[0])}</text>` +
+      `<text x="${xAt(n - 1)}" y="${height - 6}" text-anchor="end" class="chart-date-label">${dateLabel(dates[n - 1])}</text>`
     : '';
-
-  let sentimentSvg = '';
-  let legendHtml = '';
-  const hasSentiment = sentimentHistory && sentimentHistory.length >= 2;
-  if (hasSentiment) {
-    const closestIndex = (dateStr) => {
-      const exact = dates.indexOf(dateStr);
-      if (exact !== -1) return exact;
-      const target = new Date(dateStr).getTime();
-      let best = 0, bestDiff = Infinity;
-      dates.forEach((d, i) => {
-        const diff = Math.abs(new Date(d).getTime() - target);
-        if (diff < bestDiff) { bestDiff = diff; best = i; }
-      });
-      return best;
-    };
-    const ySentAt = s => padT + plotH - ((s + 1) / 2) * plotH;
-    const sentPts = sentimentHistory.map(p => ({
-      x: xAt(closestIndex(p.date)),
-      y: ySentAt(Math.max(-1, Math.min(1, p.avg_sentiment))),
-    }));
-    const sentPolyline = sentPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-    const sentDots = sentPts.map(p => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="var(--amber)"/>`).join('');
-    const zeroY = ySentAt(0);
-
-    sentimentSvg = `
-      <line x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${padL + plotW}" y2="${zeroY.toFixed(1)}" stroke="var(--amber)" stroke-width="1" stroke-dasharray="2,3" opacity="0.35"/>
-      <polyline points="${sentPolyline}" fill="none" stroke="var(--amber)" stroke-width="1.75" stroke-dasharray="4,3" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
-      ${sentDots}
-      <text x="${(padL + plotW + 8).toFixed(1)}" y="${(padT + 3).toFixed(1)}" text-anchor="start" class="chart-axis-label" style="fill:var(--amber)">+1</text>
-      <text x="${(padL + plotW + 8).toFixed(1)}" y="${(zeroY + 3).toFixed(1)}" text-anchor="start" class="chart-axis-label" style="fill:var(--amber)">0</text>
-      <text x="${(padL + plotW + 8).toFixed(1)}" y="${(padT + plotH + 3).toFixed(1)}" text-anchor="start" class="chart-axis-label" style="fill:var(--amber)">-1</text>
-    `;
-    legendHtml = `<div class="chart-legend">
-      <span class="chart-legend-item"><span class="chart-legend-swatch price"></span>Price</span>
-      <span class="chart-legend-item"><span class="chart-legend-swatch sentiment"></span>Retail sentiment</span>
-    </div>`;
-  }
 
   const svg = `<svg id="cm-svg" width="100%" viewBox="0 0 ${width} ${height}" style="display:block;">
       ${gridSvg}
-      <polygon points="${areaPts}" style="fill:${seriesColor}" opacity="0.12"/>
-      <polyline points="${pts}" fill="none" style="stroke:${seriesColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      ${sentimentSvg}
+      <polygon points="${areaPts}" style="fill:${color}" opacity="0.12"/>
+      <polyline points="${pts}" fill="none" style="stroke:${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       ${dateSvg}
       <line id="cm-crosshair" x1="0" y1="${padT}" x2="0" y2="${padT + plotH}" stroke="var(--text-faint)" stroke-width="1" style="display:none;"/>
-      <circle id="cm-dot" r="4" style="display:none;fill:${seriesColor}"/>
+      <circle id="cm-dot" r="4" style="display:none;fill:${color}"/>
     </svg>
     <div class="chart-tooltip" id="cm-tooltip"></div>`;
 
-  return { svg, legendHtml, hasSentiment, meta: { width, height, padL, plotW, n, xAt, yAt, closes, dates } };
+  return { svg, meta: { width, height, padL, plotW, n, xAt, yAt, closes, dates, volumes, timeframe } };
 }
 
 function attachChartHover() {
@@ -1008,7 +1012,10 @@ function attachChartHover() {
     dot.style.display = 'block';
 
     const sx = rect.width / chartMeta.width, sy = rect.height / chartMeta.height;
-    tooltip.textContent = `${chartMeta.dates[idx]} · $${chartMeta.closes[idx].toFixed(2)}`;
+    const rawDate = chartMeta.dates[idx];
+    const dateText = (chartMeta.timeframe === '1D' && rawDate.includes(' ')) ? rawDate.split(' ')[1] : rawDate;
+    const vol = formatVolume(chartMeta.volumes[idx]);
+    tooltip.textContent = `${dateText} · $${chartMeta.closes[idx].toFixed(2)}${vol ? ' · Vol ' + vol : ''}`;
     tooltip.style.left = (x * sx) + 'px';
     tooltip.style.top = Math.max(0, y * sy - 32) + 'px';
     tooltip.style.opacity = '1';
@@ -1017,6 +1024,116 @@ function attachChartHover() {
     crosshair.style.display = 'none';
     dot.style.display = 'none';
     tooltip.style.opacity = '0';
+  });
+}
+
+// 1D recomputed from freshly-polled quotes.json when available (real
+// live_price vs real previous_close, same formula market_history.py
+// used at batch time — never a different methodology), so the number
+// keeps moving between full pipeline runs. Falls back to the embedded
+// once-daily value when no fresher quote has been polled yet.
+function liveOneDayPerf(sym, embeddedPerf) {
+  const q = latestQuotes[sym];
+  if (!q || q.price === undefined || q.price === null) return embeddedPerf;
+  const prevClose = (q.previous_close !== undefined && q.previous_close !== null)
+    ? q.previous_close
+    : (embeddedPerf ? embeddedPerf.period_start_price : null);
+  if (prevClose === null || prevClose === undefined || !prevClose) return embeddedPerf;
+  const absChange = q.price - prevClose;
+  const pctChange = (absChange / prevClose) * 100;
+  return {
+    period_start_date: null,
+    period_start_price: prevClose,
+    current_price: q.price,
+    abs_change: absChange,
+    pct_change: pctChange,
+    direction: pctChange > 0 ? 'up' : pctChange < 0 ? 'down' : 'flat',
+    data_available: true,
+  };
+}
+
+function directionClass(direction) {
+  return direction === 'up' ? 'up' : direction === 'down' ? 'down' : 'na';
+}
+
+// The single function every timeframe button calls — chart data, $/%
+// change, color, and tooltip source all update from the SAME timeframe
+// record in one pass, so they can never disagree with each other.
+function selectTimeframe(sym, timeframe) {
+  currentTimeframe = timeframe;
+  const tickerHistory = (DATA.timeframe_history || {})[sym];
+  const timeframes = tickerHistory ? tickerHistory.timeframes : {};
+  const tfData = timeframes[timeframe];
+  let perf = tfData ? tfData.performance : null;
+  if (timeframe === '1D') perf = liveOneDayPerf(sym, perf);
+
+  document.querySelectorAll('.cm-tf-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tf === timeframe);
+  });
+
+  const priceEl = document.getElementById('cm-price');
+  const chgEl = document.getElementById('cm-chg');
+  const asofEl = document.getElementById('cm-asof');
+  const chartEl = document.getElementById('cm-chart');
+
+  if (!perf || !perf.data_available) {
+    const yrs = tickerHistory ? tickerHistory.years_available : null;
+    const msg = (yrs !== null && yrs !== undefined)
+      ? `<strong>${yrs} year${yrs === 1 ? '' : 's'}</strong> of historical data available for ${sym} — not enough history yet for ${timeframe}.`
+      : `Historical price data unavailable for ${sym}.`;
+    chartEl.innerHTML = `<div class="chart-empty-timeframe">${msg}</div>`;
+    chartMeta = null;
+    chgEl.textContent = '—';
+    chgEl.className = 'chart-modal-chg na';
+    asofEl.textContent = '';
+    return;
+  }
+
+  const color = perf.direction === 'up' ? 'var(--bull)' : perf.direction === 'down' ? 'var(--bear)' : 'var(--text-faint)';
+  priceEl.textContent = fmtPrice(perf.current_price);
+  const sign = perf.abs_change >= 0 ? '+' : '-';
+  chgEl.textContent = `${sign}$${Math.abs(perf.abs_change).toFixed(2)} (${sign}${Math.abs(perf.pct_change).toFixed(2)}%) · ${timeframe}`;
+  chgEl.className = 'chart-modal-chg ' + directionClass(perf.direction);
+
+  const q = latestQuotes[sym];
+  if (timeframe === '1D' && q && q.market_status === 'open') {
+    asofEl.textContent = 'Live';
+    asofEl.className = 'chart-modal-asof live';
+  } else if (timeframe === '1D') {
+    const statusLabel = q && q.market_status ? q.market_status.replace('-', ' ') : '';
+    asofEl.textContent = statusLabel ? `Market ${statusLabel} — showing latest close` : 'Showing latest close';
+    asofEl.className = 'chart-modal-asof';
+  } else {
+    const series = tfData.series;
+    const lastPoint = series && series.length ? series[series.length - 1] : null;
+    asofEl.textContent = lastPoint ? `As of ${lastPoint.date}` : '';
+    asofEl.className = 'chart-modal-asof';
+  }
+
+  const series = tfData.series;
+  if (!series || !series.length) {
+    chartEl.innerHTML = `<div class="chart-empty">No chart data available for ${sym} yet.</div>`;
+    chartMeta = null;
+    return;
+  }
+  const built = buildTimeframeChart(series, timeframe, color);
+  chartEl.innerHTML = built.svg;
+  chartMeta = built.meta;
+  attachChartHover();
+}
+
+function renderTimeframeButtons(sym) {
+  const tickerHistory = (DATA.timeframe_history || {})[sym];
+  const timeframes = tickerHistory ? tickerHistory.timeframes : {};
+  const el = document.getElementById('cm-timeframes');
+  el.innerHTML = TIMEFRAME_ORDER.map(tf => {
+    const tfData = timeframes[tf];
+    const available = !!(tfData && tfData.performance && tfData.performance.data_available);
+    const titleAttr = available ? '' : ` title="Not enough historical data for ${tf} yet"`;
+    return `<button type="button" class="cm-tf-btn${available ? '' : ' unavailable'}" data-tf="${tf}" role="tab"${titleAttr}>${tf}</button>`;
+  }).join('');
+  el.querySelectorAll('.cm-tf-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectTimeframe(sym, btn.dataset.tf));
   });
 }
 
@@ -1227,14 +1344,9 @@ function renderAiSection(result) {
 
 function openChartModal(sym) {
   const info = tickerInfo[sym] || {};
-  const hist = (DATA.price_history || {})[sym];
 
   currentModalTicker = sym;
   document.getElementById('cm-sym').textContent = sym;
-  document.getElementById('cm-price').textContent = fmtPrice(info.price);
-  const chgEl = document.getElementById('cm-chg');
-  chgEl.textContent = fmtChg(info.change_pct);
-  chgEl.className = 'chart-modal-chg ' + chgClass(info.change_pct);
 
   document.getElementById('cm-meta').textContent = info.label
     ? `${info.label}${info.mentions ? ` · ${info.mentions} messages (24h)` : ''}`
@@ -1244,18 +1356,19 @@ function openChartModal(sym) {
   document.getElementById('cm-source').textContent = src ? `Based on ${src}` : '';
   document.getElementById('cm-yahoo').href = tickerUrl(sym);
 
-  const chartEl = document.getElementById('cm-chart');
-  if (!hist || hist.length < 2) {
-    chartEl.innerHTML = `<div class="chart-empty">No chart data available for ${sym} yet.</div>`;
+  const hasHistory = !!(DATA.timeframe_history || {})[sym];
+  if (!hasHistory) {
+    document.getElementById('cm-timeframes').innerHTML = '';
+    document.getElementById('cm-chart').innerHTML = `<div class="chart-empty">Historical price data unavailable for ${sym}.</div>`;
+    document.getElementById('cm-price').textContent = fmtPrice(info.price);
+    const chgEl = document.getElementById('cm-chg');
+    chgEl.textContent = fmtChg(info.change_pct);
+    chgEl.className = 'chart-modal-chg ' + chgClass(info.change_pct);
+    document.getElementById('cm-asof').textContent = '';
     chartMeta = null;
   } else {
-    const sentHist = (DATA.sentiment_history || {})[sym];
-    const built = buildLineChart(hist, sentHist);
-    const note = built.hasSentiment ? '' :
-      '<div class="chart-sentiment-note">Sentiment trend line appears once a few days of history build up for this ticker.</div>';
-    chartEl.innerHTML = built.legendHtml + built.svg + note;
-    chartMeta = built.meta;
-    attachChartHover();
+    renderTimeframeButtons(sym);
+    selectTimeframe(sym, '1D');
   }
 
   renderPillarRow(sym);
@@ -1917,6 +2030,30 @@ async function renderAuthState() {
 }
 sbClient.auth.onAuthStateChange(() => renderAuthState());
 renderAuthState();
+
+// Live 1D price — polls the same quotes.json a separate, lightweight
+// GitHub Actions job refreshes every ~15 minutes (see refresh_quotes.py),
+// same mechanism the dashboard already uses. Only the open chart modal's
+// 1D tab reacts live; historical timeframes and the rest of the page are
+// unaffected, since only today's price genuinely changes this fast.
+const QUOTES_POLL_INTERVAL_MS = 60000;
+
+async function pollQuotes() {
+  try {
+    const res = await fetch('quotes.json', { cache: 'no-store' });
+    if (!res.ok) return;
+    const payload = await res.json();
+    latestQuotes = payload.quotes || {};
+    if (currentModalTicker && currentTimeframe === '1D') {
+      selectTimeframe(currentModalTicker, '1D');
+    }
+  } catch (e) {
+    // Silent — a missed refresh just means the modal stays as it was
+    // until the next poll; not worth surfacing as a user-facing error.
+  }
+}
+pollQuotes();
+setInterval(pollQuotes, QUOTES_POLL_INTERVAL_MS);
 </script>
 
 </body>

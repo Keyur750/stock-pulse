@@ -28,6 +28,7 @@ from sentiment import (
 from reddit import extract_tickers
 from market_data import fetch_quotes
 from fundamentals import fetch_fundamentals, score_fundamentals
+from market_history import build_ticker_history
 from logos import ensure_logo
 from wallstreet import fetch_analyst_data, score_wallstreet
 from market import fetch_market_data, score_market
@@ -679,11 +680,16 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     that fundamentals.py already computes — previously this was fed to
     the AI prompt and then discarded, leaving only a single blended
     0-100 score reachable by the dashboard. The Fundamental Intelligence
-    page needs the real numbers, not just the score derived from them."""
+    page needs the real numbers, not just the score derived from them.
+    history_data carries every timeframe's real, pre-resolved chart data
+    and performance (see market_history.py) — a ticker missing here (no
+    fetchable history at all) simply has no chart system for the day,
+    never a fabricated one."""
     by_ticker = {r["ticker"]: r for r in ticker_results}
     analyst_results = {}
     pillar_scores = {}
     fundamentals_data = {}
+    history_data = {}
 
     logo_results = {}
     for i, ticker in enumerate(flagship_tickers):
@@ -726,6 +732,12 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
             "period_change_pct": period_chg,
             "period_days": period_days,
         }
+
+        q_history = q.get("history") or []
+        previous_close = q_history[-2]["close"] if len(q_history) >= 2 else None
+        ticker_history = build_ticker_history(ticker, live_price=q.get("price"), previous_close=previous_close)
+        if ticker_history:
+            history_data[ticker] = ticker_history
         matched_news = _news_for_ticker(news_items, ticker)
 
         result = analyze_stock(
@@ -745,7 +757,8 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     print(f"  [analyst] {len(analyst_results)}/{len(flagship_tickers)} tickers analyzed successfully")
     print(f"  [logos] {sum(logo_results.values())}/{len(logo_results)} tickers have a real cached logo "
           f"(rest fall back to the letter avatar)")
-    return analyst_results, pillar_scores, fundamentals_data
+    print(f"  [history] {len(history_data)}/{len(flagship_tickers)} tickers have real multi-timeframe chart data")
+    return analyst_results, pillar_scores, fundamentals_data, history_data
 
 
 def render_dashboard(payload):
@@ -887,9 +900,10 @@ def main():
     analyst_results = {}
     pillar_scores = {}
     fundamentals_data = {}
+    history_data = {}
     if flagship_tickers:
         print(f"Running the 4-pillar engine + AI analyst on {len(flagship_tickers)} flagship tickers...")
-        analyst_results, pillar_scores, fundamentals_data = run_analyst_pipeline(
+        analyst_results, pillar_scores, fundamentals_data, history_data = run_analyst_pipeline(
             flagship_tickers, ticker_results, news_items, price_history, quotes,
             sleep_seconds=config.get("analyst_call_sleep_seconds", 7),
         )
@@ -925,6 +939,7 @@ def main():
         "analyst": analyst_results,
         "pillar_scores": pillar_scores,
         "fundamentals": fundamentals_data,
+        "timeframe_history": history_data,
         "market_insight": market_insight,
         "material_events": material_events,
         "company_news": company_news,
