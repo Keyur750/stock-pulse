@@ -950,7 +950,6 @@ const TIMEFRAME_AXIS_KIND = {
   '3M': 'month-day', '6M': 'month', '1Y': 'month',
   '5Y': 'year', '10Y': 'year', '20Y': 'year',
 };
-const AXIS_LABEL_MIN_PX = { time: 68, day: 50, 'month-day': 54, month: 38, year: 46 };
 const AXIS_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function parseSeriesDate(s) {
@@ -1019,23 +1018,6 @@ function candidateAxisTicks(seriesDates, kind) {
       }
       return { date: snappedDate, slot: t.slot };
     });
-  // A "year" tick is meant to mark a real Jan-1 boundary. When the chart's
-  // data window itself starts well into a year (e.g. a 5Y view whose
-  // start is "5 years ago from today" -- typically mid-year, not Jan 1),
-  // the leading candidate snaps forward to that arbitrary window edge
-  // rather than a real year boundary. Labeling it with the year anyway
-  // manufactures a tick that sits close in time to the FOLLOWING year's
-  // real Jan-1 tick (e.g. Aug 2021 next to Jan 2022), forcing the evenly-
-  // spaced selection below to drop the genuine boundary instead. Drop
-  // this misleading leading tick so the axis starts at the first real
-  // year boundary and every remaining tick is a genuine, evenly-spaced
-  // year-to-year gap.
-  if (kind === 'year' && snapped.length > 1) {
-    const lead = snapped[0];
-    const yearStart = new Date(lead.date.getFullYear(), 0, 1);
-    const daysIntoYear = (lead.date - yearStart) / 86400000;
-    if (daysIntoYear > 60) snapped.shift();
-  }
   // De-dupe by the actual snapped calendar period (+ slot): a target
   // from before the very first real date, or two targets that end up
   // snapping to the same real point, must not render two labels stacked
@@ -1108,6 +1090,53 @@ function thinAxisTicks(candidates, maxTicks) {
   return picked;
 }
 
+// Year-kind ticks get their own selection, separate from thinAxisTicks:
+// a "years" axis reads best as a clean, predictable stride -- every
+// year, every 2nd, every 5th -- like Yahoo/Google Finance ("2006, 2008,
+// 2010...") rather than the maximin-gap algorithm's mathematically-
+// optimal-but-irregular subset (which can start on an odd year and
+// still leave a lopsided final gap). If every real year fits within the
+// budget, show them all; only fall back to striding when there isn't
+// room for one tick per year.
+function thinYearTicks(candidates, maxTicks) {
+  const dedupe = list => {
+    const seen = new Set();
+    return list.filter(c => {
+      const t = c.date.getTime();
+      if (seen.has(t)) return false;
+      seen.add(t);
+      return true;
+    });
+  };
+  const uniq = dedupe(candidates).sort((a, b) => a.date - b.date);
+  if (uniq.length <= 1) return uniq;
+
+  if (uniq.length <= maxTicks) {
+    // Every real year fits -- except a leading tick that doesn't mark a
+    // genuine Jan-1 boundary (the data window just happens to start
+    // mid-year), which would crowd right up against the very next real
+    // year boundary at 1-year spacing. Drop only that one.
+    const lead = uniq[0];
+    const yearStart = new Date(lead.date.getFullYear(), 0, 1);
+    const daysIntoYear = (lead.date - yearStart) / 86400000;
+    return (daysIntoYear > 60) ? uniq.slice(1) : uniq;
+  }
+
+  // Not enough room for one tick per year: keep every Nth real year,
+  // starting from the true first year (a multi-year stride gives even a
+  // partial leading year enough real breathing room from its neighbor
+  // to be worth keeping, unlike the 1-year-spacing case above), and
+  // always include the true last year so the axis reaches "now".
+  const stride = Math.ceil(uniq.length / maxTicks);
+  const picked = [];
+  for (let i = 0; i < uniq.length; i += stride) picked.push(uniq[i]);
+  const lastCandidate = uniq[uniq.length - 1];
+  if (picked[picked.length - 1].date.getTime() !== lastCandidate.date.getTime()) {
+    picked.push(lastCandidate);
+  }
+  return picked;
+}
+
 // Selects and labels exactly `tickCount` ticks (or fewer if that many
 // real candidates don't exist) — pure function of the requested count,
 // no width/overlap reasoning here. Kept separate from budget estimation
@@ -1121,30 +1150,9 @@ function thinAxisTicks(candidates, maxTicks) {
 function buildAxisTicksForCount(dates, timeframe, tickCount) {
   const kind = TIMEFRAME_AXIS_KIND[timeframe] || 'day';
   const seriesDates = dates.map(parseSeriesDate);
-  const ticks = thinAxisTicks(candidateAxisTicks(seriesDates, kind), tickCount);
-  const labeled = ticks.map(t => ({ date: t.date, label: formatAxisLabel(t.date, kind) }));
-
-  // A range spanning just over 12 months (e.g. Aug 2025 -> Aug 2026) has
-  // the same month name at both ends — exactly the "start and end look
-  // like the same date" confusion to avoid. Standard financial-chart
-  // convention (matching Yahoo/Google Finance): the first tick whose
-  // calendar year differs from the tick before it shows the bare year
-  // instead of a month name — one label swaps, not every label getting
-  // a suffix. Only month-only labels can collide this way (day/time/
-  // year labels are already unambiguous).
-  if (kind === 'month' || kind === 'month-day') {
-    for (let i = 1; i < labeled.length; i++) {
-      if (labeled[i].date.getFullYear() !== labeled[i - 1].date.getFullYear()) {
-        labeled[i].label = String(labeled[i].date.getFullYear());
-      }
-    }
-  }
-  return labeled;
-}
-
-function axisTickBudget(timeframe, plotWidthPx) {
-  const kind = TIMEFRAME_AXIS_KIND[timeframe] || 'day';
-  return Math.max(2, Math.floor(plotWidthPx / AXIS_LABEL_MIN_PX[kind]));
+  const candidates = candidateAxisTicks(seriesDates, kind);
+  const ticks = kind === 'year' ? thinYearTicks(candidates, tickCount) : thinAxisTicks(candidates, tickCount);
+  return ticks.map(t => ({ date: t.date, label: formatAxisLabel(t.date, kind) }));
 }
 
 // Real, measured overlap check on whatever tick <text> elements are
@@ -1158,20 +1166,6 @@ function axisLabelsOverlap(svgEl, gap) {
     if (boxes[i].x < boxes[i - 1].x + boxes[i - 1].width + gap) return true;
   }
   return false;
-}
-
-// Real rendered width of the chart container when available (so mobile
-// gets fewer ticks than desktop); falls back to an estimate from the
-// viewport when the modal isn't visible yet (its first paint happens
-// before display is set to flex, so getBoundingClientRect() would still
-// read 0 at that exact moment).
-function estimateChartWidthPx() {
-  const el = document.getElementById('cm-chart');
-  const rect = el ? el.getBoundingClientRect() : null;
-  if (rect && rect.width > 0) return rect.width;
-  const viewportW = window.innerWidth || 1024;
-  const cardW = Math.min(viewportW - 40, 740);
-  return Math.max(240, cardW - 52);
 }
 
 // The price chart is deliberately price-only — no sentiment overlay.
@@ -1384,18 +1378,42 @@ function selectTimeframe(sym, timeframe) {
     chartMeta = null;
     return;
   }
-  // Start from a width-based estimate, then shrink and re-render if the
-  // real measured labels still overlap. Each attempt RE-SELECTS ticks
-  // evenly across the whole range (buildAxisTicksForCount), rather than
-  // deleting whichever specific ticks happened to collide — that
-  // preserves uniform spacing in the final result instead of leaving an
-  // oversized gap wherever something got dropped.
-  const AXIS_GAP = 10; // viewBox units of required breathing room between labels
-  let tickCount = axisTickBudget(timeframe, estimateChartWidthPx());
+  // Start from the real number of calendar ticks available (every real
+  // day/month/year in range, not a conservative pixel-width guess), then
+  // shrink and re-render only if the real measured labels actually
+  // overlap. This is what makes a 1Y chart show all 13 real months
+  // instead of a fixed budget silently capping it below what truly fits.
+  // Each attempt RE-SELECTS ticks evenly across the whole range
+  // (buildAxisTicksForCount), rather than deleting whichever specific
+  // ticks happened to collide — that preserves uniform spacing in the
+  // final result instead of leaving an oversized gap wherever something
+  // got dropped.
+  // Small (and slightly negative) on purpose: the first/last ticks are
+  // start/end-anchored (their box only extends toward the plot interior,
+  // to avoid clipping past the axis edge) while inner ticks are center-
+  // anchored (box extends both ways) -- that asymmetry alone can make
+  // two labels' boxes read as "touching" by a sub-pixel amount even when
+  // the real, true tick-to-tick time gap between them is perfectly
+  // reasonable (tens of real pixels). A large buffer here was dropping
+  // real calendar ticks (e.g. a whole month) over that rendering
+  // artifact, not a genuine overlap. -2 tolerates that harmless case
+  // (invisible at render size) while still catching any real multi-
+  // pixel collision.
+  const AXIS_GAP = -2; // viewBox units of required breathing room between labels
+  const axisKind = TIMEFRAME_AXIS_KIND[timeframe] || 'day';
+  const seriesDatesForAxis = series.map(r => parseSeriesDate(r.date));
+  // Every real calendar unit is a candidate for 'day'/'month'/'year'
+  // kinds (at most a few dozen even for a 20Y range), but 'time' kind
+  // (1D) has one candidate per intraday bar -- dozens of 5-minute points
+  // in a single session. Cap the starting point so the shrink loop below
+  // converges in a bounded number of steps regardless of kind; every
+  // other kind's real candidate count already sits well under this cap,
+  // so it never trims something that would otherwise have fit.
+  let tickCount = Math.max(2, Math.min(30, candidateAxisTicks(seriesDatesForAxis, axisKind).length));
   let built = buildTimeframeChart(series, timeframe, color, tickCount);
   chartEl.innerHTML = built.svg;
   let guard = 0;
-  while (tickCount > 2 && axisLabelsOverlap(document.getElementById('cm-svg'), AXIS_GAP) && guard < 20) {
+  while (tickCount > 2 && axisLabelsOverlap(document.getElementById('cm-svg'), AXIS_GAP) && guard < 30) {
     tickCount -= 1;
     built = buildTimeframeChart(series, timeframe, color, tickCount);
     chartEl.innerHTML = built.svg;
