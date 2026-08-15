@@ -937,12 +937,160 @@ function formatVolume(v) {
   return String(v);
 }
 
+// --- X-axis tick generation ---------------------------------------------
+// Granularity is chosen from the selected timeframe, then the actual
+// number of ticks shown adapts to real available pixel width so labels
+// never overlap. Ticks are always snapped to real dates already present
+// in `series` (which market_history.py already resolved) — nothing here
+// invents a date or hardcodes a year; it only decides which of the real
+// points get a visible label. The hover tooltip is untouched and keeps
+// showing the exact date regardless of what the axis displays.
+const TIMEFRAME_AXIS_KIND = {
+  '1D': 'time', '1W': 'day', '1M': 'day',
+  '3M': 'month-day', '6M': 'month', '1Y': 'month',
+  '5Y': 'year', '10Y': 'year', '20Y': 'year',
+};
+const AXIS_LABEL_MIN_PX = { time: 68, day: 50, 'month-day': 54, month: 38, year: 46 };
+const AXIS_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function parseSeriesDate(s) {
+  const [datePart, timePart] = s.split(' ');
+  const [y, m, d] = datePart.split('-').map(Number);
+  if (timePart) {
+    const [hh, mm] = timePart.split(':').map(Number);
+    return new Date(y, m - 1, d, hh, mm);
+  }
+  return new Date(y, m - 1, d);
+}
+
+function formatAxisLabel(date, kind) {
+  if (kind === 'time') {
+    let h = date.getHours();
+    const m = date.getMinutes();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${h}:${String(m).padStart(2, '0')} ${ampm}`;
+  }
+  if (kind === 'day' || kind === 'month-day') return `${AXIS_MONTHS[date.getMonth()]} ${date.getDate()}`;
+  if (kind === 'month') return AXIS_MONTHS[date.getMonth()];
+  return String(date.getFullYear());
+}
+
+// Every real point is a candidate for 'time'/'day' (thinned by pixel
+// budget below); 'month'/'month-day'/'year' generate one candidate per
+// real calendar boundary crossed, each snapped to the closest actual
+// data point rather than assumed to exist exactly on the 1st.
+function candidateAxisTicks(seriesDates, kind) {
+  if (kind === 'time' || kind === 'day') {
+    return seriesDates.map((d, i) => ({ date: d, index: i }));
+  }
+  const first = seriesDates[0], last = seriesDates[seriesDates.length - 1];
+  // `slot` identifies WHICH tick within a month a target represents (0 =
+  // month-start, 1 = mid-month for month-day only) — fixed at generation
+  // time, not derived from where it ends up snapping, so the two
+  // intentional month-day sub-ticks never collapse into each other.
+  const targets = [];
+  if (kind === 'month' || kind === 'month-day') {
+    let cur = new Date(first.getFullYear(), first.getMonth(), 1);
+    while (cur <= last) {
+      targets.push({ target: new Date(cur), slot: 0 });
+      if (kind === 'month-day') targets.push({ target: new Date(cur.getFullYear(), cur.getMonth(), 15), slot: 1 });
+      cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+    }
+  } else {
+    for (let y = first.getFullYear(); y <= last.getFullYear(); y++) targets.push({ target: new Date(y, 0, 1), slot: 0 });
+  }
+  // Snap FORWARD to the first real session on or after the target, never
+  // "nearest in either direction". Nearest-either-direction would let a
+  // month whose 1st falls on a weekend/holiday (e.g. Nov 1 2025, a
+  // Saturday) snap backward into the previous month's last session,
+  // silently merging into that month's bucket and vanishing from the
+  // axis entirely — a real bug, not just a styling nit. Forward-snapping
+  // guarantees every real month/year gets its own representative point.
+  const snapped = targets
+    .filter(t => t.target <= last)
+    .map(t => {
+      let idx = seriesDates.length - 1;
+      for (let i = 0; i < seriesDates.length; i++) {
+        if (seriesDates[i] >= t.target) { idx = i; break; }
+      }
+      return { date: seriesDates[idx], index: idx, slot: t.slot };
+    });
+  // De-dupe by both the actual snapped calendar period (+ slot) and by
+  // the resulting real index: a target from before the very first real
+  // date (or two targets that end up snapping to the same real point)
+  // must not render two labels stacked at the same x position.
+  const seenPeriods = new Set();
+  const seenIndex = new Set();
+  return snapped.filter(s => {
+    const key = kind === 'year'
+      ? String(s.date.getFullYear())
+      : `${s.date.getFullYear()}-${s.date.getMonth()}-${s.slot}`;
+    if (seenPeriods.has(key) || seenIndex.has(s.index)) return false;
+    seenPeriods.add(key);
+    seenIndex.add(s.index);
+    return true;
+  });
+}
+
+// Evenly thins a candidate list down to maxTicks (keeping first/last),
+// so labels stay spaced out no matter how many real candidates exist.
+function thinAxisTicks(candidates, maxTicks) {
+  const dedupe = list => {
+    const seen = new Set();
+    return list.filter(c => (seen.has(c.index) ? false : (seen.add(c.index), true)));
+  };
+  const uniq = dedupe(candidates);
+  if (uniq.length <= maxTicks || maxTicks <= 1) return uniq;
+  const step = (uniq.length - 1) / (maxTicks - 1);
+  const picked = [];
+  for (let i = 0; i < maxTicks; i++) picked.push(uniq[Math.round(i * step)]);
+  return dedupe(picked);
+}
+
+function buildAxisTicks(dates, timeframe, plotWidthPx) {
+  const kind = TIMEFRAME_AXIS_KIND[timeframe] || 'day';
+  const seriesDates = dates.map(parseSeriesDate);
+  const maxTicks = Math.max(2, Math.floor(plotWidthPx / AXIS_LABEL_MIN_PX[kind]));
+  const ticks = thinAxisTicks(candidateAxisTicks(seriesDates, kind), maxTicks);
+  const labeled = ticks.map(t => ({ index: t.index, date: t.date, label: formatAxisLabel(t.date, kind) }));
+
+  // A range spanning just over 12 months (e.g. Aug 2025 -> Aug 2026) has
+  // the same month name at both ends — exactly the "start and end look
+  // like the same date" confusion to avoid. Only month-only labels can
+  // collide this way (day/time/year labels are already unambiguous), so
+  // when a month name repeats in the final tick set, add a year to just
+  // those repeated instances rather than cluttering every label.
+  if (kind === 'month' || kind === 'month-day') {
+    const counts = {};
+    labeled.forEach(t => { counts[t.label] = (counts[t.label] || 0) + 1; });
+    labeled.forEach(t => {
+      if (counts[t.label] > 1) t.label += ` '${String(t.date.getFullYear()).slice(2)}`;
+    });
+  }
+  return labeled.map(t => ({ index: t.index, label: t.label }));
+}
+
+// Real rendered width of the chart container when available (so mobile
+// gets fewer ticks than desktop); falls back to an estimate from the
+// viewport when the modal isn't visible yet (its first paint happens
+// before display is set to flex, so getBoundingClientRect() would still
+// read 0 at that exact moment).
+function estimateChartWidthPx() {
+  const el = document.getElementById('cm-chart');
+  const rect = el ? el.getBoundingClientRect() : null;
+  if (rect && rect.width > 0) return rect.width;
+  const viewportW = window.innerWidth || 1024;
+  const cardW = Math.min(viewportW - 40, 740);
+  return Math.max(240, cardW - 52);
+}
+
 // The price chart is deliberately price-only — no sentiment overlay.
 // Stock performance and sentiment are two different systems; showing
 // them on the same axis implies a relationship ("price is up, so
 // sentiment must be too") that isn't necessarily true. Sentiment stays
 // in the surrounding detail pane.
-function buildTimeframeChart(series, timeframe, color) {
+function buildTimeframeChart(series, timeframe, color, plotWidthPx) {
   const width = 600, height = 240;
   const padL = 54, padR = 40, padT = 14, padB = 24;
   const plotW = width - padL - padR, plotH = height - padT - padB;
@@ -965,14 +1113,17 @@ function buildTimeframeChart(series, timeframe, color) {
            `<text x="${padL - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end" class="chart-axis-label">${v.toFixed(2)}</text>`;
   }).join('');
 
-  // Intraday points carry "YYYY-MM-DD HH:MM"; show time-of-day for 1D,
-  // the calendar date otherwise — always in the exchange's own values
-  // (yfinance returns America/New_York-local timestamps for US tickers).
-  const dateLabel = s => (timeframe === '1D' && s.includes(' ')) ? s.split(' ')[1] : s.slice(5);
-  const dateSvg = n > 1
-    ? `<text x="${xAt(0)}" y="${height - 6}" text-anchor="start" class="chart-date-label">${dateLabel(dates[0])}</text>` +
-      `<text x="${xAt(n - 1)}" y="${height - 6}" text-anchor="end" class="chart-date-label">${dateLabel(dates[n - 1])}</text>`
-    : '';
+  // X-axis: granularity (time/date/month/year) comes from the selected
+  // timeframe, tick count from the real available width — see
+  // buildAxisTicks above. Always real dates from `series`, never
+  // hardcoded, and independent of the tooltip (attachChartHover below),
+  // which still shows the exact date/time on hover regardless of what's
+  // printed on the axis.
+  const axisTicks = n > 1 ? buildAxisTicks(dates, timeframe, plotWidthPx || plotW) : [];
+  const dateSvg = axisTicks.map((t, i) => {
+    const anchor = i === 0 ? 'start' : (i === axisTicks.length - 1 ? 'end' : 'middle');
+    return `<text x="${xAt(t.index).toFixed(1)}" y="${height - 6}" text-anchor="${anchor}" class="chart-date-label">${t.label}</text>`;
+  }).join('');
 
   const svg = `<svg id="cm-svg" width="100%" viewBox="0 0 ${width} ${height}" style="display:block;">
       ${gridSvg}
@@ -1115,7 +1266,7 @@ function selectTimeframe(sym, timeframe) {
     chartMeta = null;
     return;
   }
-  const built = buildTimeframeChart(series, timeframe, color);
+  const built = buildTimeframeChart(series, timeframe, color, estimateChartWidthPx());
   chartEl.innerHTML = built.svg;
   chartMeta = built.meta;
   attachChartHover();
