@@ -1388,18 +1388,15 @@ function selectTimeframe(sym, timeframe) {
   // ticks happened to collide — that preserves uniform spacing in the
   // final result instead of leaving an oversized gap wherever something
   // got dropped.
-  // Small (and slightly negative) on purpose: the first/last ticks are
-  // start/end-anchored (their box only extends toward the plot interior,
-  // to avoid clipping past the axis edge) while inner ticks are center-
-  // anchored (box extends both ways) -- that asymmetry alone can make
-  // two labels' boxes read as "touching" by a sub-pixel amount even when
-  // the real, true tick-to-tick time gap between them is perfectly
-  // reasonable (tens of real pixels). A large buffer here was dropping
-  // real calendar ticks (e.g. a whole month) over that rendering
-  // artifact, not a genuine overlap. -2 tolerates that harmless case
-  // (invisible at render size) while still catching any real multi-
-  // pixel collision.
-  const AXIS_GAP = -2; // viewBox units of required breathing room between labels
+  // Real, required whitespace between adjacent labels -- a bounding-box
+  // gap of "0 or positive" isn't enough: two monospace labels whose boxes
+  // merely touch (0-1px gap) render with no visible space between them
+  // at all (confirmed against a real rendered screenshot, not just this
+  // measurement). This must stay positive and large enough to guarantee
+  // legible separation; letting it go to zero or negative was accepted
+  // as a "sub-pixel rendering artifact" once and that was wrong -- it
+  // was a real, visible collision.
+  const AXIS_GAP = 4; // viewBox units of required breathing room between labels
   const axisKind = TIMEFRAME_AXIS_KIND[timeframe] || 'day';
   const seriesDatesForAxis = series.map(r => parseSeriesDate(r.date));
   // Every real calendar unit is a candidate for 'day'/'month'/'year'
