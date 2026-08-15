@@ -1035,24 +1035,75 @@ function candidateAxisTicks(seriesDates, kind) {
 
 // Evenly thins a candidate list down to maxTicks (keeping first/last),
 // so labels stay spaced out no matter how many real candidates exist.
+// Picks up to `maxTicks` candidates whose spacing is as even as
+// mathematically possible, by MAXIMIZING THE MINIMUM GAP between chosen
+// picks (binary search over the gap size + a greedy feasibility check —
+// the standard, provably-optimal approach for "choose K points from N
+// to spread them out evenly"). This replaced two weaker attempts: plain
+// array-order sampling (silently inherits unevenness when the real
+// candidates — month/year boundaries — aren't themselves evenly spaced
+// by index, e.g. a young ticker's first two yearly ticks landing only
+// ~3 months apart while later ones are a full year apart), and greedy
+// nearest-candidate-per-target matching (each target satisfied
+// independently, so consecutive picks can still cluster unevenly since
+// earlier choices aren't rebalanced against later ones). Maximizing the
+// minimum gap directly optimizes what actually matters: no two labels
+// too close together, spread as uniformly as the real data allows.
 function thinAxisTicks(candidates, maxTicks) {
   const dedupe = list => {
     const seen = new Set();
     return list.filter(c => (seen.has(c.index) ? false : (seen.add(c.index), true)));
   };
-  const uniq = dedupe(candidates);
+  const uniq = dedupe(candidates).sort((a, b) => a.index - b.index);
   if (uniq.length <= maxTicks || maxTicks <= 1) return uniq;
-  const step = (uniq.length - 1) / (maxTicks - 1);
-  const picked = [];
-  for (let i = 0; i < maxTicks; i++) picked.push(uniq[Math.round(i * step)]);
-  return dedupe(picked);
+
+  const indices = uniq.map(c => c.index);
+  const countAtGap = (minGap) => {
+    let count = 1, last = indices[0];
+    for (let i = 1; i < indices.length; i++) {
+      if (indices[i] - last >= minGap) { count++; last = indices[i]; }
+    }
+    return count;
+  };
+  let lo = 0, hi = indices[indices.length - 1] - indices[0];
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi + 1) / 2);
+    if (countAtGap(mid) >= maxTicks) lo = mid; else hi = mid - 1;
+  }
+  const minGap = lo;
+
+  const picked = [uniq[0]];
+  for (let i = 1; i < uniq.length && picked.length < maxTicks; i++) {
+    if (uniq[i].index - picked[picked.length - 1].index >= minGap) picked.push(uniq[i]);
+  }
+  // Prefer showing the true last candidate (the range's real end date)
+  // over whatever the greedy pass happened to land on last, as long as
+  // swapping it in still respects the minimum gap from the pick before it.
+  const lastCandidate = uniq[uniq.length - 1];
+  if (picked[picked.length - 1].index !== lastCandidate.index) {
+    if (picked.length < maxTicks) {
+      picked.push(lastCandidate);
+    } else if (picked.length >= 2 && lastCandidate.index - picked[picked.length - 2].index >= minGap) {
+      picked[picked.length - 1] = lastCandidate;
+    }
+  }
+  return picked;
 }
 
-function buildAxisTicks(dates, timeframe, plotWidthPx) {
+// Selects and labels exactly `tickCount` ticks (or fewer if that many
+// real candidates don't exist) — pure function of the requested count,
+// no width/overlap reasoning here. Kept separate from budget estimation
+// so the caller can re-select at a smaller count and get a properly
+// RE-DISTRIBUTED set (still evenly spread across the full real range),
+// rather than the previous approach of rendering one fixed set and then
+// deleting whichever specific ticks happened to collide — that left
+// whatever visual gap the deletion created (e.g. dropping a crowded
+// "2022" mid-run leaves one oversized gap next to its neighbors instead
+// of the remaining ticks re-spreading evenly across the whole chart).
+function buildAxisTicksForCount(dates, timeframe, tickCount) {
   const kind = TIMEFRAME_AXIS_KIND[timeframe] || 'day';
   const seriesDates = dates.map(parseSeriesDate);
-  const maxTicks = Math.max(2, Math.floor(plotWidthPx / AXIS_LABEL_MIN_PX[kind]));
-  const ticks = thinAxisTicks(candidateAxisTicks(seriesDates, kind), maxTicks);
+  const ticks = thinAxisTicks(candidateAxisTicks(seriesDates, kind), tickCount);
   const labeled = ticks.map(t => ({ index: t.index, date: t.date, label: formatAxisLabel(t.date, kind) }));
 
   // A range spanning just over 12 months (e.g. Aug 2025 -> Aug 2026) has
@@ -1071,47 +1122,22 @@ function buildAxisTicks(dates, timeframe, plotWidthPx) {
   return labeled.map(t => ({ index: t.index, label: t.label }));
 }
 
-// Empirical, MEASURED anti-crowding pass — runs after the tick <text>
-// elements are actually in the DOM, using getBBox() on the real
-// rendered glyphs rather than a predicted character-width budget. This
-// is what actually guarantees no overlap and no near-overlap: predicted
-// budgets got this wrong in practice (real monospace glyph metrics,
-// text-anchor positioning, and rounding in the earlier index-thinning
-// pass all shift real spacing enough that a pixel estimate isn't
-// reliable on its own). It also catches a case pure overlap-detection
-// would miss: two labels sitting a couple of pixels apart without
-// technically touching still read as cramped/misleading (e.g. a young
-// ticker's real history starting mid-year makes its first two yearly
-// ticks land only ~3 months apart while every later gap is a full
-// year) — a minimum breathing-room requirement, not just "don't
-// overlap", is what a real chart needs. Walks left to right, keeping a
-// label only once it clears real breathing room from the last kept
-// one; always tries to preserve the true last tick (the chart's right
-// edge) by evicting whichever kept tick it collides with instead of
-// dropping the range's own end date.
-function thinRenderedAxisLabels(svgEl) {
-  const texts = Array.from(svgEl.querySelectorAll('.chart-date-label'));
-  if (texts.length < 2) return;
-  const GAP = 10; // viewBox units of required breathing room between labels
-  const boxes = texts.map(t => ({ el: t, box: t.getBBox() }));
+function axisTickBudget(timeframe, plotWidthPx) {
+  const kind = TIMEFRAME_AXIS_KIND[timeframe] || 'day';
+  return Math.max(2, Math.floor(plotWidthPx / AXIS_LABEL_MIN_PX[kind]));
+}
 
-  const visible = [boxes[0]];
+// Real, measured overlap check on whatever tick <text> elements are
+// currently in the DOM — getBBox() on the actual rendered glyphs, not a
+// predicted character-width guess (predicted budgets proved unreliable
+// in practice: real monospace glyph metrics and text-anchor positioning
+// shift things enough that a pixel estimate alone isn't trustworthy).
+function axisLabelsOverlap(svgEl, gap) {
+  const boxes = Array.from(svgEl.querySelectorAll('.chart-date-label')).map(t => t.getBBox());
   for (let i = 1; i < boxes.length; i++) {
-    const b = boxes[i];
-    const last = visible[visible.length - 1];
-    const clears = b.box.x >= last.box.x + last.box.width + GAP;
-    if (clears) {
-      visible.push(b);
-    } else if (i === boxes.length - 1) {
-      while (visible.length > 1 && b.box.x < visible[visible.length - 1].box.x + visible[visible.length - 1].box.width + GAP) {
-        visible.pop();
-      }
-      visible.push(b);
-    }
+    if (boxes[i].x < boxes[i - 1].x + boxes[i - 1].width + gap) return true;
   }
-
-  const keep = new Set(visible.map(v => v.el));
-  boxes.forEach(b => { if (!keep.has(b.el)) b.el.style.display = 'none'; });
+  return false;
 }
 
 // Real rendered width of the chart container when available (so mobile
@@ -1133,7 +1159,7 @@ function estimateChartWidthPx() {
 // them on the same axis implies a relationship ("price is up, so
 // sentiment must be too") that isn't necessarily true. Sentiment stays
 // in the surrounding detail pane.
-function buildTimeframeChart(series, timeframe, color, plotWidthPx) {
+function buildTimeframeChart(series, timeframe, color, tickCount) {
   const width = 600, height = 240;
   const padL = 54, padR = 40, padT = 14, padB = 24;
   const plotW = width - padL - padR, plotH = height - padT - padB;
@@ -1157,12 +1183,14 @@ function buildTimeframeChart(series, timeframe, color, plotWidthPx) {
   }).join('');
 
   // X-axis: granularity (time/date/month/year) comes from the selected
-  // timeframe, tick count from the real available width — see
-  // buildAxisTicks above. Always real dates from `series`, never
+  // timeframe; how many of the real candidate ticks get shown is decided
+  // by the caller (selectTimeframe), which measures real rendered label
+  // boxes and shrinks tickCount until nothing overlaps — see
+  // axisLabelsOverlap below. Always real dates from `series`, never
   // hardcoded, and independent of the tooltip (attachChartHover below),
   // which still shows the exact date/time on hover regardless of what's
   // printed on the axis.
-  const axisTicks = n > 1 ? buildAxisTicks(dates, timeframe, plotWidthPx || plotW) : [];
+  const axisTicks = n > 1 ? buildAxisTicksForCount(dates, timeframe, tickCount) : [];
   const dateSvg = axisTicks.map((t, i) => {
     const anchor = i === 0 ? 'start' : (i === axisTicks.length - 1 ? 'end' : 'middle');
     return `<text x="${xAt(t.index).toFixed(1)}" y="${height - 6}" text-anchor="${anchor}" class="chart-date-label">${t.label}</text>`;
@@ -1309,11 +1337,25 @@ function selectTimeframe(sym, timeframe) {
     chartMeta = null;
     return;
   }
-  const built = buildTimeframeChart(series, timeframe, color, estimateChartWidthPx());
+  // Start from a width-based estimate, then shrink and re-render if the
+  // real measured labels still overlap. Each attempt RE-SELECTS ticks
+  // evenly across the whole range (buildAxisTicksForCount), rather than
+  // deleting whichever specific ticks happened to collide — that
+  // preserves uniform spacing in the final result instead of leaving an
+  // oversized gap wherever something got dropped.
+  const AXIS_GAP = 10; // viewBox units of required breathing room between labels
+  let tickCount = axisTickBudget(timeframe, estimateChartWidthPx());
+  let built = buildTimeframeChart(series, timeframe, color, tickCount);
   chartEl.innerHTML = built.svg;
+  let guard = 0;
+  while (tickCount > 2 && axisLabelsOverlap(document.getElementById('cm-svg'), AXIS_GAP) && guard < 20) {
+    tickCount -= 1;
+    built = buildTimeframeChart(series, timeframe, color, tickCount);
+    chartEl.innerHTML = built.svg;
+    guard += 1;
+  }
   chartMeta = built.meta;
   attachChartHover();
-  thinRenderedAxisLabels(document.getElementById('cm-svg'));
 }
 
 function renderTimeframeButtons(sym) {
