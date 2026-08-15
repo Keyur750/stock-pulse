@@ -46,8 +46,6 @@ DASHBOARD_PATH = os.path.join(ROOT, "docs", "dashboard.html")
 TEMPLATE_PATH = os.path.join(ROOT, "dashboard_template.html")
 SENTIMENT_PAGE_PATH = os.path.join(ROOT, "docs", "sentiment.html")
 SENTIMENT_TEMPLATE_PATH = os.path.join(ROOT, "sentiment_template.html")
-FUNDAMENTALS_PAGE_PATH = os.path.join(ROOT, "docs", "fundamentals.html")
-FUNDAMENTALS_TEMPLATE_PATH = os.path.join(ROOT, "fundamentals_template.html")
 
 
 def load_config():
@@ -779,31 +777,18 @@ def render_dashboard(payload):
 def render_sentiment_page(payload):
     """Same embed-and-write pattern as render_dashboard, same source
     payload — the Sentiment Intelligence page is a new view over data the
-    pipeline already computes, not a new data source. Unlike the other
-    two pages, this one keeps timeframe_history: its chart modal is the
+    pipeline already computes, not a new data source. Unlike the
+    dashboard, this one keeps timeframe_history: its chart modal is the
     thing that actually reads it. Serialized compact (no indent) rather
-    than the pretty-printed style the other two pages use — nobody reads
-    this JSON by eye in the shipped page, and at this page's real data
-    volume (9 timeframes of real OHLCV per ticker) indent=2's whitespace
-    alone roughly doubles the file for no benefit."""
+    than the pretty-printed style the dashboard uses — nobody reads this
+    JSON by eye in the shipped page, and at this page's real data volume
+    (9 timeframes of real OHLCV per ticker) indent=2's whitespace alone
+    roughly doubles the file for no benefit."""
     with open(SENTIMENT_TEMPLATE_PATH, encoding="utf-8") as f:
         template = f.read()
     html = template.replace("/*__DATA__*/", json.dumps(payload, separators=(",", ":")))
     os.makedirs(os.path.dirname(SENTIMENT_PAGE_PATH), exist_ok=True)
     with open(SENTIMENT_PAGE_PATH, "w", encoding="utf-8") as f:
-        f.write(html)
-
-
-def render_fundamentals_page(payload):
-    """Same pattern again — the Fundamental Intelligence page reads the
-    same payload's `fundamentals` key, no separate data source. Also
-    drops timeframe_history for the same size reason as render_dashboard."""
-    slim = {k: v for k, v in payload.items() if k != "timeframe_history"}
-    with open(FUNDAMENTALS_TEMPLATE_PATH, encoding="utf-8") as f:
-        template = f.read()
-    html = template.replace("/*__DATA__*/", json.dumps(slim, indent=2))
-    os.makedirs(os.path.dirname(FUNDAMENTALS_PAGE_PATH), exist_ok=True)
-    with open(FUNDAMENTALS_PAGE_PATH, "w", encoding="utf-8") as f:
         f.write(html)
 
 
@@ -960,7 +945,6 @@ def main():
     }
     render_dashboard(payload)
     render_sentiment_page(payload)
-    render_fundamentals_page(payload)
 
     save_history(history, {
         "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
