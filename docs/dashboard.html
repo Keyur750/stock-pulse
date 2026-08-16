@@ -156,10 +156,12 @@
 
   /* Markets strip */
   .markets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
-  .market-tile { border-radius: var(--radius-md); padding: 10px 12px; border: 1px solid var(--border); background: var(--surface-1); border-left: 2px solid var(--gray); }
+  .market-tile { border-radius: var(--radius-md); padding: 10px 12px; border: 1px solid var(--border); background: var(--surface-1); border-left: 2px solid var(--gray); cursor: pointer; transition: background-color .15s ease, border-color .15s ease; }
+  .market-tile:hover { background: var(--surface-2); border-color: var(--border-hover); }
   .market-tile.up { border-left-color: var(--bull); }
   .market-tile.down { border-left-color: var(--bear); }
-  .market-tile-name { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .market-tile-name { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .15s ease; }
+  .market-tile:hover .market-tile-name { color: var(--accent); }
   .market-tile-price { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; margin-top: 4px; }
   .market-tile-chg { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; margin-top: 1px; }
   .market-tile-chg.up { color: var(--bull); }
