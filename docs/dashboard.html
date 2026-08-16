@@ -11340,26 +11340,42 @@ function attachMoverClicks(containerId) {
   });
 }
 
+// Real price movement, not sentiment — top_bullish/top_bearish rank by
+// crowd sentiment (a SBUX row there can be down -0.22% on the day), which
+// answers a different question than "what actually moved the most today."
+// Sorts every tracked ticker by its own change_pct and takes the top 5
+// each way, capped rather than forced to exactly 5 if the data doesn't
+// support it.
+function computeMovers() {
+  const withPrices = DATA.watchlist_grid.filter(t => t.change_pct !== null && t.change_pct !== undefined);
+  const sorted = [...withPrices].sort((a, b) => b.change_pct - a.change_pct);
+  const gainers = sorted.filter(t => t.change_pct > 0).slice(0, 5);
+  const losers = sorted.filter(t => t.change_pct < 0).slice(-5).reverse();
+  return { gainers, losers };
+}
+
 function renderMovers() {
+  const { gainers, losers } = computeMovers();
+
   const gainersRows = document.getElementById('top-gainers-rows');
   const gainersEmpty = document.getElementById('top-gainers-empty');
-  if (DATA.top_bullish.length === 0) {
+  if (gainers.length === 0) {
     gainersRows.innerHTML = '';
     gainersEmpty.style.display = 'block';
   } else {
     gainersEmpty.style.display = 'none';
-    gainersRows.innerHTML = moverRowsHtml(DATA.top_bullish);
+    gainersRows.innerHTML = moverRowsHtml(gainers);
     attachMoverClicks('top-gainers-rows');
   }
 
   const losersRows = document.getElementById('top-losers-rows');
   const losersEmpty = document.getElementById('top-losers-empty');
-  if (DATA.top_bearish.length === 0) {
+  if (losers.length === 0) {
     losersRows.innerHTML = '';
     losersEmpty.style.display = 'block';
   } else {
     losersEmpty.style.display = 'none';
-    losersRows.innerHTML = moverRowsHtml(DATA.top_bearish);
+    losersRows.innerHTML = moverRowsHtml(losers);
     attachMoverClicks('top-losers-rows');
   }
 }
