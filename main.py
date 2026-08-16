@@ -27,6 +27,7 @@ from sentiment import (
 )
 from reddit import extract_tickers
 from market_data import MACRO_INSTRUMENTS, fetch_quotes
+from supabase_sync import sync_ticker_snapshots
 from fundamentals import fetch_fundamentals, score_fundamentals
 from market_history import build_ticker_history
 from logos import ensure_logo
@@ -939,6 +940,9 @@ def main():
     top_bullish, top_bearish, most_discussed, watchlist_grid = build_sections(
         ticker_results, watchlist, min_mentions, quotes
     )
+
+    print("Syncing ticker snapshots to Supabase (live backend, Phase 1)...")
+    sync_ticker_snapshots(watchlist_grid)
 
     print("Generating today's market insight (one real LLM call, not a template)...")
     market_insight = build_market_insight(watchlist_grid)

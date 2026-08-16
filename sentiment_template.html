@@ -2364,6 +2364,43 @@ async function pollQuotes() {
 }
 pollQuotes();
 setInterval(pollQuotes, QUOTES_POLL_INTERVAL_MS);
+
+// Live backend, Phase 1: a real Supabase table (ticker_snapshots) in
+// place of a git-committed JSON file, for one representative slice of
+// data (price/change/sentiment/mentions/label). This proves the browser
+// can genuinely query a live database and patch the page with it — the
+// same "patch in place, re-render" pattern pollQuotes() already uses,
+// just sourced from a real table instead of a polled static file. It
+// does NOT make sentiment/AI refresh faster than main.py's once-daily
+// run — the numbers this returns are only as fresh as the last pipeline
+// run wrote them, same as today; what's different is *how* the browser
+// gets them. See supabase_sync.py for the write side.
+async function pollTickerSnapshots() {
+  try {
+    const { data, error } = await sbClient.from('ticker_snapshots').select('*');
+    if (error || !data) return;
+    const byTicker = {};
+    data.forEach(row => { byTicker[row.ticker] = row; });
+    securities.forEach(s => {
+      const row = byTicker[s.ticker];
+      if (!row) return;
+      if (row.price != null) s.price = row.price;
+      if (row.change_pct != null) s.change_pct = row.change_pct;
+      if (row.avg_sentiment != null) {
+        s.avg_sentiment = row.avg_sentiment;
+        s.score = normalizeScore(row.avg_sentiment);
+        s.label = labelForScore(row.avg_sentiment);
+      }
+      if (row.mentions != null) s.mentions = row.mentions;
+    });
+    renderTable();
+  } catch (e) {
+    // Silent — same as pollQuotes: a missed poll just means the table
+    // stays as it was until the next one, not worth surfacing as an error.
+  }
+}
+pollTickerSnapshots();
+setInterval(pollTickerSnapshots, QUOTES_POLL_INTERVAL_MS);
 </script>
 
 </body>
