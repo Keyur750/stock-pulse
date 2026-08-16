@@ -27,35 +27,22 @@ def sync_ticker_snapshots(watchlist_grid: list) -> int:
     try:
         client = create_client(url, key)
 
-        # ticker_snapshots.stock_id references the existing `stocks` table
-        # (built for the personal-watchlist feature) -- map ticker -> id
-        # rather than assuming one, since not every tracked ticker is
-        # guaranteed to already have a `stocks` row.
-        stocks = client.table("stocks").select("id,ticker").execute().data or []
-        stock_id_by_ticker = {s["ticker"]: s["id"] for s in stocks}
-
-        rows = []
-        skipped = []
-        for t in watchlist_grid:
-            ticker = t["ticker"]
-            stock_id = stock_id_by_ticker.get(ticker)
-            if stock_id is None:
-                skipped.append(ticker)
-                continue
-            rows.append({
-                "stock_id": stock_id,
-                "ticker": ticker,
+        # Keyed by ticker directly (see supabase/schema.sql) -- no
+        # dependency on the `stocks` table's id column or its exact type.
+        rows = [
+            {
+                "ticker": t["ticker"],
                 "price": t.get("price"),
                 "change_pct": t.get("change_pct"),
                 "avg_sentiment": t.get("avg_sentiment"),
                 "mentions": t.get("mentions"),
                 "label": t.get("label"),
-            })
+            }
+            for t in watchlist_grid
+        ]
 
         if rows:
             client.table("ticker_snapshots").upsert(rows).execute()
-        if skipped:
-            print(f"  [supabase] skipped {len(skipped)} ticker(s) missing from `stocks`: {', '.join(skipped)}")
         print(f"  [supabase] upserted {len(rows)}/{len(watchlist_grid)} ticker snapshots")
         return len(rows)
     except Exception as e:

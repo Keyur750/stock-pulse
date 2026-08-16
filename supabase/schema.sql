@@ -20,19 +20,19 @@
 -- ============================================================
 
 -- create table stocks (
---   id bigint generated always as identity primary key,
+--   id uuid default gen_random_uuid() primary key,  -- confirmed uuid live (2026-08-16); the rest of this block is still an unconfirmed best guess
 --   ticker text not null unique
 -- );
 --
 -- create table watchlists (
---   id bigint generated always as identity primary key,
+--   id uuid default gen_random_uuid() primary key,
 --   user_id uuid not null references auth.users(id),
 --   name text not null
 -- );
 --
 -- create table watchlist_items (
---   watchlist_id bigint not null references watchlists(id),
---   stock_id bigint not null references stocks(id),
+--   watchlist_id uuid not null references watchlists(id),
+--   stock_id uuid not null references stocks(id),
 --   primary key (watchlist_id, stock_id)
 -- );
 --
@@ -45,15 +45,22 @@
 --
 -- Left commented out deliberately: these tables already exist live. Do not
 -- run this section — it's here for documentation, not execution. If you
--- ever need to recreate this schema from scratch, uncomment it first.
+-- ever need to recreate this schema from scratch, uncomment it first (and
+-- verify every column type against the live project before you do, the
+-- same way `stocks.id` turned out to be uuid, not the bigint first
+-- guessed here).
 
 -- ============================================================
 -- New: ticker_snapshots (Phase 1 of the live-backend migration)
 -- ============================================================
+-- Deliberately has no foreign key into `stocks` -- that table's exact
+-- shape isn't fully confirmed (see above), and this table doesn't
+-- actually need the relationship for anything Phase 1 does. Using the
+-- ticker symbol itself as the primary key avoids depending on another
+-- table's schema being guessed correctly.
 
 create table if not exists ticker_snapshots (
-  stock_id bigint primary key references stocks(id),
-  ticker text not null,
+  ticker text primary key,
   price numeric,
   change_pct numeric,
   avg_sentiment numeric,
