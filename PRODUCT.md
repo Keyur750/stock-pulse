@@ -485,10 +485,15 @@ this shape later instead of needing a rebuild.
 - **Budget** (2026-08-12): $0/month right now, ~$100/month approved when
   there's a concrete reason. The AI analyst runs on Gemini's free tier;
   upgrading model quality is a one-line change in `analyst.py`.
-- **Flagship ticker set** (2026-08-12): META, AMZN, NOW, NVDA, RDDT,
-  NBIS, SOFI, IONQ, PANW, TEAM, INTC, BA, NKE, SBUX, PTON. The entire
-  site's coverage right now — see "What's built" for why the last five
-  were added, and keep adding deliberately adversarial names as the set
+- **Flagship ticker set** (updated 2026-08-16): META, AMZN, NOW, NVDA,
+  RDDT, NBIS, SOFI, IONQ, PANW, TEAM, INTC, BA, NKE, SBUX, PTON, TSLA,
+  COIN, BABA, DIS, PYPL, AMD, MU, JPM, XOM, UNH, PFE, SNAP, CVNA, CRWD, T
+  — 30 tickers, the entire site's coverage right now. The 2026-08-16
+  addition (AMD, MU, JPM, XOM, UNH, PFE, SNAP, CVNA, CRWD, T) filled real
+  sector gaps that had zero coverage — financials, energy, healthcare,
+  telecom — and kept the adversarial-testing discipline going (UNH,
+  PFE, SNAP, CVNA are real, currently-weak names, not just growth
+  darlings). Keep adding deliberately adversarial names as the set
   evolves, not just ones likely to score well.
 - **Model pin, not alias** (2026-08-12): `analyst.py`'s `MODEL` is
   pinned explicitly, never a `-latest` alias — one silently repointed
