@@ -80,11 +80,13 @@ def main():
         q = macro_raw.get(sym)
         if not q:
             continue
+        m_hist = q.get("history") or []
         macro[sym] = {
             "name": name,
             "category": category,
             "price": q["price"],
             "change_pct": q["change_pct"],
+            "previous_close": m_hist[-2]["close"] if len(m_hist) >= 2 else None,
             "history": q["history"],
         }
 

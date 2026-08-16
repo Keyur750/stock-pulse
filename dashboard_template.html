@@ -224,14 +224,31 @@
   .chart-modal-chg.up { color: var(--bull); }
   .chart-modal-chg.down { color: var(--bear); }
   .chart-modal-chg.na { color: var(--text-faint); }
+  /* Timeframe selector — every requirement (chart data, $/% change,
+     color, tooltip) is driven by whichever button is active. Selecting
+     one is a single function (selectTimeframe) so these can never fall
+     out of sync with each other. */
+  .cm-timeframes { display: flex; gap: 4px; margin-top: 16px; flex-wrap: wrap; }
+  .cm-tf-btn {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+    padding: 5px 11px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text-secondary); cursor: pointer; transition: all .12s ease;
+  }
+  .cm-tf-btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
+  .cm-tf-btn.active { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent); }
+  .cm-tf-btn.unavailable { opacity: 0.4; }
+  .cm-tf-btn.unavailable:hover { opacity: 0.7; }
+
+  .chart-modal-asof { font-size: 10.5px; color: var(--text-faint); margin-top: 4px; }
+  .chart-modal-asof.live { color: var(--bull); display: inline-flex; align-items: center; gap: 5px; }
+  .chart-modal-asof.live::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--bull); flex-shrink: 0; animation: livePulse 2s ease-in-out infinite; }
+  @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  .chart-empty-timeframe { padding: 40px 24px; text-align: center; color: var(--text-faint); font-size: 12.5px; line-height: 1.65; }
+  .chart-empty-timeframe strong { color: var(--text-secondary); }
+
   .chart-modal-chart { margin-top: 20px; position: relative; }
   .chart-axis-label, .chart-date-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: var(--text-faint); }
-  .chart-legend { display: flex; gap: 16px; margin-bottom: 8px; }
-  .chart-legend-item { display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-secondary); }
-  .chart-legend-swatch { display: inline-block; width: 16px; height: 2px; }
-  .chart-legend-swatch.price { background: var(--accent); }
-  .chart-legend-swatch.sentiment { background-image: linear-gradient(90deg, var(--amber) 60%, transparent 40%); background-size: 7px 2px; }
-  .chart-sentiment-note { font-size: 10.5px; color: var(--text-faint); margin-top: 10px; }
   .chart-tooltip { position: absolute; pointer-events: none; background: var(--surface-3); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 11px; font-family: 'JetBrains Mono', monospace; box-shadow: var(--shadow-md); opacity: 0; transition: opacity .1s ease; white-space: nowrap; transform: translate(-50%, 0); }
   .chart-empty { padding: 44px 0; text-align: center; color: var(--text-faint); font-size: 13px; }
   .chart-modal-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-faint); }
@@ -488,8 +505,10 @@
       <div class="chart-modal-price">
         <div class="chart-modal-px" id="cm-price"></div>
         <div class="chart-modal-chg" id="cm-chg"></div>
+        <div class="chart-modal-asof" id="cm-asof"></div>
       </div>
     </div>
+    <div class="cm-timeframes" id="cm-timeframes" role="tablist" aria-label="Select chart timeframe"></div>
     <div class="chart-modal-chart" id="cm-chart"></div>
     <div class="chart-modal-footer">
       <span id="cm-source"></span>
@@ -628,25 +647,281 @@ const tickerInfo = {};
   if (!tickerInfo[t.ticker]) tickerInfo[t.ticker] = t;
 });
 
+const TIMEFRAME_ORDER = ['1D', '1W', '1M', '3M', '6M', '1Y', '5Y', '10Y', '20Y'];
 let chartMeta = null;
 let currentModalTicker = null;
+let currentTimeframe = '1D';
+let latestQuotes = {}; // populated by pollQuotes() — real, freshly-polled price/previous_close/market_status
 
-function buildLineChart(history, sentimentHistory) {
+function formatVolume(v) {
+  if (v === null || v === undefined) return null;
+  if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+  if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+  if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+  return String(v);
+}
+
+// --- X-axis tick generation ---------------------------------------------
+// Granularity is chosen from the selected timeframe, then the actual
+// number of ticks shown adapts to real available pixel width so labels
+// never overlap. Ticks are always snapped to real dates already present
+// in `series` (which market_history.py already resolved) — nothing here
+// invents a date or hardcodes a year; it only decides which of the real
+// points get a visible label. The hover tooltip is untouched and keeps
+// showing the exact date regardless of what the axis displays.
+const TIMEFRAME_AXIS_KIND = {
+  '1D': 'time', '1W': 'day', '1M': 'day',
+  '3M': 'month-day', '6M': 'month', '1Y': 'month',
+  '5Y': 'year', '10Y': 'year', '20Y': 'year',
+};
+const AXIS_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function parseSeriesDate(s) {
+  const [datePart, timePart] = s.split(' ');
+  const [y, m, d] = datePart.split('-').map(Number);
+  if (timePart) {
+    const [hh, mm] = timePart.split(':').map(Number);
+    return new Date(y, m - 1, d, hh, mm);
+  }
+  return new Date(y, m - 1, d);
+}
+
+function formatAxisLabel(date, kind) {
+  if (kind === 'time') {
+    let h = date.getHours();
+    const m = date.getMinutes();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${h}:${String(m).padStart(2, '0')} ${ampm}`;
+  }
+  if (kind === 'day' || kind === 'month-day') return `${AXIS_MONTHS[date.getMonth()]} ${date.getDate()}`;
+  if (kind === 'month') return AXIS_MONTHS[date.getMonth()];
+  return String(date.getFullYear());
+}
+
+// Every real point is a candidate for 'time'/'day' (thinned by pixel
+// budget below); 'month'/'month-day'/'year' generate one candidate per
+// real calendar boundary crossed, each snapped to the closest actual
+// data point rather than assumed to exist exactly on the 1st. Candidates
+// carry only the real `date` (and `slot` for month-day) — positioning
+// downstream is time-proportional, not index-based, so no array index
+// is needed here.
+function candidateAxisTicks(seriesDates, kind) {
+  if (kind === 'time' || kind === 'day') {
+    return seriesDates.map(d => ({ date: d }));
+  }
+  const first = seriesDates[0], last = seriesDates[seriesDates.length - 1];
+  // `slot` identifies WHICH tick within a month a target represents (0 =
+  // month-start, 1 = mid-month for month-day only) — fixed at generation
+  // time, not derived from where it ends up snapping, so the two
+  // intentional month-day sub-ticks never collapse into each other.
+  const targets = [];
+  if (kind === 'month' || kind === 'month-day') {
+    let cur = new Date(first.getFullYear(), first.getMonth(), 1);
+    while (cur <= last) {
+      targets.push({ target: new Date(cur), slot: 0 });
+      if (kind === 'month-day') targets.push({ target: new Date(cur.getFullYear(), cur.getMonth(), 15), slot: 1 });
+      cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+    }
+  } else {
+    for (let y = first.getFullYear(); y <= last.getFullYear(); y++) targets.push({ target: new Date(y, 0, 1), slot: 0 });
+  }
+  // Snap FORWARD to the first real session on or after the target, never
+  // "nearest in either direction". Nearest-either-direction would let a
+  // month whose 1st falls on a weekend/holiday (e.g. Nov 1 2025, a
+  // Saturday) snap backward into the previous month's last session,
+  // silently merging into that month's bucket and vanishing from the
+  // axis entirely — a real bug, not just a styling nit. Forward-snapping
+  // guarantees every real month/year gets its own representative point.
+  const snapped = targets
+    .filter(t => t.target <= last)
+    .map(t => {
+      let snappedDate = seriesDates[seriesDates.length - 1];
+      for (let i = 0; i < seriesDates.length; i++) {
+        if (seriesDates[i] >= t.target) { snappedDate = seriesDates[i]; break; }
+      }
+      return { date: snappedDate, slot: t.slot };
+    });
+  // De-dupe by the actual snapped calendar period (+ slot): a target
+  // from before the very first real date, or two targets that end up
+  // snapping to the same real point, must not render two labels stacked
+  // at the same x position. (thinAxisTicks separately de-dupes by exact
+  // timestamp too, catching anything left over.)
+  const seenPeriods = new Set();
+  return snapped.filter(s => {
+    const key = kind === 'year'
+      ? String(s.date.getFullYear())
+      : `${s.date.getFullYear()}-${s.date.getMonth()}-${s.slot}`;
+    if (seenPeriods.has(key)) return false;
+    seenPeriods.add(key);
+    return true;
+  });
+}
+
+// Picks up to `maxTicks` candidates whose spacing in REAL TIME is as
+// even as mathematically possible, by MAXIMIZING THE MINIMUM TIME GAP
+// between chosen picks (binary search over the gap size + a greedy
+// feasibility check — the standard, provably-optimal approach for
+// "choose K points from N to spread them out evenly"). Operates on real
+// timestamps, not array position: candidates for month/year kinds
+// aren't evenly spaced in time by construction (a young ticker's first
+// two yearly ticks can land only ~3 months apart while later ones are a
+// full year apart — real data, not a bug), so this is what makes the
+// final selection genuinely even instead of inheriting that unevenness.
+function thinAxisTicks(candidates, maxTicks) {
+  const dedupe = list => {
+    const seen = new Set();
+    return list.filter(c => {
+      const t = c.date.getTime();
+      if (seen.has(t)) return false;
+      seen.add(t);
+      return true;
+    });
+  };
+  const uniq = dedupe(candidates).sort((a, b) => a.date - b.date);
+  if (uniq.length <= maxTicks || maxTicks <= 1) return uniq;
+
+  const times = uniq.map(c => c.date.getTime());
+  const countAtGap = (minGap) => {
+    let count = 1, last = times[0];
+    for (let i = 1; i < times.length; i++) {
+      if (times[i] - last >= minGap) { count++; last = times[i]; }
+    }
+    return count;
+  };
+  let lo = 0, hi = times[times.length - 1] - times[0];
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi + 1) / 2);
+    if (countAtGap(mid) >= maxTicks) lo = mid; else hi = mid - 1;
+  }
+  const minGap = lo;
+
+  const picked = [uniq[0]];
+  for (let i = 1; i < uniq.length && picked.length < maxTicks; i++) {
+    if (uniq[i].date.getTime() - picked[picked.length - 1].date.getTime() >= minGap) picked.push(uniq[i]);
+  }
+  // Prefer showing the true last candidate (the range's real end date)
+  // over whatever the greedy pass happened to land on last, as long as
+  // swapping it in still respects the minimum gap from the pick before it.
+  const lastCandidate = uniq[uniq.length - 1];
+  if (picked[picked.length - 1].date.getTime() !== lastCandidate.date.getTime()) {
+    if (picked.length < maxTicks) {
+      picked.push(lastCandidate);
+    } else if (picked.length >= 2 && lastCandidate.date.getTime() - picked[picked.length - 2].date.getTime() >= minGap) {
+      picked[picked.length - 1] = lastCandidate;
+    }
+  }
+  return picked;
+}
+
+// Year-kind ticks get their own selection, separate from thinAxisTicks:
+// a "years" axis reads best as a clean, predictable stride -- every
+// year, every 2nd, every 5th -- like Yahoo/Google Finance ("2006, 2008,
+// 2010...") rather than the maximin-gap algorithm's mathematically-
+// optimal-but-irregular subset (which can start on an odd year and
+// still leave a lopsided final gap). If every real year fits within the
+// budget, show them all; only fall back to striding when there isn't
+// room for one tick per year.
+function thinYearTicks(candidates, maxTicks) {
+  const dedupe = list => {
+    const seen = new Set();
+    return list.filter(c => {
+      const t = c.date.getTime();
+      if (seen.has(t)) return false;
+      seen.add(t);
+      return true;
+    });
+  };
+  const uniq = dedupe(candidates).sort((a, b) => a.date - b.date);
+  if (uniq.length <= 1) return uniq;
+
+  if (uniq.length <= maxTicks) {
+    // Every real year fits -- except a leading tick that doesn't mark a
+    // genuine Jan-1 boundary (the data window just happens to start
+    // mid-year), which would crowd right up against the very next real
+    // year boundary at 1-year spacing. Drop only that one.
+    const lead = uniq[0];
+    const yearStart = new Date(lead.date.getFullYear(), 0, 1);
+    const daysIntoYear = (lead.date - yearStart) / 86400000;
+    return (daysIntoYear > 60) ? uniq.slice(1) : uniq;
+  }
+
+  // Not enough room for one tick per year: keep every Nth real year,
+  // starting from the true first year (a multi-year stride gives even a
+  // partial leading year enough real breathing room from its neighbor
+  // to be worth keeping, unlike the 1-year-spacing case above), and
+  // always include the true last year so the axis reaches "now".
+  const stride = Math.ceil(uniq.length / maxTicks);
+  const picked = [];
+  for (let i = 0; i < uniq.length; i += stride) picked.push(uniq[i]);
+  const lastCandidate = uniq[uniq.length - 1];
+  if (picked[picked.length - 1].date.getTime() !== lastCandidate.date.getTime()) {
+    picked.push(lastCandidate);
+  }
+  return picked;
+}
+
+// Selects and labels exactly `tickCount` ticks (or fewer if that many
+// real candidates don't exist) — pure function of the requested count,
+// no width/overlap reasoning here. Kept separate from budget estimation
+// so the caller can re-select at a smaller count and get a properly
+// RE-DISTRIBUTED set (still evenly spread across the full real range),
+// rather than the previous approach of rendering one fixed set and then
+// deleting whichever specific ticks happened to collide — that left
+// whatever visual gap the deletion created (e.g. dropping a crowded
+// "2022" mid-run leaves one oversized gap next to its neighbors instead
+// of the remaining ticks re-spreading evenly across the whole chart).
+function buildAxisTicksForCount(dates, timeframe, tickCount) {
+  const kind = TIMEFRAME_AXIS_KIND[timeframe] || 'day';
+  const seriesDates = dates.map(parseSeriesDate);
+  const candidates = candidateAxisTicks(seriesDates, kind);
+  const ticks = kind === 'year' ? thinYearTicks(candidates, tickCount) : thinAxisTicks(candidates, tickCount);
+  return ticks.map(t => ({ date: t.date, label: formatAxisLabel(t.date, kind) }));
+}
+
+// Real, measured overlap check on whatever tick <text> elements are
+// currently in the DOM — getBBox() on the actual rendered glyphs, not a
+// predicted character-width guess (predicted budgets proved unreliable
+// in practice: real monospace glyph metrics and text-anchor positioning
+// shift things enough that a pixel estimate alone isn't trustworthy).
+function axisLabelsOverlap(svgEl, gap) {
+  const boxes = Array.from(svgEl.querySelectorAll('.chart-date-label')).map(t => t.getBBox());
+  for (let i = 1; i < boxes.length; i++) {
+    if (boxes[i].x < boxes[i - 1].x + boxes[i - 1].width + gap) return true;
+  }
+  return false;
+}
+
+// The price chart is deliberately price-only — no sentiment overlay.
+// Stock performance and sentiment are two different systems; showing
+// them on the same axis implies a relationship ("price is up, so
+// sentiment must be too") that isn't necessarily true. Sentiment stays
+// in the surrounding detail pane.
+function buildTimeframeChart(series, timeframe, color, tickCount) {
   const width = 600, height = 240;
   const padL = 54, padR = 40, padT = 14, padB = 24;
   const plotW = width - padL - padR, plotH = height - padT - padB;
-  const closes = history.map(h => h.close);
-  const dates = history.map(h => h.date);
+  const closes = series.map(r => r.close);
+  const dates = series.map(r => r.date);
+  const volumes = series.map(r => r.volume);
+  const times = dates.map(d => parseSeriesDate(d).getTime());
   const n = closes.length;
   const min = Math.min(...closes), max = Math.max(...closes);
   const range = (max - min) || (max * 0.01) || 1;
-  const stepX = n > 1 ? plotW / (n - 1) : 0;
-  const xAt = i => padL + i * stepX;
+  const t0 = times[0], t1 = times[n - 1];
+  const tSpan = (t1 - t0) || 1;
+  // Time-proportional positioning (matches Yahoo/Google Finance): each
+  // point sits at its real elapsed calendar time from the series start,
+  // not its array index. This is what makes axis tick spacing genuinely
+  // even across real calendar time -- weekends, holidays, and varying
+  // month lengths all naturally compress or expand the plotted gap
+  // instead of every point getting an identical pixel width regardless
+  // of how much real time it represents.
+  const xAtTime = t => padL + ((t - t0) / tSpan) * plotW;
+  const xAt = i => n > 1 ? xAtTime(times[i]) : padL;
   const yAt = c => padT + plotH - ((c - min) / range) * plotH;
   const pts = closes.map((c, i) => `${xAt(i).toFixed(1)},${yAt(c).toFixed(1)}`).join(' ');
   const areaPts = `${xAt(0).toFixed(1)},${(padT + plotH).toFixed(1)} ${pts} ${xAt(n - 1).toFixed(1)},${(padT + plotH).toFixed(1)}`;
-  const up = closes[n - 1] >= closes[0];
-  const seriesColor = up ? 'var(--bull)' : 'var(--bear)';
 
   const gridVals = [max, (max + min) / 2, min];
   const gridSvg = gridVals.map(v => {
@@ -655,67 +930,49 @@ function buildLineChart(history, sentimentHistory) {
            `<text x="${padL - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end" class="chart-axis-label">${v.toFixed(2)}</text>`;
   }).join('');
 
-  const dateLabel = s => s.slice(5);
-  const dateSvg = n > 1
-    ? `<text x="${xAt(0)}" y="${height - 6}" text-anchor="start" class="chart-date-label">${dateLabel(history[0].date)}</text>` +
-      `<text x="${xAt(n - 1)}" y="${height - 6}" text-anchor="end" class="chart-date-label">${dateLabel(history[n - 1].date)}</text>`
-    : '';
-
-  // Sentiment overlay — plotted on the same time axis (each point snapped
-  // to its nearest price-history date) but a fixed -1..1 scale, not an
-  // autoscaled one. Sentiment naturally lives in a small range; autoscaling
-  // it would blow up ordinary noise into something that looks dramatic.
-  // Gaps (days with no chatter) are real and left as gaps, not interpolated.
-  let sentimentSvg = '';
-  let legendHtml = '';
-  const hasSentiment = sentimentHistory && sentimentHistory.length >= 2;
-  if (hasSentiment) {
-    const closestIndex = (dateStr) => {
-      const exact = dates.indexOf(dateStr);
-      if (exact !== -1) return exact;
-      const target = new Date(dateStr).getTime();
-      let best = 0, bestDiff = Infinity;
-      dates.forEach((d, i) => {
-        const diff = Math.abs(new Date(d).getTime() - target);
-        if (diff < bestDiff) { bestDiff = diff; best = i; }
-      });
-      return best;
-    };
-    const ySentAt = s => padT + plotH - ((s + 1) / 2) * plotH;
-    const sentPts = sentimentHistory.map(p => ({
-      x: xAt(closestIndex(p.date)),
-      y: ySentAt(Math.max(-1, Math.min(1, p.avg_sentiment))),
-    }));
-    const sentPolyline = sentPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-    const sentDots = sentPts.map(p => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="var(--amber)"/>`).join('');
-    const zeroY = ySentAt(0);
-
-    sentimentSvg = `
-      <line x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${padL + plotW}" y2="${zeroY.toFixed(1)}" stroke="var(--amber)" stroke-width="1" stroke-dasharray="2,3" opacity="0.35"/>
-      <polyline points="${sentPolyline}" fill="none" stroke="var(--amber)" stroke-width="1.75" stroke-dasharray="4,3" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
-      ${sentDots}
-      <text x="${(padL + plotW + 8).toFixed(1)}" y="${(padT + 3).toFixed(1)}" text-anchor="start" class="chart-axis-label" style="fill:var(--amber)">+1</text>
-      <text x="${(padL + plotW + 8).toFixed(1)}" y="${(zeroY + 3).toFixed(1)}" text-anchor="start" class="chart-axis-label" style="fill:var(--amber)">0</text>
-      <text x="${(padL + plotW + 8).toFixed(1)}" y="${(padT + plotH + 3).toFixed(1)}" text-anchor="start" class="chart-axis-label" style="fill:var(--amber)">-1</text>
-    `;
-    legendHtml = `<div class="chart-legend">
-      <span class="chart-legend-item"><span class="chart-legend-swatch price"></span>Price</span>
-      <span class="chart-legend-item"><span class="chart-legend-swatch sentiment"></span>Retail sentiment</span>
-    </div>`;
-  }
+  // X-axis: granularity (time/date/month/year) comes from the selected
+  // timeframe; how many of the real candidate ticks get shown is decided
+  // by the caller (selectTimeframe), which measures real rendered label
+  // boxes and shrinks tickCount until nothing overlaps — see
+  // axisLabelsOverlap below. Always real dates from `series`, never
+  // hardcoded, and independent of the tooltip (attachChartHover below),
+  // which still shows the exact date/time on hover regardless of what's
+  // printed on the axis.
+  const axisTicks = n > 1 ? buildAxisTicksForCount(dates, timeframe, tickCount) : [];
+  const dateSvg = axisTicks.map((t, i) => {
+    const anchor = i === 0 ? 'start' : (i === axisTicks.length - 1 ? 'end' : 'middle');
+    return `<text x="${xAtTime(t.date.getTime()).toFixed(1)}" y="${height - 6}" text-anchor="${anchor}" class="chart-date-label">${t.label}</text>`;
+  }).join('');
 
   const svg = `<svg id="cm-svg" width="100%" viewBox="0 0 ${width} ${height}" style="display:block;">
       ${gridSvg}
-      <polygon points="${areaPts}" style="fill:${seriesColor}" opacity="0.12"/>
-      <polyline points="${pts}" fill="none" style="stroke:${seriesColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      ${sentimentSvg}
+      <polygon points="${areaPts}" style="fill:${color}" opacity="0.12"/>
+      <polyline points="${pts}" fill="none" style="stroke:${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       ${dateSvg}
       <line id="cm-crosshair" x1="0" y1="${padT}" x2="0" y2="${padT + plotH}" stroke="var(--text-faint)" stroke-width="1" style="display:none;"/>
-      <circle id="cm-dot" r="4" style="display:none;fill:${seriesColor}"/>
+      <circle id="cm-dot" r="4" style="display:none;fill:${color}"/>
     </svg>
     <div class="chart-tooltip" id="cm-tooltip"></div>`;
 
-  return { svg, legendHtml, hasSentiment, meta: { width, height, padL, plotW, n, xAt, yAt, closes, dates } };
+  return { svg, meta: { width, height, padL, plotW, n, xAt, yAt, closes, dates, volumes, times, t0, tSpan, timeframe } };
+}
+
+// Binary search for the series index whose real timestamp is closest to
+// `target` -- needed because xAt is now time-proportional rather than a
+// uniform per-index step, so a uniform-step formula can no longer be
+// inverted to find the nearest point under the cursor.
+function nearestIndexByTime(times, target) {
+  const n = times.length;
+  if (target <= times[0]) return 0;
+  if (target >= times[n - 1]) return n - 1;
+  let lo = 0, hi = n - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (times[mid] === target) return mid;
+    if (times[mid] < target) lo = mid + 1; else hi = mid;
+  }
+  const after = lo, before = lo - 1;
+  return (target - times[before] <= times[after] - target) ? before : after;
 }
 
 function attachChartHover() {
@@ -730,9 +987,8 @@ function attachChartHover() {
     if (!rect.width) return;
     const scaleX = chartMeta.width / rect.width;
     const mx = (e.clientX - rect.left) * scaleX;
-    const step = chartMeta.n > 1 ? chartMeta.plotW / (chartMeta.n - 1) : 1;
-    let idx = Math.round((mx - chartMeta.padL) / step);
-    idx = Math.max(0, Math.min(chartMeta.n - 1, idx));
+    const targetTime = chartMeta.t0 + ((mx - chartMeta.padL) / chartMeta.plotW) * chartMeta.tSpan;
+    const idx = chartMeta.n > 1 ? nearestIndexByTime(chartMeta.times, targetTime) : 0;
     const x = chartMeta.xAt(idx);
     const y = chartMeta.yAt(chartMeta.closes[idx]);
 
@@ -742,7 +998,10 @@ function attachChartHover() {
     dot.style.display = 'block';
 
     const sx = rect.width / chartMeta.width, sy = rect.height / chartMeta.height;
-    tooltip.textContent = `${chartMeta.dates[idx]} · $${chartMeta.closes[idx].toFixed(2)}`;
+    const rawDate = chartMeta.dates[idx];
+    const dateText = (chartMeta.timeframe === '1D' && rawDate.includes(' ')) ? rawDate.split(' ')[1] : rawDate;
+    const vol = formatVolume(chartMeta.volumes[idx]);
+    tooltip.textContent = `${dateText} · $${chartMeta.closes[idx].toFixed(2)}${vol ? ' · Vol ' + vol : ''}`;
     tooltip.style.left = (x * sx) + 'px';
     tooltip.style.top = Math.max(0, y * sy - 32) + 'px';
     tooltip.style.opacity = '1';
@@ -751,6 +1010,149 @@ function attachChartHover() {
     crosshair.style.display = 'none';
     dot.style.display = 'none';
     tooltip.style.opacity = '0';
+  });
+}
+
+// 1D recomputed from freshly-polled quotes.json when available (real
+// live_price vs real previous_close, same formula market_history.py
+// used at batch time — never a different methodology), so the number
+// keeps moving between full pipeline runs. Falls back to the embedded
+// once-daily value when no fresher quote has been polled yet.
+function liveOneDayPerf(sym, embeddedPerf) {
+  const q = latestQuotes[sym];
+  if (!q || q.price === undefined || q.price === null) return embeddedPerf;
+  const prevClose = (q.previous_close !== undefined && q.previous_close !== null)
+    ? q.previous_close
+    : (embeddedPerf ? embeddedPerf.period_start_price : null);
+  if (prevClose === null || prevClose === undefined || !prevClose) return embeddedPerf;
+  const absChange = q.price - prevClose;
+  const pctChange = (absChange / prevClose) * 100;
+  return {
+    period_start_date: null,
+    period_start_price: prevClose,
+    current_price: q.price,
+    abs_change: absChange,
+    pct_change: pctChange,
+    direction: pctChange > 0 ? 'up' : pctChange < 0 ? 'down' : 'flat',
+    data_available: true,
+  };
+}
+
+function directionClass(direction) {
+  return direction === 'up' ? 'up' : direction === 'down' ? 'down' : 'na';
+}
+
+// The single function every timeframe button calls — chart data, $/%
+// change, color, and tooltip source all update from the SAME timeframe
+// record in one pass, so they can never disagree with each other.
+function selectTimeframe(sym, timeframe) {
+  currentTimeframe = timeframe;
+  const tickerHistory = (DATA.timeframe_history || {})[sym];
+  const timeframes = tickerHistory ? tickerHistory.timeframes : {};
+  const tfData = timeframes[timeframe];
+  let perf = tfData ? tfData.performance : null;
+  if (timeframe === '1D') perf = liveOneDayPerf(sym, perf);
+
+  document.querySelectorAll('.cm-tf-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tf === timeframe);
+  });
+
+  const priceEl = document.getElementById('cm-price');
+  const chgEl = document.getElementById('cm-chg');
+  const asofEl = document.getElementById('cm-asof');
+  const chartEl = document.getElementById('cm-chart');
+
+  if (!perf || !perf.data_available) {
+    const yrs = tickerHistory ? tickerHistory.years_available : null;
+    const msg = (yrs !== null && yrs !== undefined)
+      ? `<strong>${yrs} year${yrs === 1 ? '' : 's'}</strong> of historical data available for ${sym} — not enough history yet for ${timeframe}.`
+      : `Historical price data unavailable for ${sym}.`;
+    chartEl.innerHTML = `<div class="chart-empty-timeframe">${msg}</div>`;
+    chartMeta = null;
+    chgEl.textContent = '—';
+    chgEl.className = 'chart-modal-chg na';
+    asofEl.textContent = '';
+    return;
+  }
+
+  const color = perf.direction === 'up' ? 'var(--bull)' : perf.direction === 'down' ? 'var(--bear)' : 'var(--text-faint)';
+  priceEl.textContent = fmtPrice(perf.current_price);
+  const sign = perf.abs_change >= 0 ? '+' : '-';
+  chgEl.textContent = `${sign}$${Math.abs(perf.abs_change).toFixed(2)} (${sign}${Math.abs(perf.pct_change).toFixed(2)}%) · ${timeframe}`;
+  chgEl.className = 'chart-modal-chg ' + directionClass(perf.direction);
+
+  const q = latestQuotes[sym];
+  if (timeframe === '1D' && q && q.market_status === 'open') {
+    asofEl.textContent = 'Live';
+    asofEl.className = 'chart-modal-asof live';
+  } else if (timeframe === '1D') {
+    const statusLabel = q && q.market_status ? q.market_status.replace('-', ' ') : '';
+    asofEl.textContent = statusLabel ? `Market ${statusLabel} — showing latest close` : 'Showing latest available price';
+    asofEl.className = 'chart-modal-asof';
+  } else {
+    const series = tfData.series;
+    const lastPoint = series && series.length ? series[series.length - 1] : null;
+    asofEl.textContent = lastPoint ? `As of ${lastPoint.date}` : '';
+    asofEl.className = 'chart-modal-asof';
+  }
+
+  const series = tfData.series;
+  if (!series || !series.length) {
+    chartEl.innerHTML = `<div class="chart-empty">No chart data available for ${sym} yet.</div>`;
+    chartMeta = null;
+    return;
+  }
+  // Start from the real number of calendar ticks available (every real
+  // day/month/year in range, not a conservative pixel-width guess), then
+  // shrink and re-render only if the real measured labels actually
+  // overlap. This is what makes a 1Y chart show all 13 real months
+  // instead of a fixed budget silently capping it below what truly fits.
+  // Each attempt RE-SELECTS ticks evenly across the whole range
+  // (buildAxisTicksForCount), rather than deleting whichever specific
+  // ticks happened to collide — that preserves uniform spacing in the
+  // final result instead of leaving an oversized gap wherever something
+  // got dropped.
+  // Real, required whitespace between adjacent labels -- a bounding-box
+  // gap of "0 or positive" isn't enough: two monospace labels whose boxes
+  // merely touch (0-1px gap) render with no visible space between them
+  // at all. This must stay positive and large enough to guarantee legible
+  // separation.
+  const AXIS_GAP = 4; // viewBox units of required breathing room between labels
+  const axisKind = TIMEFRAME_AXIS_KIND[timeframe] || 'day';
+  const seriesDatesForAxis = series.map(r => parseSeriesDate(r.date));
+  // Every real calendar unit is a candidate for 'day'/'month'/'year'
+  // kinds (at most a few dozen even for a 20Y range), but 'time' kind
+  // (1D) has one candidate per intraday bar -- dozens of 5-minute points
+  // in a single session. Cap the starting point so the shrink loop below
+  // converges in a bounded number of steps regardless of kind; every
+  // other kind's real candidate count already sits well under this cap,
+  // so it never trims something that would otherwise have fit.
+  let tickCount = Math.max(2, Math.min(30, candidateAxisTicks(seriesDatesForAxis, axisKind).length));
+  let built = buildTimeframeChart(series, timeframe, color, tickCount);
+  chartEl.innerHTML = built.svg;
+  let guard = 0;
+  while (tickCount > 2 && axisLabelsOverlap(document.getElementById('cm-svg'), AXIS_GAP) && guard < 30) {
+    tickCount -= 1;
+    built = buildTimeframeChart(series, timeframe, color, tickCount);
+    chartEl.innerHTML = built.svg;
+    guard += 1;
+  }
+  chartMeta = built.meta;
+  attachChartHover();
+}
+
+function renderTimeframeButtons(sym) {
+  const tickerHistory = (DATA.timeframe_history || {})[sym];
+  const timeframes = tickerHistory ? tickerHistory.timeframes : {};
+  const el = document.getElementById('cm-timeframes');
+  el.innerHTML = TIMEFRAME_ORDER.map(tf => {
+    const tfData = timeframes[tf];
+    const available = !!(tfData && tfData.performance && tfData.performance.data_available);
+    const titleAttr = available ? '' : ` title="Not enough historical data for ${tf} yet"`;
+    return `<button type="button" class="cm-tf-btn${available ? '' : ' unavailable'}" data-tf="${tf}" role="tab"${titleAttr}>${tf}</button>`;
+  }).join('');
+  el.querySelectorAll('.cm-tf-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectTimeframe(sym, btn.dataset.tf));
   });
 }
 
@@ -870,41 +1272,52 @@ function renderAiSection(result) {
 }
 
 function openChartModal(sym) {
+  // Flagship tickers get sentiment/AI/watchlist extras alongside the
+  // chart; macro instruments (indices, crypto, commodities, global
+  // markets) never have that data and never will, so those sections are
+  // hidden entirely here rather than rendering their "no data today"
+  // empty states, which were written for a tracked ticker with a quiet
+  // day, not something structurally outside what gets tracked.
+  const isFlagship = allTickers.includes(sym);
   const info = tickerInfo[sym] || {};
-  const hist = (DATA.price_history || {})[sym];
 
   currentModalTicker = sym;
-  updateWatchlistStar();
   document.getElementById('cm-sym').textContent = sym;
-  document.getElementById('cm-price').textContent = fmtPrice(info.price);
-  const chgEl = document.getElementById('cm-chg');
-  chgEl.textContent = fmtChg(info.change_pct);
-  chgEl.className = 'chart-modal-chg ' + chgClass(info.change_pct);
 
-  document.getElementById('cm-meta').textContent = info.label
-    ? `${info.label}${info.mentions ? ` · ${info.mentions} messages today` : ''}`
-    : 'No chatter data for this ticker today';
+  const starEl = document.getElementById('cm-watchlist-star');
+  starEl.style.display = isFlagship ? '' : 'none';
+  if (isFlagship) updateWatchlistStar();
 
-  const src = sourceTitle(info);
+  document.getElementById('cm-meta').textContent = isFlagship
+    ? (info.label ? `${info.label}${info.mentions ? ` · ${info.mentions} messages today` : ''}` : 'No chatter data for this ticker today')
+    : '';
+
+  const src = isFlagship ? sourceTitle(info) : '';
   document.getElementById('cm-source').textContent = src ? `Based on ${src}` : '';
   document.getElementById('cm-yahoo').href = tickerUrl(sym);
 
-  const chartEl = document.getElementById('cm-chart');
-  if (!hist || hist.length < 2) {
-    chartEl.innerHTML = `<div class="chart-empty">No chart data available for ${sym} yet.</div>`;
+  const hasHistory = !!(DATA.timeframe_history || {})[sym];
+  if (!hasHistory) {
+    document.getElementById('cm-timeframes').innerHTML = '';
+    document.getElementById('cm-chart').innerHTML = `<div class="chart-empty">Historical price data unavailable for ${sym}.</div>`;
+    document.getElementById('cm-price').textContent = fmtPrice(info.price);
+    const chgEl = document.getElementById('cm-chg');
+    chgEl.textContent = fmtChg(info.change_pct);
+    chgEl.className = 'chart-modal-chg ' + chgClass(info.change_pct);
+    document.getElementById('cm-asof').textContent = '';
     chartMeta = null;
   } else {
-    const sentHist = (DATA.sentiment_history || {})[sym];
-    const built = buildLineChart(hist, sentHist);
-    const note = built.hasSentiment ? '' :
-      '<div class="chart-sentiment-note">Sentiment trend line appears once a few days of history build up for this ticker.</div>';
-    chartEl.innerHTML = built.legendHtml + built.svg + note;
-    chartMeta = built.meta;
-    attachChartHover();
+    renderTimeframeButtons(sym);
+    selectTimeframe(sym, '1D');
   }
 
   renderPillarRow(sym);
-  renderAiSection((DATA.analyst || {})[sym]);
+  if (isFlagship) {
+    renderAiSection((DATA.analyst || {})[sym]);
+  } else {
+    document.getElementById('cm-ai').style.display = 'none';
+    document.getElementById('cm-ai-empty').style.display = 'none';
+  }
 
   document.getElementById('chart-modal').style.display = 'flex';
   document.body.classList.add('modal-open');
@@ -1101,23 +1514,26 @@ renderMovers();
 // a loading skeleton until the first poll resolves.
 function renderMarketsStrip(macro) {
   const grid = document.getElementById('markets-grid');
-  const entries = Object.values(macro || {});
+  const entries = Object.entries(macro || {});
   if (entries.length === 0) {
     grid.innerHTML = Array.from({ length: 8 }).map(() =>
       '<div class="market-tile"><div class="market-tile-name">Loading…</div></div>'
     ).join('');
     return;
   }
-  grid.innerHTML = entries.map(m => {
+  grid.innerHTML = entries.map(([symbol, m]) => {
     const cls = chgClass(m.change_pct);
     const spark = sparklineSvg(m.history, 'market-tile-spark', 100, 20, m.change_pct);
-    return `<div class="market-tile ${cls}">
+    return `<div class="market-tile ${cls}" data-ticker="${symbol}">
       <div class="market-tile-name">${m.name}</div>
       <div class="market-tile-price">${fmtPrice(m.price)}</div>
       <div class="market-tile-chg ${cls}">${fmtChg(m.change_pct)}</div>
       ${spark}
     </div>`;
   }).join('');
+  grid.querySelectorAll('.market-tile').forEach(tileEl => {
+    tileEl.addEventListener('click', () => openChartModal(tileEl.dataset.ticker));
+  });
 }
 renderMarketsStrip({});
 
@@ -1445,6 +1861,8 @@ renderAuthState();
 const QUOTES_POLL_INTERVAL_MS = 60000;
 
 function applyQuoteUpdates(quotes, macro) {
+  latestQuotes = { ...quotes, ...(macro || {}) };
+
   [DATA.top_bullish, DATA.top_bearish, DATA.most_discussed, DATA.watchlist_grid].forEach(list => {
     list.forEach(t => {
       const q = quotes[t.ticker];
@@ -1457,12 +1875,8 @@ function applyQuoteUpdates(quotes, macro) {
   renderMyWatchlist();
   renderTape();
 
-  if (currentModalTicker && quotes[currentModalTicker]) {
-    const info = tickerInfo[currentModalTicker];
-    document.getElementById('cm-price').textContent = fmtPrice(info.price);
-    const chgEl = document.getElementById('cm-chg');
-    chgEl.textContent = fmtChg(info.change_pct);
-    chgEl.className = 'chart-modal-chg ' + chgClass(info.change_pct);
+  if (currentModalTicker && currentTimeframe === '1D' && latestQuotes[currentModalTicker]) {
+    selectTimeframe(currentModalTicker, '1D');
   }
 }
 

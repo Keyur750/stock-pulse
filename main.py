@@ -26,7 +26,7 @@ from sentiment import (
     MAX_SCORE_MAGNITUDE, tag_of, build_market_insight,
 )
 from reddit import extract_tickers
-from market_data import fetch_quotes
+from market_data import MACRO_INSTRUMENTS, fetch_quotes
 from fundamentals import fetch_fundamentals, score_fundamentals
 from market_history import build_ticker_history
 from logos import ensure_logo
@@ -759,16 +759,41 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     return analyst_results, pillar_scores, fundamentals_data, history_data
 
 
+def fetch_macro_history(sleep_seconds=2.0):
+    """Same real, pre-resolved multi-timeframe chart data run_analyst_pipeline
+    builds for flagship tickers, but for the macro instruments shown in the
+    dashboard's Markets strip (indices, crypto, commodities, global markets)
+    — build_ticker_history is already ticker-agnostic, so this is the same
+    call, just without the sentiment/AI analyst machinery those tickers
+    don't have and never will."""
+    history_data = {}
+    symbols = [m[0] for m in MACRO_INSTRUMENTS]
+    for i, symbol in enumerate(symbols):
+        try:
+            quote = fetch_quotes([symbol], period="5d").get(symbol, {})
+            q_history = quote.get("history") or []
+            previous_close = q_history[-2]["close"] if len(q_history) >= 2 else None
+            ticker_history = build_ticker_history(symbol, live_price=quote.get("price"), previous_close=previous_close)
+            if ticker_history:
+                history_data[symbol] = ticker_history
+        except Exception:
+            pass
+        if i < len(symbols) - 1:
+            time.sleep(sleep_seconds)
+    print(f"  [macro history] {len(history_data)}/{len(symbols)} macro instruments have real multi-timeframe chart data")
+    return history_data
+
+
 def render_dashboard(payload):
-    # timeframe_history is real OHLCV across 9 timeframes for every
-    # ticker — sizable, and only the Sentiment Intelligence page's chart
-    # modal reads it today. Dropping it here keeps this page's payload to
-    # what it actually uses instead of quadrupling its size for data
-    # nothing on it touches.
-    slim = {k: v for k, v in payload.items() if k != "timeframe_history"}
+    # Dashboard now shows the same full multi-timeframe chart for every
+    # ticker (flagship stocks + macro instruments) that the Sentiment page
+    # does, so it needs timeframe_history too — no longer stripped here.
+    # Compact serialization for the same reason render_sentiment_page uses
+    # it: this payload is now large enough that pretty-printing it is pure
+    # waste.
     with open(TEMPLATE_PATH, encoding="utf-8") as f:
         template = f.read()
-    html = template.replace("/*__DATA__*/", json.dumps(slim, indent=2))
+    html = template.replace("/*__DATA__*/", json.dumps(payload, separators=(",", ":")))
     os.makedirs(os.path.dirname(DASHBOARD_PATH), exist_ok=True)
     with open(DASHBOARD_PATH, "w", encoding="utf-8") as f:
         f.write(html)
@@ -777,10 +802,8 @@ def render_dashboard(payload):
 def render_sentiment_page(payload):
     """Same embed-and-write pattern as render_dashboard, same source
     payload — the Sentiment Intelligence page is a new view over data the
-    pipeline already computes, not a new data source. Unlike the
-    dashboard, this one keeps timeframe_history: its chart modal is the
-    thing that actually reads it. Serialized compact (no indent) rather
-    than the pretty-printed style the dashboard uses — nobody reads this
+    pipeline already computes, not a new data source. Serialized compact
+    (no indent), same reasoning as render_dashboard: nobody reads this
     JSON by eye in the shipped page, and at this page's real data volume
     (9 timeframes of real OHLCV per ticker) indent=2's whitespace alone
     roughly doubles the file for no benefit."""
@@ -906,6 +929,9 @@ def main():
             flagship_tickers, ticker_results, news_items, price_history, quotes,
             sleep_seconds=config.get("analyst_call_sleep_seconds", 7),
         )
+
+    print("Fetching multi-timeframe chart data for macro instruments (indices, crypto, commodities, global markets)...")
+    history_data.update(fetch_macro_history(sleep_seconds=config.get("macro_history_call_sleep_seconds", 2.0)))
 
     print("Computing signals (divergences, volume spikes, the Divergence Engine)...")
     signals = compute_signals(ticker_results, history, pillar_scores)
