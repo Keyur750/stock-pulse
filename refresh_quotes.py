@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 import pandas as pd
 import pandas_market_calendars as mcal
 
-from market_data import fetch_quotes
+from market_data import MACRO_INSTRUMENTS, fetch_quotes
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(ROOT, "config.json")
@@ -69,14 +69,34 @@ def main():
             "previous_close": previous_close,
             "market_status": status,
         }
+    # Macro instruments (indices, crypto, commodities, global markets) have
+    # no once-daily source the way the flagship watchlist does (they're not
+    # part of main.py's pipeline at all), so this file is their only
+    # supplier — history is kept (unlike the flagship quotes above) so the
+    # dashboard's Markets strip has something to sparkline.
+    macro_raw = fetch_quotes([m[0] for m in MACRO_INSTRUMENTS], period="1mo")
+    macro = {}
+    for sym, name, category in MACRO_INSTRUMENTS:
+        q = macro_raw.get(sym)
+        if not q:
+            continue
+        macro[sym] = {
+            "name": name,
+            "category": category,
+            "price": q["price"],
+            "change_pct": q["change_pct"],
+            "history": q["history"],
+        }
+
     payload = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "quotes": quotes,
+        "macro": macro,
     }
     os.makedirs(os.path.dirname(QUOTES_PATH), exist_ok=True)
     with open(QUOTES_PATH, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2)
-    print(f"Wrote {len(quotes)} quotes to {QUOTES_PATH} (market_status={status})")
+    print(f"Wrote {len(quotes)} quotes + {len(macro)} macro instruments to {QUOTES_PATH} (market_status={status})")
 
 
 if __name__ == "__main__":

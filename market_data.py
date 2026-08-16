@@ -14,6 +14,28 @@ INDICES = [
     ("^VIX", "VIX"),
 ]
 
+# (symbol, display name, category) — powers the dashboard's "Markets" strip.
+# category is a display grouping only, not used for weighting. ^NSEI
+# (Nifty 50) chosen over ^BSESN (Sensex) as India's benchmark — more
+# commonly quoted internationally. Every symbol here was verified live
+# against yfinance before being added.
+MACRO_INSTRUMENTS = [
+    ("^GSPC", "S&P 500", "US"),
+    ("^IXIC", "Nasdaq Composite", "US"),
+    ("^DJI", "Dow Jones", "US"),
+    ("^RUT", "Russell 2000", "US"),
+    ("^VIX", "VIX", "US"),
+    ("BTC-USD", "Bitcoin", "Crypto"),
+    ("ETH-USD", "Ethereum", "Crypto"),
+    ("GC=F", "Gold", "Commodities"),
+    ("SI=F", "Silver", "Commodities"),
+    ("CL=F", "Crude Oil", "Commodities"),
+    ("^N225", "Nikkei 225", "Global"),
+    ("^NSEI", "Nifty 50", "Global"),
+    ("000001.SS", "Shanghai Composite", "Global"),
+    ("^KS11", "KOSPI", "Global"),
+]
+
 # (symbol, display name, approx. S&P 500 sector weight %) — weight drives
 # treemap tile size on the dashboard, same convention as Finviz/TradingView
 # sector maps. Ballpark figures, not live weights; only used for sizing.
