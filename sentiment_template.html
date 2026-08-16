@@ -865,14 +865,16 @@ function sourceTitle(t) {
   return parts.join(' · ');
 }
 
-// Neutral accent line, not bull/bear: this draws from chart_history_period
-// (3 months) but sits right next to .sec-price-chg, which is today's
-// change_pct only. Coloring the line by its own 3-month shape meant it
-// regularly disagreed with that badge (down today, up over 3 months, or
-// vice versa) — both individually correct, but reads as a contradiction
-// side by side. The explicit %change badge already owns the up/down
-// claim; the line just needs to show shape.
-function sparklineSvg(history, cls, width, height) {
+// Colored by changePct (today's move, the same value .sec-price-chg
+// already renders from) rather than the line's own 3-month shape —
+// coloring by the line's own shape used to contradict that badge (a
+// stock down today but up over 3 months rendered a green line next to a
+// red number). Driving both off the identical number makes that
+// impossible: the line can never disagree with the badge next to it.
+// changePct keeps whatever value the last quote refresh set — through
+// after-hours and until the next session's first real trade — so the
+// color holds at its closing direction rather than resetting.
+function sparklineSvg(history, cls, width, height, changePct) {
   width = width || 60; height = height || 24;
   if (!history || history.length < 2) return `<span class="spark-empty" style="color:var(--text-faint);font-size:11px;">—</span>`;
   const closes = history.map(h => h.close);
@@ -880,8 +882,9 @@ function sparklineSvg(history, cls, width, height) {
   const range = (max - min) || (max * 0.01) || 1;
   const stepX = width / (closes.length - 1);
   const pts = closes.map((c, i) => `${(i * stepX).toFixed(1)},${(height - ((c - min) / range) * height).toFixed(1)}`).join(' ');
+  const strokeColor = (changePct === null || changePct === undefined) ? 'var(--accent)' : (changePct >= 0 ? 'var(--bull)' : 'var(--bear)');
   return `<svg class="${cls || ''}" width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">` +
-    `<polyline points="${pts}" fill="none" style="stroke:var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    `<polyline points="${pts}" fill="none" style="stroke:${strokeColor}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 
 // Deterministic ticker avatar color — a fixed hash into a palette that
@@ -2071,7 +2074,7 @@ function renderTable() {
           <div class="sec-price-chg ${chgClass(s.change_pct)}">${fmtChg(s.change_pct)}</div>
         </div>
       </td>
-      <td class="sec-spark-cell" data-chart-ticker="${s.ticker}" title="View full chart">${sparklineSvg(DATA.price_history ? DATA.price_history[s.ticker] : null, 'sec-spark', 88, 30)}</td>
+      <td class="sec-spark-cell" data-chart-ticker="${s.ticker}" title="View full chart">${sparklineSvg(DATA.price_history ? DATA.price_history[s.ticker] : null, 'sec-spark', 88, 30, s.change_pct)}</td>
     </tr>`;
 
     if (!isSelected) return row;
@@ -2331,9 +2334,13 @@ renderAuthState();
 
 // Live 1D price — polls the same quotes.json a separate, lightweight
 // GitHub Actions job refreshes every ~15 minutes (see refresh_quotes.py),
-// same mechanism the dashboard already uses. Only the open chart modal's
-// 1D tab reacts live; historical timeframes and the rest of the page are
-// unaffected, since only today's price genuinely changes this fast.
+// same mechanism the dashboard already uses. Patches each security's
+// price/change_pct in place and re-renders the table, so the price cell
+// and the sparkline's color (driven by that same change_pct) both track
+// the live move — not just the open chart modal's 1D tab. change_pct
+// keeps whatever value the last refresh set through after-hours and
+// until the next session's first real trade, so red/green holds at the
+// close direction rather than resetting.
 const QUOTES_POLL_INTERVAL_MS = 60000;
 
 async function pollQuotes() {
@@ -2342,11 +2349,16 @@ async function pollQuotes() {
     if (!res.ok) return;
     const payload = await res.json();
     latestQuotes = payload.quotes || {};
+    securities.forEach(s => {
+      const q = latestQuotes[s.ticker];
+      if (q) { s.price = q.price; s.change_pct = q.change_pct; }
+    });
+    renderTable();
     if (currentModalTicker && currentTimeframe === '1D') {
       selectTimeframe(currentModalTicker, '1D');
     }
   } catch (e) {
-    // Silent — a missed refresh just means the modal stays as it was
+    // Silent — a missed refresh just means the page stays as it was
     // until the next poll; not worth surfacing as a user-facing error.
   }
 }

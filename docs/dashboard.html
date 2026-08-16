@@ -10984,15 +10984,16 @@ function deltaHtml(delta) {
 
 // Self-hosted charts, built straight from price_history — no external
 // chart embed, no round-trip to Yahoo Finance just to see a trend.
-// Neutral accent line, not bull/bear: this sparkline is drawn from
-// chart_history_period (3 months), while every place it's used sits right
-// next to a colored badge for change_pct (today only). Coloring the line
-// by its own 3-month shape meant it regularly disagreed with that badge —
-// a stock down today but up over 3 months (or vice versa) rendered a
-// green line next to a red number, which reads as a bug even though both
-// were individually correct. The explicit %change badge already owns the
-// up/down claim; the line just needs to show shape.
-function sparklineSvg(history, cls, width, height) {
+// Colored by changePct (today's move, the same value the adjacent price
+// badge already renders from) rather than the line's own 3-month shape —
+// coloring by the line's own shape used to contradict that badge (a stock
+// down today but up over 3 months rendered a green line next to a red
+// number). Driving both off the identical number makes that impossible:
+// the line can never disagree with the badge next to it. changePct keeps
+// whatever value the last quote refresh set — through after-hours and
+// until the next session's first real trade — so the color holds at its
+// closing direction rather than resetting.
+function sparklineSvg(history, cls, width, height, changePct) {
   width = width || 60; height = height || 24;
   if (!history || history.length < 2) return `<span class="spark-empty">${cls === 'wl-spark' ? '' : '—'}</span>`;
   const closes = history.map(h => h.close);
@@ -11000,8 +11001,9 @@ function sparklineSvg(history, cls, width, height) {
   const range = (max - min) || (max * 0.01) || 1;
   const stepX = width / (closes.length - 1);
   const pts = closes.map((c, i) => `${(i * stepX).toFixed(1)},${(height - ((c - min) / range) * height).toFixed(1)}`).join(' ');
+  const strokeColor = (changePct === null || changePct === undefined) ? 'var(--accent)' : (changePct >= 0 ? 'var(--bull)' : 'var(--bear)');
   return `<svg class="${cls || ''}" width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">` +
-    `<polyline points="${pts}" fill="none" style="stroke:var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    `<polyline points="${pts}" fill="none" style="stroke:${strokeColor}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 
 // Merge every list a ticker can appear in so the chart modal has whatever
@@ -11429,7 +11431,7 @@ function leaderRow(t, rank) {
       <div class="leader-meta">${bullPct}% bull &middot; ${bearPct}% bear</div>
     </div>
     <span class="leader-mentions" title="${sourceTitle(t)}">${t.mentions}</span>
-    <span class="leader-spark">${sparklineSvg((DATA.price_history || {})[t.ticker])}</span>
+    <span class="leader-spark">${sparklineSvg((DATA.price_history || {})[t.ticker], undefined, undefined, undefined, t.change_pct)}</span>
     <span class="leader-price-col">
       <span class="px">${fmtPrice(t.price)}</span>
       <span class="chg ${chgClass(t.change_pct)}">${fmtChg(t.change_pct)}</span>
@@ -11476,7 +11478,7 @@ function renderDiscussed() {
       return `<tr>
         <td>${tickerLink(t.ticker, `<span class="ticker-sym">${t.ticker}</span>`)}${badge}</td>
         <td class="price-cell"><span class="px">${fmtPrice(t.price)}</span><span class="chg ${chgClass(t.change_pct)}">${fmtChg(t.change_pct)}</span></td>
-        <td>${sparklineSvg((DATA.price_history || {})[t.ticker], 'table-spark', 56, 22)}</td>
+        <td>${sparklineSvg((DATA.price_history || {})[t.ticker], 'table-spark', 56, 22, t.change_pct)}</td>
         <td class="mono" title="${sourceTitle(t)}">${t.mentions}</td>
         <td style="min-width:150px;">
           <div class="leader-bar-track">
@@ -11523,7 +11525,7 @@ function renderWatchlist() {
         <span class="wl-chg ${chgClass(t.change_pct)}">${fmtChg(t.change_pct)}</span>
       </div>
       <div class="wl-label ${labelCls}" title="${sourceTitle(t)}">${labelText}</div>
-      ${sparklineSvg((DATA.price_history || {})[t.ticker], 'wl-spark', 130, 26)}
+      ${sparklineSvg((DATA.price_history || {})[t.ticker], 'wl-spark', 130, 26, t.change_pct)}
     </div>`;
   }).join('');
 }
@@ -11794,7 +11796,7 @@ function renderMyWatchlist() {
   grid.innerHTML = tickers.map(sym => {
     const row = DATA.watchlist_grid.find(t => t.ticker === sym) || {};
     const cls = chgClass(row.change_pct);
-    const spark = sparklineSvg((DATA.price_history || {})[sym], 'watchlist-row-spark', 90, 22);
+    const spark = sparklineSvg((DATA.price_history || {})[sym], 'watchlist-row-spark', 90, 22, row.change_pct);
     return `<div class="watchlist-row ${cls}" data-ticker="${sym}">
       <span class="watchlist-row-sym">${sym}</span>
       ${spark}
