@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-18 07:01 UTC",
+  "generated_at": "2026-08-18 07:51 UTC",
   "quotes": {
     "META": {
       "price": 589.85,
@@ -438,6 +438,14 @@
           "close": 2942.4299
         },
         {
+          "date": "2026-07-21",
+          "close": 2987.3999
+        },
+        {
+          "date": "2026-07-22",
+          "close": 2959.9399
+        },
+        {
           "date": "2026-07-23",
           "close": 2940.1599
         },
@@ -460,6 +468,10 @@
         {
           "date": "2026-07-30",
           "close": 2946.1001
+        },
+        {
+          "date": "2026-07-31",
+          "close": 2931.3401
         },
         {
           "date": "2026-08-03",
@@ -506,9 +518,9 @@
     "^VIX": {
       "name": "VIX",
       "category": "US",
-      "price": 14.25,
-      "change_pct": -2.6,
-      "previous_close": 14.63,
+      "price": 15.89,
+      "change_pct": 11.51,
+      "previous_close": 14.25,
       "history": [
         {
           "date": "2026-07-20",
@@ -577,15 +589,19 @@
         {
           "date": "2026-08-14",
           "close": 14.25
+        },
+        {
+          "date": "2026-08-18",
+          "close": 15.89
         }
       ]
     },
     "BTC-USD": {
       "name": "Bitcoin",
       "category": "Crypto",
-      "price": 64255.03,
-      "change_pct": 2.29,
-      "previous_close": 62818.6523,
+      "price": 64116.18,
+      "change_pct": -0.6,
+      "previous_close": 64506.2539,
       "history": [
         {
           "date": "2026-07-18",
@@ -708,17 +724,21 @@
           "close": 62818.6523
         },
         {
+          "date": "2026-08-17",
+          "close": 64506.2539
+        },
+        {
           "date": "2026-08-18",
-          "close": 64255.0312
+          "close": 64116.1797
         }
       ]
     },
     "ETH-USD": {
       "name": "Ethereum",
       "category": "Crypto",
-      "price": 1900.98,
-      "change_pct": 1.44,
-      "previous_close": 1873.943,
+      "price": 1896.7,
+      "change_pct": -0.81,
+      "previous_close": 1912.2021,
       "history": [
         {
           "date": "2026-07-18",
@@ -841,16 +861,20 @@
           "close": 1873.943
         },
         {
+          "date": "2026-08-17",
+          "close": 1912.2021
+        },
+        {
           "date": "2026-08-18",
-          "close": 1900.98
+          "close": 1896.7
         }
       ]
     },
     "GC=F": {
       "name": "Gold",
       "category": "Commodities",
-      "price": 4453.6,
-      "change_pct": 0.81,
+      "price": 4458.3,
+      "change_pct": 0.92,
       "previous_close": 4417.7998,
       "history": [
         {
@@ -939,15 +963,15 @@
         },
         {
           "date": "2026-08-18",
-          "close": 4453.6001
+          "close": 4458.2998
         }
       ]
     },
     "SI=F": {
       "name": "Silver",
       "category": "Commodities",
-      "price": 65.39,
-      "change_pct": -1.11,
+      "price": 65.26,
+      "change_pct": -1.29,
       "previous_close": 66.121,
       "history": [
         {
@@ -1036,15 +1060,15 @@
         },
         {
           "date": "2026-08-18",
-          "close": 65.39
+          "close": 65.265
         }
       ]
     },
     "CL=F": {
       "name": "Crude Oil",
       "category": "Commodities",
-      "price": 85.32,
-      "change_pct": 0.97,
+      "price": 84.18,
+      "change_pct": -0.38,
       "previous_close": 84.5,
       "history": [
         {
@@ -1133,7 +1157,7 @@
         },
         {
           "date": "2026-08-18",
-          "close": 85.32
+          "close": 84.18
         }
       ]
     },
@@ -1144,14 +1168,6 @@
       "change_pct": -1.82,
       "previous_close": 68713.7969,
       "history": [
-        {
-          "date": "2026-07-21",
-          "close": 66232.1875
-        },
-        {
-          "date": "2026-07-22",
-          "close": 66115.6016
-        },
         {
           "date": "2026-07-23",
           "close": 66422.6016
@@ -1175,10 +1191,6 @@
         {
           "date": "2026-07-30",
           "close": 61867.4297
-        },
-        {
-          "date": "2026-07-31",
-          "close": 64362.0195
         },
         {
           "date": "2026-08-03",
@@ -1225,8 +1237,8 @@
     "^NSEI": {
       "name": "Nifty 50",
       "category": "Global",
-      "price": 24217.8,
-      "change_pct": -0.61,
+      "price": 24201.05,
+      "change_pct": -0.68,
       "previous_close": 24366.0,
       "history": [
         {
@@ -1311,15 +1323,15 @@
         },
         {
           "date": "2026-08-18",
-          "close": 24217.8008
+          "close": 24201.0508
         }
       ]
     },
     "000001.SS": {
       "name": "Shanghai Composite",
       "category": "Global",
-      "price": 3991.06,
-      "change_pct": 1.63,
+      "price": 3990.3,
+      "change_pct": 1.61,
       "previous_close": 3927.177,
       "history": [
         {
@@ -1392,7 +1404,7 @@
         },
         {
           "date": "2026-08-18",
-          "close": 3991.0571
+          "close": 3990.3037
         }
       ]
     },
@@ -1406,6 +1418,14 @@
         {
           "date": "2026-07-20",
           "close": 6516.27
+        },
+        {
+          "date": "2026-07-21",
+          "close": 6747.9502
+        },
+        {
+          "date": "2026-07-22",
+          "close": 6797.7002
         },
         {
           "date": "2026-07-23",
@@ -1430,6 +1450,10 @@
         {
           "date": "2026-07-30",
           "close": 5593.5601
+        },
+        {
+          "date": "2026-07-31",
+          "close": 6595.4502
         },
         {
           "date": "2026-08-03",
