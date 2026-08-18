@@ -102,3 +102,31 @@ alter table sentiment_history enable row level security;
 
 create policy "Public read access" on sentiment_history
   for select using (true);
+
+-- ============================================================
+-- New: signal_history (Phase 3a of the live-backend migration)
+-- ============================================================
+-- data/signal_history.json is git-committed and trimmed to
+-- signal_history_days_to_keep (365, config.json) -- this is the "track
+-- record" data PRODUCT.md treats as the long-term moat, so removing that
+-- cap matters most here. Same (ticker, date) upsert-dedupe pattern as
+-- sentiment_history. Columns match build_signal_snapshot()'s return shape
+-- in main.py exactly.
+
+create table if not exists signal_history (
+  ticker text not null,
+  date date not null,
+  crowd numeric,
+  wall_street numeric,
+  business numeric,
+  market numeric,
+  divergence text,
+  confidence numeric,
+  price numeric,
+  primary key (ticker, date)
+);
+
+alter table signal_history enable row level security;
+
+create policy "Public read access" on signal_history
+  for select using (true);

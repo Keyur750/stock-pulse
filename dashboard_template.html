@@ -1895,6 +1895,32 @@ async function pollQuotes() {
 }
 pollQuotes();
 setInterval(pollQuotes, QUOTES_POLL_INTERVAL_MS);
+
+// Live sentiment/mentions refresh — reads the same ticker_snapshots table
+// the Sentiment page already polls (see sentiment_template.html). Only
+// avg_sentiment/mentions/label move here; price/change_pct stay on
+// quotes.json above. Mutates objects already referenced by tickerInfo in
+// place, so the chart modal picks up fresh values without extra wiring.
+async function pollTickerSnapshots() {
+  try {
+    const { data, error } = await sbClient.from('ticker_snapshots').select('*');
+    if (error || !data) return;
+    const byTicker = {};
+    data.forEach(row => { byTicker[row.ticker] = row; });
+    [DATA.top_bullish, DATA.top_bearish, DATA.most_discussed, DATA.watchlist_grid].forEach(list => {
+      list.forEach(t => {
+        const row = byTicker[t.ticker];
+        if (!row) return;
+        if (row.avg_sentiment != null) t.avg_sentiment = row.avg_sentiment;
+        if (row.mentions != null) t.mentions = row.mentions;
+        if (row.label != null) t.label = row.label;
+      });
+    });
+    renderTape();
+  } catch (e) {}
+}
+pollTickerSnapshots();
+setInterval(pollTickerSnapshots, QUOTES_POLL_INTERVAL_MS);
 </script>
 
 </body>

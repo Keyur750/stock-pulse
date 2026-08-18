@@ -27,7 +27,7 @@ from sentiment import (
 )
 from reddit import extract_tickers
 from market_data import MACRO_INSTRUMENTS, fetch_quotes
-from supabase_sync import sync_sentiment_history, sync_ticker_snapshots
+from supabase_sync import sync_sentiment_history, sync_signal_history, sync_ticker_snapshots
 from fundamentals import fetch_fundamentals, score_fundamentals
 from market_history import build_ticker_history
 from logos import ensure_logo
@@ -997,11 +997,15 @@ def main():
         }, config.get("analyst_history_days_to_keep", 90))
 
     if pillar_scores:
+        signal_snapshot = build_signal_snapshot(pillar_scores, signals, quotes)
         signal_history = load_signal_history()
         save_signal_history(signal_history, {
             "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            "tickers": build_signal_snapshot(pillar_scores, signals, quotes),
+            "tickers": signal_snapshot,
         }, config.get("signal_history_days_to_keep", 365))
+
+        print("Syncing today's signal history to Supabase (live backend, Phase 3a)...")
+        sync_signal_history(signal_snapshot, datetime.now(timezone.utc).strftime("%Y-%m-%d"))
 
     print(f"\nDone. Open {DASHBOARD_PATH} in your browser.")
 

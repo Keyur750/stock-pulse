@@ -86,3 +86,43 @@ def sync_sentiment_history(ticker_results: list, today: str) -> int:
     except Exception as e:
         print(f"  [supabase] sentiment history sync failed, continuing without it: {e}")
         return 0
+
+
+def sync_signal_history(snapshot: dict, today: str) -> int:
+    """Writes today's per-ticker pillar-score snapshot into signal_history --
+    Phase 3a. Same shape as sync_sentiment_history: main.py already has the
+    snapshot dict (build_signal_snapshot's return value) for the current
+    run, so this just upserts one row per ticker for `today`. The
+    (ticker, date) primary key gives the same same-day-rerun dedupe as
+    save_signal_history()'s JSON logic, for free."""
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not key:
+        print("  [supabase] SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set, skipping signal history sync")
+        return 0
+
+    try:
+        client = create_client(url, key)
+
+        rows = [
+            {
+                "ticker": ticker,
+                "date": today,
+                "crowd": entry.get("crowd"),
+                "wall_street": entry.get("wall_street"),
+                "business": entry.get("business"),
+                "market": entry.get("market"),
+                "divergence": entry.get("divergence"),
+                "confidence": entry.get("confidence"),
+                "price": entry.get("price"),
+            }
+            for ticker, entry in snapshot.items()
+        ]
+
+        if rows:
+            client.table("signal_history").upsert(rows).execute()
+        print(f"  [supabase] upserted {len(rows)}/{len(snapshot)} signal history rows for {today}")
+        return len(rows)
+    except Exception as e:
+        print(f"  [supabase] signal history sync failed, continuing without it: {e}")
+        return 0
