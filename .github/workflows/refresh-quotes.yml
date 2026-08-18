@@ -32,8 +32,29 @@ jobs:
 
       - name: Commit and push updated quotes
         run: |
+          set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/quotes.json
-          git diff --staged --quiet || git commit -m "Refresh live quotes $(date -u +'%Y-%m-%d %H:%M UTC')"
-          git push
+          git diff --staged --quiet && exit 0
+          git commit -m "Refresh live quotes $(date -u +'%Y-%m-%d %H:%M UTC')"
+
+          # Same race as update-dashboard.yml: this can land while that
+          # ~30-minute job is mid-run. The two never touch the same files
+          # (this one: docs/quotes.json only), so a rebase onto the latest
+          # main is always a pure reorder, never a real conflict.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt/5) -- rebasing onto latest origin/main and retrying..."
+            git fetch origin main
+            if ! git rebase origin/main; then
+              echo "Rebase hit a real conflict (unexpected -- these workflows shouldn't touch the same files). Aborting."
+              git rebase --abort
+              exit 1
+            fi
+            sleep 5
+          done
+          echo "Failed to push after 5 attempts."
+          exit 1

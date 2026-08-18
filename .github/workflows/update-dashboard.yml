@@ -38,8 +38,32 @@ jobs:
 
       - name: Commit and push updated dashboard
         run: |
+          set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/dashboard.html docs/sentiment.html docs/.nojekyll data/history.json data/analyst_history.json data/signal_history.json
-          git diff --staged --quiet || git commit -m "Update dashboard $(date -u +'%Y-%m-%d %H:%M UTC')"
-          git push
+          git diff --staged --quiet && exit 0
+          git commit -m "Update dashboard $(date -u +'%Y-%m-%d %H:%M UTC')"
+
+          # This job takes 20-30+ minutes, and the quotes-refresh job (every
+          # 15 min) commits to main the whole time it's running -- a bare
+          # push loses that race more often than not. The two jobs never
+          # touch the same files (this one: docs/dashboard.html, docs/
+          # sentiment.html, data/*.json; quotes-refresh: docs/quotes.json
+          # only), so rebasing onto the latest main is always a pure
+          # reorder, never a real conflict -- safe to retry automatically.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt/5) -- rebasing onto latest origin/main and retrying..."
+            git fetch origin main
+            if ! git rebase origin/main; then
+              echo "Rebase hit a real conflict (unexpected -- these workflows shouldn't touch the same files). Aborting."
+              git rebase --abort
+              exit 1
+            fi
+            sleep 5
+          done
+          echo "Failed to push after 5 attempts."
+          exit 1
