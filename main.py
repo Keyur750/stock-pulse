@@ -27,7 +27,7 @@ from sentiment import (
 )
 from reddit import extract_tickers
 from market_data import MACRO_INSTRUMENTS, fetch_quotes
-from supabase_sync import sync_ticker_snapshots
+from supabase_sync import sync_sentiment_history, sync_ticker_snapshots
 from fundamentals import fetch_fundamentals, score_fundamentals
 from market_history import build_ticker_history
 from logos import ensure_logo
@@ -943,6 +943,10 @@ def main():
 
     print("Syncing ticker snapshots to Supabase (live backend, Phase 1)...")
     sync_ticker_snapshots(watchlist_grid)
+
+    print("Syncing today's sentiment history to Supabase (live backend, Phase 2)...")
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    sync_sentiment_history(ticker_results, today_str)
 
     print("Generating today's market insight (one real LLM call, not a template)...")
     market_insight = build_market_insight(watchlist_grid)

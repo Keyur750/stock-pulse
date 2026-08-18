@@ -78,3 +78,27 @@ alter table ticker_snapshots enable row level security;
 -- update / delete policy for the anon or authenticated roles below.
 create policy "Public read access" on ticker_snapshots
   for select using (true);
+
+-- ============================================================
+-- New: sentiment_history (Phase 2 of the live-backend migration)
+-- ============================================================
+-- data/history.json is a git-committed flat file, so it's trimmed to
+-- history_days_to_keep (30, config.json) every run to keep the repo from
+-- growing forever -- this table has no such constraint. Primary key on
+-- (ticker, date) means a same-day re-run upserts over today's row
+-- instead of duplicating it, the same dedupe save_history() does in
+-- Python, for free. No frontend reads this yet -- see project notes for
+-- why that's a deliberate, separate later phase.
+
+create table if not exists sentiment_history (
+  ticker text not null,
+  date date not null,
+  avg_sentiment numeric not null,
+  mentions integer,
+  primary key (ticker, date)
+);
+
+alter table sentiment_history enable row level security;
+
+create policy "Public read access" on sentiment_history
+  for select using (true);

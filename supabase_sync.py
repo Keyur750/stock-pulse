@@ -48,3 +48,41 @@ def sync_ticker_snapshots(watchlist_grid: list) -> int:
     except Exception as e:
         print(f"  [supabase] sync failed, continuing without it: {e}")
         return 0
+
+
+def sync_sentiment_history(ticker_results: list, today: str) -> int:
+    """Writes today's per-ticker avg_sentiment/mentions into sentiment_history
+    -- Phase 2. Unlike sync_ticker_snapshots, this never needs to read
+    anything back first: main.py already has today's real numbers in
+    ticker_results, so this just upserts one row per ticker for `today`.
+    The (ticker, date) primary key means a same-day re-run naturally
+    replaces today's row instead of duplicating it -- data/history.json's
+    save_history() dedupe, for free, no trimming logic needed at all since
+    this table has no size constraint forcing old rows to be discarded."""
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not key:
+        print("  [supabase] SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set, skipping sentiment history sync")
+        return 0
+
+    try:
+        client = create_client(url, key)
+
+        rows = [
+            {
+                "ticker": r["ticker"],
+                "date": today,
+                "avg_sentiment": r["avg_sentiment"],
+                "mentions": r.get("mentions"),
+            }
+            for r in ticker_results
+            if r.get("avg_sentiment") is not None
+        ]
+
+        if rows:
+            client.table("sentiment_history").upsert(rows).execute()
+        print(f"  [supabase] upserted {len(rows)}/{len(ticker_results)} sentiment history rows for {today}")
+        return len(rows)
+    except Exception as e:
+        print(f"  [supabase] sentiment history sync failed, continuing without it: {e}")
+        return 0
