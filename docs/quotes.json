@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-18 20:12 UTC",
+  "generated_at": "2026-08-18 20:39 UTC",
   "quotes": {
     "META": {
       "price": 543.67,
@@ -14,8 +14,8 @@
       "market_status": "after-hours"
     },
     "NOW": {
-      "price": 119.47,
-      "change_pct": 1.5,
+      "price": 119.49,
+      "change_pct": 1.52,
       "previous_close": 117.7,
       "market_status": "after-hours"
     },
@@ -26,8 +26,8 @@
       "market_status": "after-hours"
     },
     "RDDT": {
-      "price": 158.24,
-      "change_pct": -3.81,
+      "price": 158.25,
+      "change_pct": -3.8,
       "previous_close": 164.5,
       "market_status": "after-hours"
     },
@@ -44,8 +44,8 @@
       "market_status": "after-hours"
     },
     "IONQ": {
-      "price": 44.11,
-      "change_pct": -5.83,
+      "price": 44.12,
+      "change_pct": -5.81,
       "previous_close": 46.84,
       "market_status": "after-hours"
     },
@@ -68,14 +68,14 @@
       "market_status": "after-hours"
     },
     "BA": {
-      "price": 223.08,
-      "change_pct": -1.27,
+      "price": 223.06,
+      "change_pct": -1.28,
       "previous_close": 225.95,
       "market_status": "after-hours"
     },
     "NKE": {
       "price": 40.06,
-      "change_pct": 2.49,
+      "change_pct": 2.48,
       "previous_close": 39.09,
       "market_status": "after-hours"
     },
@@ -104,14 +104,14 @@
       "market_status": "after-hours"
     },
     "BABA": {
-      "price": 128.18,
-      "change_pct": 2.78,
+      "price": 128.15,
+      "change_pct": 2.76,
       "previous_close": 124.71,
       "market_status": "after-hours"
     },
     "DIS": {
-      "price": 103.99,
-      "change_pct": 0.47,
+      "price": 103.95,
+      "change_pct": 0.43,
       "previous_close": 103.5,
       "market_status": "after-hours"
     },
@@ -134,38 +134,38 @@
       "market_status": "after-hours"
     },
     "JPM": {
-      "price": 363.26,
-      "change_pct": 0.64,
+      "price": 363.25,
+      "change_pct": 0.63,
       "previous_close": 360.96,
       "market_status": "after-hours"
     },
     "XOM": {
-      "price": 165.61,
-      "change_pct": 2.57,
+      "price": 165.56,
+      "change_pct": 2.54,
       "previous_close": 161.46,
       "market_status": "after-hours"
     },
     "UNH": {
-      "price": 393.86,
-      "change_pct": -0.44,
+      "price": 393.93,
+      "change_pct": -0.43,
       "previous_close": 395.62,
       "market_status": "after-hours"
     },
     "PFE": {
-      "price": 27.26,
-      "change_pct": 1.45,
+      "price": 27.25,
+      "change_pct": 1.41,
       "previous_close": 26.87,
       "market_status": "after-hours"
     },
     "SNAP": {
       "price": 5.11,
-      "change_pct": -1.45,
+      "change_pct": -1.35,
       "previous_close": 5.18,
       "market_status": "after-hours"
     },
     "CVNA": {
-      "price": 65.03,
-      "change_pct": -7.22,
+      "price": 65.0,
+      "change_pct": -7.26,
       "previous_close": 70.09,
       "market_status": "after-hours"
     },
@@ -176,8 +176,8 @@
       "market_status": "after-hours"
     },
     "T": {
-      "price": 24.91,
-      "change_pct": 0.93,
+      "price": 24.9,
+      "change_pct": 0.89,
       "previous_close": 24.68,
       "market_status": "after-hours"
     }
@@ -477,8 +477,8 @@
     "^RUT": {
       "name": "Russell 2000",
       "category": "US",
-      "price": 3019.22,
-      "change_pct": -1.25,
+      "price": 3017.89,
+      "change_pct": -1.3,
       "previous_close": 3057.54,
       "history": [
         {
@@ -567,20 +567,28 @@
         },
         {
           "date": "2026-08-18",
-          "close": 3019.2231
+          "close": 3017.887
         }
       ]
     },
     "^VIX": {
       "name": "VIX",
       "category": "US",
-      "price": 15.8,
-      "change_pct": 4.02,
+      "price": 15.84,
+      "change_pct": 4.28,
       "previous_close": 15.19,
       "history": [
         {
           "date": "2026-07-20",
           "close": 18.65
+        },
+        {
+          "date": "2026-07-21",
+          "close": 17.05
+        },
+        {
+          "date": "2026-07-22",
+          "close": 16.64
         },
         {
           "date": "2026-07-23",
@@ -605,6 +613,10 @@
         {
           "date": "2026-07-30",
           "close": 17.09
+        },
+        {
+          "date": "2026-07-31",
+          "close": 15.99
         },
         {
           "date": "2026-08-03",
@@ -652,15 +664,15 @@
         },
         {
           "date": "2026-08-18",
-          "close": 15.8
+          "close": 15.84
         }
       ]
     },
     "BTC-USD": {
       "name": "Bitcoin",
       "category": "Crypto",
-      "price": 64587.56,
-      "change_pct": 0.13,
+      "price": 64595.31,
+      "change_pct": 0.14,
       "previous_close": 64506.2539,
       "history": [
         {
@@ -789,15 +801,15 @@
         },
         {
           "date": "2026-08-18",
-          "close": 64587.5586
+          "close": 64595.3086
         }
       ]
     },
     "ETH-USD": {
       "name": "Ethereum",
       "category": "Crypto",
-      "price": 1912.02,
-      "change_pct": -0.01,
+      "price": 1913.59,
+      "change_pct": 0.07,
       "previous_close": 1912.2021,
       "history": [
         {
@@ -926,15 +938,15 @@
         },
         {
           "date": "2026-08-18",
-          "close": 1912.02
+          "close": 1913.59
         }
       ]
     },
     "GC=F": {
       "name": "Gold",
       "category": "Commodities",
-      "price": 4400.4,
-      "change_pct": -0.39,
+      "price": 4393.5,
+      "change_pct": -0.55,
       "previous_close": 4417.7998,
       "history": [
         {
@@ -1023,15 +1035,15 @@
         },
         {
           "date": "2026-08-18",
-          "close": 4400.3999
+          "close": 4393.5
         }
       ]
     },
     "SI=F": {
       "name": "Silver",
       "category": "Commodities",
-      "price": 63.66,
-      "change_pct": -3.72,
+      "price": 63.57,
+      "change_pct": -3.86,
       "previous_close": 66.121,
       "history": [
         {
@@ -1120,15 +1132,15 @@
         },
         {
           "date": "2026-08-18",
-          "close": 63.66
+          "close": 63.57
         }
       ]
     },
     "CL=F": {
       "name": "Crude Oil",
       "category": "Commodities",
-      "price": 84.07,
-      "change_pct": -0.51,
+      "price": 84.22,
+      "change_pct": -0.33,
       "previous_close": 84.5,
       "history": [
         {
@@ -1217,7 +1229,7 @@
         },
         {
           "date": "2026-08-18",
-          "close": 84.07
+          "close": 84.22
         }
       ]
     },
@@ -1411,6 +1423,14 @@
           "close": 3796.281
         },
         {
+          "date": "2026-07-21",
+          "close": 3864.3669
+        },
+        {
+          "date": "2026-07-22",
+          "close": 3867.0339
+        },
+        {
           "date": "2026-07-23",
           "close": 3876.7771
         },
@@ -1433,6 +1453,10 @@
         {
           "date": "2026-07-30",
           "close": 3804.6931
+        },
+        {
+          "date": "2026-07-31",
+          "close": 3832.262
         },
         {
           "date": "2026-08-03",
