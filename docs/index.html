@@ -356,6 +356,45 @@
   .divergence-footer a { font-size: 12px; font-weight: 600; color: var(--accent); text-decoration: none; }
   .divergence-footer a:hover { text-decoration: underline; }
 
+  /* Insight of the Day -- an always-visible editorial feature for
+     today's clearest real divergence (the widest real pillar spread
+     among flagged tickers), enriched with real crowd sentiment/mention
+     data from ticker_snapshots that isn't shown anywhere else on the
+     page. Bigger, magazine-style typography deliberately distinguishes
+     it from the compact click-reveal panel in Signal Fingerprints. */
+  .insight-card { max-width: 820px; margin: 44px auto 0; border-radius: var(--radius-lg); padding: 40px 44px; position: relative; overflow: hidden; }
+  .insight-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 28px; }
+  .insight-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 9px; }
+  .insight-meta-item { font-size: 12px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
+  .insight-headline { font-size: clamp(24px, 2.6vw, 32px); font-weight: 800; letter-spacing: -0.01em; line-height: 1.25; }
+  .insight-detail { font-size: 15px; color: var(--text-secondary); line-height: 1.7; margin: 16px 0 0; max-width: 640px; }
+  .insight-pillars { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border); }
+  .insight-pillar { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 20px; background: var(--surface-2); border: 1px solid var(--border); }
+  .insight-pillar-label { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-faint); font-weight: 700; text-transform: uppercase; }
+  .insight-pillar-val { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 800; }
+  .insight-cta { display: inline-block; margin-top: 26px; font-size: 13px; font-weight: 700; color: var(--accent); text-decoration: none; }
+  .insight-cta:hover { text-decoration: underline; }
+  @media (max-width: 640px) {
+    .insight-card { padding: 28px 24px; }
+    .insight-top { flex-direction: column; }
+    .insight-meta { align-items: flex-start; }
+  }
+
+  /* Signal History Timeline -- real daily cross-portfolio averages per
+     pillar, however many real days actually exist (never a hardcoded
+     "30 days" claim). Fixed 0-100 y-axis on purpose, same reasoning as
+     every other real-value chart on the product: an auto-scaled tight
+     range would render a genuinely flat week as a dramatic swing. */
+  .tl-legend { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin-top: 28px; }
+  .tl-legend-item { display: flex; align-items: center; gap: 7px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-secondary); font-weight: 600; }
+  .tl-legend-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+  .tl-card { max-width: 900px; margin: 20px auto 0; border-radius: var(--radius-lg); padding: 28px 30px 22px; }
+  .tl-hit { cursor: crosshair; }
+  .tl-detail { text-align: center; font-size: 13px; color: var(--text-secondary); margin: 18px 0 0; min-height: 18px; }
+  .tl-detail strong { color: var(--text-primary); }
+  .chart-axis-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; fill: var(--text-faint); }
+  .chart-date-label { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; fill: var(--text-faint); }
+
   /* Why Undertow */
   .why-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 44px; }
   @media (max-width: 900px) { .why-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -565,6 +604,28 @@
 </section>
 
 <div class="live-ticker-wrap"><div class="live-ticker" id="live-ticker"></div></div>
+
+<section class="section" id="insight">
+  <div class="wrap-wide">
+    <span class="section-kicker reveal">SIGNAL WORTH WATCHING</span>
+    <div class="insight-card surface reveal reveal-1" id="insight-card">
+      <div style="text-align:center;padding:40px 0;color:var(--text-faint);font-size:13px;">Finding today's clearest story…</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="timeline">
+  <div class="wrap-wide">
+    <span class="section-kicker reveal">SIGNAL HISTORY</span>
+    <h2 class="section-title reveal reveal-1" id="tl-title">How the four signals have moved</h2>
+    <p class="section-sub reveal reveal-2">Every score, recorded daily since the engine started — nothing back-filled or cherry-picked.</p>
+    <div class="tl-legend reveal reveal-2" id="tl-legend"></div>
+    <div class="tl-card surface reveal reveal-3">
+      <div class="tl-chart-wrap" id="tl-chart-wrap"><div style="text-align:center;padding:60px 0;color:var(--text-faint);font-size:13px;">Loading signal history…</div></div>
+      <p class="tl-detail" id="tl-detail">Hover a point to see that day's real reading.</p>
+    </div>
+  </div>
+</section>
 
 <section class="section">
   <div class="wrap">
@@ -1062,6 +1123,8 @@ async function loadFingerprints() {
       row: r,
     })).sort((a, b) => a.t.localeCompare(b.t));
 
+    renderSignalTimeline(rows);
+
     // Real "dominant pattern" -- the majority bucket per pillar across
     // every tracked company today (an actual vote count, not just the
     // average score's bucket), so the headline reflects breadth.
@@ -1125,12 +1188,177 @@ async function loadFingerprints() {
         whyEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
     });
+
+    // Insight of the Day -- the single widest real spread among today's
+    // flagged tickers, reusing the exact same `patterns` this function
+    // already built (no second query for the pick itself).
+    const flaggedPatterns = patterns.filter(p => p.flagged);
+    if (flaggedPatterns.length) {
+      const spreadOf = p => {
+        const vals = PILLAR_KEYS.map(k => p.row[k]).filter(v => v !== null && v !== undefined);
+        return vals.length ? Math.max(...vals) - Math.min(...vals) : 0;
+      };
+      renderInsightOfDay(flaggedPatterns.sort((a, b) => spreadOf(b) - spreadOf(a))[0]);
+    } else {
+      renderInsightOfDay(null);
+    }
   } catch (e) {
     fieldEl.innerHTML = '';
   }
 }
 loadFingerprints();
 setInterval(loadFingerprints, 60000);
+
+async function renderInsightOfDay(featured) {
+  const cardEl = document.getElementById('insight-card');
+  if (!cardEl) return;
+  if (!featured) {
+    cardEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--text-faint);font-size:13px;">Every tracked company's signals are agreeing today — nothing diverging enough to feature.</div>`;
+    return;
+  }
+  try {
+    const copy = DIVERGENCE_COPY[featured.pattern];
+    if (!copy) { cardEl.innerHTML = ''; return; }
+    const { data: snap } = await sbClient.from('ticker_snapshots').select('*').eq('ticker', featured.t).single();
+    const price = snap ? snap.price : featured.row.price;
+    const chg = snap && snap.change_pct !== null && snap.change_pct !== undefined ? snap.change_pct : null;
+    const mentions = snap ? snap.mentions : null;
+    const label = snap ? snap.label : null;
+
+    const pillarsHtml = PILLAR_KEYS.map(k => {
+      const v = featured.row[k];
+      const text = (v === null || v === undefined) ? '—' : Math.round(v);
+      return `<div class="insight-pillar"><span class="insight-pillar-label">${PILLAR_LABELS[k]}</span><span class="insight-pillar-val" style="color:${scoreColor(v)}">${text}</span></div>`;
+    }).join('');
+
+    const metaItems = [];
+    if (mentions !== null && mentions !== undefined) metaItems.push(`${mentions} messages today`);
+    if (label) metaItems.push(`Crowd read: ${label}`);
+    metaItems.push(`Diverging ${featured.days} day${featured.days === 1 ? '' : 's'}`);
+
+    cardEl.innerHTML = `
+      <div class="insight-top">
+        <div class="divergence-ticker">
+          <div class="divergence-ticker-avatar" style="width:52px;height:52px;"><img src="logos/${featured.t}.png" alt="" onerror="this.style.display='none'"></div>
+          <div>
+            <div class="divergence-ticker-sym" style="font-size:19px;">${featured.t}</div>
+            <div class="divergence-ticker-price">${price ? '$' + Number(price).toFixed(2) : ''}${chg !== null ? ` <span class="${chgClass(chg)}">${fmtChg(chg)}</span>` : ''}</div>
+          </div>
+        </div>
+        <div class="insight-meta">
+          <span class="divergence-pattern-badge ${copy.cls}">${copy.icon}${copy.label}</span>
+          ${metaItems.map(m => `<span class="insight-meta-item">${m}</span>`).join('')}
+        </div>
+      </div>
+      <div class="insight-headline">${copy.headline}</div>
+      <p class="insight-detail">${copy.detail(featured.row)}</p>
+      <div class="insight-pillars">${pillarsHtml}</div>
+      <a class="insight-cta" href="stock.html?t=${featured.t}">Explore ${featured.t} →</a>`;
+  } catch (e) {
+    cardEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--text-faint);font-size:13px;">Couldn't load today's featured signal.</div>`;
+  }
+}
+
+// ============================================================
+// Signal History Timeline -- real daily cross-portfolio averages, built
+// from the same `rows` loadFingerprints() already fetched (no second
+// query). Honest about however many real days actually exist.
+// ============================================================
+const TIMELINE_SERIES = [
+  { key: 'crowd', color: 'var(--accent)' },
+  { key: 'wall_street', color: 'var(--amber)' },
+  { key: 'business', color: 'var(--bull)' },
+  { key: 'market', color: 'var(--gray)' },
+];
+
+function buildTimelineChart(dailyAverages) {
+  const width = 720, height = 260;
+  const padL = 34, padR = 20, padT = 20, padB = 32;
+  const plotW = width - padL - padR, plotH = height - padT - padB;
+  const n = dailyAverages.length;
+  const stepX = n > 1 ? plotW / (n - 1) : 0;
+  const xAt = i => padL + i * stepX;
+  const yAt = v => padT + plotH - (Math.max(0, Math.min(100, v)) / 100) * plotH;
+
+  const gridSvg = [0, 25, 50, 75, 100].map(v => {
+    const y = yAt(v);
+    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + plotW}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"/><text x="${padL - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end" class="chart-axis-label">${v}</text>`;
+  }).join('');
+
+  let linesSvg = '', dotsSvg = '';
+  TIMELINE_SERIES.forEach(s => {
+    const pts = dailyAverages.map((d, i) => (d[s.key] === null || d[s.key] === undefined) ? null : `${xAt(i).toFixed(1)},${yAt(d[s.key]).toFixed(1)}`).filter(Boolean).join(' ');
+    linesSvg += `<polyline class="tl-line" points="${pts}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke-dasharray:1400;stroke-dashoffset:1400;"/>`;
+    dailyAverages.forEach((d, i) => {
+      if (d[s.key] === null || d[s.key] === undefined) return;
+      dotsSvg += `<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(d[s.key]).toFixed(1)}" r="3" fill="${s.color}"/>`;
+    });
+  });
+
+  const dateSvg = dailyAverages.map((d, i) => `<text x="${xAt(i).toFixed(1)}" y="${height - 8}" text-anchor="middle" class="chart-date-label">${d.date.slice(5).replace('-', '/')}</text>`).join('');
+  const hitAreas = dailyAverages.map((d, i) => `<rect class="tl-hit" data-i="${i}" x="${(xAt(i) - (stepX || plotW) / 2).toFixed(1)}" y="${padT}" width="${(stepX || plotW).toFixed(1)}" height="${plotH}" fill="transparent"/>`).join('');
+
+  const svg = `<svg id="tl-svg" width="100%" viewBox="0 0 ${width} ${height}" style="display:block;overflow:visible;">
+      ${gridSvg}${linesSvg}${dotsSvg}${dateSvg}${hitAreas}
+      <line id="tl-crosshair" x1="0" y1="${padT}" x2="0" y2="${padT + plotH}" stroke="var(--text-faint)" stroke-width="1" stroke-dasharray="3 3" style="display:none;"/>
+    </svg>`;
+  return svg;
+}
+
+function attachTimelineHover(dailyAverages) {
+  const svg = document.getElementById('tl-svg');
+  const crosshair = document.getElementById('tl-crosshair');
+  const detailEl = document.getElementById('tl-detail');
+  if (!svg) return;
+  svg.querySelectorAll('.tl-hit').forEach(rect => {
+    const i = +rect.dataset.i;
+    const d = dailyAverages[i];
+    rect.addEventListener('mouseenter', () => {
+      const x = rect.x.baseVal.value + rect.width.baseVal.value / 2;
+      crosshair.setAttribute('x1', x); crosshair.setAttribute('x2', x);
+      crosshair.style.display = 'block';
+      const parts = PILLAR_KEYS.map(k => `${PILLAR_LABELS[k]} ${(d[k] === null || d[k] === undefined) ? '—' : Math.round(d[k])}`).join(' · ');
+      detailEl.innerHTML = `<strong>${d.date}</strong> — ${parts}`;
+    });
+  });
+  svg.addEventListener('mouseleave', () => {
+    crosshair.style.display = 'none';
+    detailEl.textContent = "Hover a point to see that day's real reading.";
+  });
+}
+
+function renderSignalTimeline(rows) {
+  const wrapEl = document.getElementById('tl-chart-wrap');
+  const titleEl = document.getElementById('tl-title');
+  const legendEl = document.getElementById('tl-legend');
+  if (!wrapEl) return;
+  const chronoDates = [...new Set(rows.map(r => r.date))].sort();
+  if (chronoDates.length < 2) {
+    wrapEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--text-faint);font-size:13px;">Signal history is still accumulating — check back after a few more days.</div>`;
+    if (legendEl) legendEl.innerHTML = '';
+    return;
+  }
+  if (titleEl) titleEl.textContent = `${chronoDates.length} real days of signal history, and counting`;
+  if (legendEl) {
+    legendEl.innerHTML = TIMELINE_SERIES.map(s => `<span class="tl-legend-item"><span class="tl-legend-dot" style="background:${s.color}"></span>${PILLAR_LABELS[s.key]}</span>`).join('');
+  }
+
+  const dailyAverages = chronoDates.map(d => {
+    const dayRows = rows.filter(r => r.date === d);
+    const avg = { date: d };
+    PILLAR_KEYS.forEach(k => { avg[k] = average(dayRows.map(r => r[k])); });
+    return avg;
+  });
+
+  wrapEl.innerHTML = buildTimelineChart(dailyAverages);
+  wrapEl.querySelectorAll('.tl-line').forEach((el, i) => {
+    setTimeout(() => {
+      el.style.transition = 'stroke-dashoffset 1.2s cubic-bezier(.16,.8,.24,1)';
+      el.style.strokeDashoffset = '0';
+    }, i * 150);
+  });
+  attachTimelineHover(dailyAverages);
+}
 </script>
 
 </body>
