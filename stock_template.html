@@ -203,13 +203,27 @@
   .glance-item .glance-val { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 700; }
   .glance-item .glance-delta { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; margin-left: 6px; }
   .glance-delta.up { color: var(--bull); } .glance-delta.down { color: var(--bear); }
-  .fund-row { display: grid; grid-template-columns: 130px 1fr 44px; align-items: center; gap: 12px; margin-bottom: 13px; }
-  .fund-row:last-child { margin-bottom: 0; }
-  .fund-label { font-size: 12.5px; color: var(--text-secondary); font-weight: 600; }
-  .fund-track { height: 7px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
-  .fund-fill { height: 100%; border-radius: 999px; }
-  .fund-val { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 700; text-align: right; }
   .fund-empty { color: var(--text-faint); font-size: 12.5px; }
+
+  /* Fundamentals radar -- a shape read (which categories pull the
+     polygon in) plus exact numbers in the legend, not either/or. */
+  .fund-radar-wrap { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+  .fund-radar-chart { position: relative; flex-shrink: 0; width: 240px; }
+  .fund-radar-svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .radar-label { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; fill: var(--text-secondary); }
+  .radar-dot { cursor: pointer; transition: r .15s ease; }
+  .radar-dot.active { r: 6.5; }
+  .radar-hit { cursor: pointer; }
+  .fund-tooltip { position: absolute; pointer-events: none; background: var(--surface-3); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: 700; box-shadow: var(--shadow-md); opacity: 0; transition: opacity .1s ease; white-space: nowrap; transform: translate(-50%, 0); z-index: 5; }
+  .fund-legend { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 220px; }
+  .fund-legend-row { display: flex; align-items: center; gap: 11px; padding: 8px 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background-color .12s ease; }
+  .fund-legend-row:hover, .fund-legend-row.active { background: var(--surface-3); }
+  .fund-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .fund-legend-text { flex: 1; min-width: 0; }
+  .fund-legend-label { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
+  .fund-legend-desc { font-size: 10.5px; color: var(--text-faint); margin-top: 1px; }
+  .fund-legend-val { font-size: 15px; font-weight: 700; flex-shrink: 0; }
+  @media (max-width: 560px) { .fund-radar-wrap { flex-direction: column; } .fund-radar-chart { width: 220px; } }
 
   /* Financials card */
   .fin-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -346,7 +360,7 @@
     <div class="card">
       <div class="card-title">Business Fundamentals</div>
       <div class="glance-strip" id="glance-strip"></div>
-      <div id="fund-bars"></div>
+      <div id="fund-visual"></div>
     </div>
 
     <div class="card">
@@ -1113,7 +1127,7 @@ function initPage(sym) {
   // mismatch) + the 5 category score bars (now actually persisted by
   // main.py instead of computed-and-discarded).
   renderGlanceStrip(finHistory);
-  renderFundamentalsBars(fundamentals);
+  renderFundamentalsRadar(fundamentals);
 
   // Financials: bar/line charts + stat tiles
   renderFinancials(finHistory, metrics);
@@ -1152,19 +1166,136 @@ function renderGlanceStrip(finHistory) {
   el.innerHTML = parts.join('') || '<div class="fund-empty">Financial history unavailable for this ticker.</div>';
 }
 
-const FUND_CATEGORY_LABELS = { growth: 'Growth', profitability: 'Profitability', cash_flow: 'Cash Flow', balance_sheet: 'Balance Sheet', valuation: 'Valuation' };
-function renderFundamentalsBars(fundamentals) {
-  const el = document.getElementById('fund-bars');
+// Each description is a plain-language read of exactly what
+// score_fundamentals() computes for that category (see fundamentals.py)
+// -- not marketing copy, a factual summary of the real inputs.
+const FUND_CATEGORY_META = {
+  growth: { label: 'Growth', desc: 'Revenue & earnings growth rate' },
+  profitability: { label: 'Profitability', desc: 'Margins & return on equity' },
+  cash_flow: { label: 'Cash Flow', desc: 'Free cash flow as % of revenue' },
+  balance_sheet: { label: 'Balance Sheet', desc: 'Debt-to-equity & current ratio' },
+  valuation: { label: 'Valuation', desc: 'P/E relative to earnings' },
+};
+const FUND_CATEGORY_KEYS = Object.keys(FUND_CATEGORY_META);
+
+function fundScoreColor(v) {
+  if (v === null || v === undefined) return '#5B6B84';
+  if (v >= 65) return '#10B981';
+  if (v <= 40) return '#EF4444';
+  return '#F59E0B';
+}
+
+// A radar/snowflake chart: the polygon's SHAPE shows at a glance which
+// categories are strong vs. weak (a dent inward = a weak spot), while
+// the legend beside it keeps the exact numbers readable without hovering.
+// Hovering a vertex or a legend row highlights both together and shows
+// the precise score. A category with no data (null) gets a distinct
+// dashed/hollow marker at the center rather than being silently dropped
+// or drawn as a fabricated 0.
+function renderFundamentalsRadar(fundamentals) {
+  const el = document.getElementById('fund-visual');
   const categories = fundamentals.categories || {};
-  const rows = Object.entries(FUND_CATEGORY_LABELS).map(([key, label]) => {
-    const v = categories[key];
-    if (v === null || v === undefined) {
-      return `<div class="fund-row"><div class="fund-label">${label}</div><div class="fund-track"></div><div class="fund-val" style="color:var(--text-faint)">n/a</div></div>`;
-    }
-    const color = v >= 65 ? '#10B981' : (v <= 40 ? '#EF4444' : '#F59E0B');
-    return `<div class="fund-row"><div class="fund-label">${label}</div><div class="fund-track"><div class="fund-fill" style="width:${v}%;background:${color}"></div></div><div class="fund-val mono">${Math.round(v)}</div></div>`;
+  if (Object.keys(categories).length === 0) {
+    el.innerHTML = '<div class="fund-empty">Fundamentals unavailable for this ticker.</div>';
+    return;
+  }
+
+  const n = FUND_CATEGORY_KEYS.length;
+  const size = 240, cx = size / 2, cy = size / 2, maxR = 84;
+  const angleFor = i => -90 + (360 / n) * i;
+  const toXY = (angleDeg, r) => {
+    const rad = angleDeg * Math.PI / 180;
+    return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+  };
+
+  const rings = [20, 40, 60, 80, 100].map(pct => {
+    const r = (pct / 100) * maxR;
+    const pts = FUND_CATEGORY_KEYS.map((_, i) => toXY(angleFor(i), r).map(v => v.toFixed(1)).join(',')).join(' ');
+    return `<polygon points="${pts}" fill="none" stroke="var(--border)" stroke-width="1"/>`;
   }).join('');
-  el.innerHTML = rows || '<div class="fund-empty">Fundamentals unavailable for this ticker.</div>';
+
+  const spokes = FUND_CATEGORY_KEYS.map((_, i) => {
+    const [x, y] = toXY(angleFor(i), maxR);
+    return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`;
+  }).join('');
+
+  const dataPts = FUND_CATEGORY_KEYS.map((key, i) => {
+    const v = categories[key];
+    const r = (v === null || v === undefined) ? 0 : (Math.max(0, Math.min(100, v)) / 100) * maxR;
+    return toXY(angleFor(i), r);
+  });
+  const dataPolyStr = dataPts.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ');
+
+  const dots = FUND_CATEGORY_KEYS.map((key, i) => {
+    const v = categories[key];
+    const [x, y] = dataPts[i];
+    const color = fundScoreColor(v);
+    const missing = v === null || v === undefined;
+    return `<circle class="radar-dot" data-key="${key}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="${missing ? 'var(--surface-2)' : color}" stroke="${color}" stroke-width="2" stroke-dasharray="${missing ? '2,2' : 'none'}"/>` +
+           `<circle class="radar-hit" data-key="${key}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="16" fill="transparent"/>`;
+  }).join('');
+
+  const labels = FUND_CATEGORY_KEYS.map((key, i) => {
+    const angle = angleFor(i);
+    const [x, y] = toXY(angle, maxR + 24);
+    const normAngle = ((angle % 360) + 360) % 360;
+    let anchor = 'middle';
+    if (normAngle > 10 && normAngle < 170) anchor = 'start';
+    else if (normAngle > 190 && normAngle < 350) anchor = 'end';
+    return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}" dominant-baseline="middle" class="radar-label">${FUND_CATEGORY_META[key].label}</text>`;
+  }).join('');
+
+  const legend = FUND_CATEGORY_KEYS.map(key => {
+    const v = categories[key];
+    const meta = FUND_CATEGORY_META[key];
+    const color = fundScoreColor(v);
+    const valText = (v === null || v === undefined) ? 'n/a' : Math.round(v);
+    return `<div class="fund-legend-row" data-key="${key}">
+      <span class="fund-legend-dot" style="background:${color}"></span>
+      <div class="fund-legend-text">
+        <div class="fund-legend-label">${meta.label}</div>
+        <div class="fund-legend-desc">${meta.desc}</div>
+      </div>
+      <div class="fund-legend-val mono" style="color:${color}">${valText}</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="fund-radar-wrap">
+      <div class="fund-radar-chart">
+        <svg viewBox="0 0 ${size} ${size}" class="fund-radar-svg">
+          ${rings}${spokes}
+          <polygon points="${dataPolyStr}" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+          ${dots}${labels}
+        </svg>
+        <div class="fund-tooltip" id="fund-tooltip"></div>
+      </div>
+      <div class="fund-legend">${legend}</div>
+    </div>`;
+
+  const tooltip = document.getElementById('fund-tooltip');
+  const chartWrap = el.querySelector('.fund-radar-chart');
+  function highlight(key, evt) {
+    el.querySelectorAll('.radar-dot, .fund-legend-row').forEach(x => x.classList.remove('active'));
+    if (!key) { tooltip.style.opacity = '0'; return; }
+    el.querySelectorAll(`[data-key="${key}"]`).forEach(x => x.classList.add('active'));
+    const v = categories[key];
+    tooltip.textContent = `${FUND_CATEGORY_META[key].label}: ${v === null || v === undefined ? 'n/a' : Math.round(v)}`;
+    if (evt) {
+      const rect = chartWrap.getBoundingClientRect();
+      tooltip.style.left = Math.max(0, Math.min(rect.width, evt.clientX - rect.left)) + 'px';
+      tooltip.style.top = Math.max(0, evt.clientY - rect.top - 30) + 'px';
+      tooltip.style.opacity = '1';
+    }
+  }
+  el.querySelectorAll('.radar-hit').forEach(hit => {
+    hit.addEventListener('mousemove', (e) => highlight(hit.dataset.key, e));
+    hit.addEventListener('mouseleave', () => highlight(null));
+  });
+  el.querySelectorAll('.fund-legend-row').forEach(row => {
+    row.addEventListener('mouseenter', () => highlight(row.dataset.key));
+    row.addEventListener('mouseleave', () => highlight(null));
+  });
 }
 
 let currentFinView = 'qoq';
@@ -1395,9 +1526,9 @@ document.addEventListener('click', (e) => {
 
 // ============================================================
 // Bootstrap — deliberately the LAST thing in this script. It calls
-// initPage(), which synchronously calls functions (renderFundamentalsBars,
+// initPage(), which synchronously calls functions (renderFundamentalsRadar,
 // renderFinancials, etc.) that reference consts declared further down
-// this same file (e.g. FUND_CATEGORY_LABELS) — those are only
+// this same file (e.g. FUND_CATEGORY_META) — those are only
 // initialized once execution reaches their line, so invoking initPage
 // any earlier throws a temporal-dead-zone ReferenceError.
 // ============================================================
