@@ -1593,8 +1593,8 @@ function renderTape() {
   const tapeItems = DATA.most_discussed.slice(0, 15);
   if (tapeItems.length > 0) {
     const html = tapeItems.map(t => {
-      const cls = t.avg_sentiment >= 0.1 ? 'up' : (t.avg_sentiment <= -0.1 ? 'down' : '');
-      const arrow = t.avg_sentiment >= 0.1 ? '▲' : (t.avg_sentiment <= -0.1 ? '▼' : '—');
+      const cls = chgClass(t.change_pct);
+      const arrow = cls === 'na' ? '—' : (cls === 'up' ? '▲' : '▼');
       const px = t.change_pct !== null && t.change_pct !== undefined ? ` ${fmtChg(t.change_pct)}` : '';
       return `<span class="tape-item">${tickerLink(t.ticker, `<span class="sym">${t.ticker}</span>`)} <span class="${cls}">${arrow}${px}</span></span>`;
     }).join('');
