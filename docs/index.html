@@ -185,6 +185,11 @@
   }
   .imap-line.drawn { stroke-dashoffset: 0; transition: stroke-dashoffset 1s cubic-bezier(.16,.8,.24,1), stroke .6s ease, opacity .6s ease; }
   .imap-line.active { stroke: var(--accent) !important; stroke-width: 1.1; opacity: 1 !important; }
+  /* Radar rings -- pure background texture, no data attached, just gives
+     the empty corners of the canvas something to sit against instead of
+     bare grid. Stays inside the node radius (r<=42 in a 0-100 viewBox)
+     so it never visually collides with a node or corner badge. */
+  .imap-radar-ring { fill: none; stroke: rgba(148, 163, 184, 0.07); stroke-width: 0.35; }
   .imap-center {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
     width: 182px; height: 182px; border-radius: 50%;
@@ -235,6 +240,23 @@
     font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; padding: 0 12px;
   }
   .imap-detail strong { color: var(--text-primary); }
+  /* Corner readouts -- the two real numbers that were sitting unused
+     (pillar spread, the day's biggest single-pillar move) now fill the
+     empty diagonal corners of the canvas instead of leaving them bare.
+     Positioned at 13%/87% so they clear both the diamond nodes (radius
+     ~12% from their own centers) and the radar rings (r<=42 of 50). */
+  .imap-badge {
+    position: absolute; transform: translate(-50%, -50%) scale(0.85); opacity: 0;
+    background: rgba(16, 26, 42, 0.78); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 10px 16px; text-align: center; min-width: 112px;
+    transition: opacity .5s ease, transform .5s cubic-bezier(.2,.8,.2,1);
+    z-index: 1; backdrop-filter: blur(2px);
+  }
+  .imap-badge.in { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .imap-badge-spread { top: 13%; left: 13%; }
+  .imap-badge-shift { top: 87%; left: 87%; }
+  .imap-badge-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-faint); font-weight: 700; white-space: nowrap; }
+  .imap-badge-val { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 800; margin-top: 5px; white-space: nowrap; }
   @media (max-width: 560px) {
     .imap-canvas { max-width: 320px; }
     .imap-center { width: 112px; height: 112px; }
@@ -242,6 +264,7 @@
     .imap-node-val { font-size: 17px; }
     .imap-stats { gap: 8px; }
     .imap-stat { min-width: 96px; padding: 10px 14px; }
+    .imap-badge { display: none; }
   }
 
   section.section { padding: 76px 0; position: relative; }
@@ -382,11 +405,22 @@
       <div class="imap" id="imap">
         <div class="imap-canvas" id="imap-canvas">
           <svg class="imap-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <circle class="imap-radar-ring" cx="50" cy="50" r="18"/>
+            <circle class="imap-radar-ring" cx="50" cy="50" r="30"/>
+            <circle class="imap-radar-ring" cx="50" cy="50" r="42"/>
             <path class="imap-line" data-key="crowd" d="M50,50 L50,8"/>
             <path class="imap-line" data-key="wall_street" d="M50,50 L91,50"/>
             <path class="imap-line" data-key="business" d="M50,50 L50,92"/>
             <path class="imap-line" data-key="market" d="M50,50 L9,50"/>
           </svg>
+          <div class="imap-badge imap-badge-spread" id="imap-badge-spread">
+            <div class="imap-badge-label">Spread</div>
+            <div class="imap-badge-val" id="imap-spread-val">—</div>
+          </div>
+          <div class="imap-badge imap-badge-shift" id="imap-badge-shift">
+            <div class="imap-badge-label">Biggest Shift</div>
+            <div class="imap-badge-val" id="imap-shift-val">—</div>
+          </div>
           <div class="imap-center">
             <svg class="imap-center-ring" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="46"/><circle class="ring-fill" id="ring-overall" cx="50" cy="50" r="46"/></svg>
             <div class="imap-center-sym" id="imap-sym">MARKET</div>
@@ -771,6 +805,37 @@ async function pollHero() {
       alignEl.textContent = overall === null ? '' : `${alignedCount}/4 SIGNALS ALIGNED`;
     }
 
+    // Spread -- the gap between the strongest and weakest pillar today.
+    // Directly quantifies "how much do the signals disagree", the same
+    // real numbers already on the page, just differenced.
+    const presentVals = PILLAR_KEYS.map(k => pillarDeltas[k].val).filter(v => v !== null && v !== undefined);
+    const spreadEl = document.getElementById('imap-spread-val');
+    if (spreadEl) {
+      if (presentVals.length >= 2) {
+        const spread = Math.max(...presentVals) - Math.min(...presentVals);
+        spreadEl.textContent = `${Math.round(spread)} PTS`;
+        spreadEl.style.color = spread >= 20 ? 'var(--amber)' : 'var(--text-primary)';
+      } else {
+        spreadEl.textContent = '—';
+        spreadEl.style.color = 'var(--text-faint)';
+      }
+    }
+
+    // Biggest shift -- whichever pillar moved most since yesterday, real
+    // delta already computed above, just picking the max by magnitude.
+    const shiftEl = document.getElementById('imap-shift-val');
+    if (shiftEl) {
+      const withDelta = PILLAR_KEYS.filter(k => pillarDeltas[k].delta !== null && pillarDeltas[k].delta !== undefined);
+      if (withDelta.length) {
+        const biggestKey = withDelta.reduce((a, b) => Math.abs(pillarDeltas[b].delta) > Math.abs(pillarDeltas[a].delta) ? b : a);
+        const d = pillarDeltas[biggestKey].delta;
+        const sign = d >= 0 ? '+' : '';
+        shiftEl.innerHTML = `<span style="color:var(--text-secondary);font-weight:700;">${PILLAR_LABELS[biggestKey]}</span> <span style="color:${deltaColor(d)}">${sign}${d.toFixed(1)}</span>`;
+      } else {
+        shiftEl.textContent = '—';
+      }
+    }
+
     const trackedCount = todayRows.length;
     document.getElementById('hero-ticker-name').textContent = trackedCount;
     document.getElementById('stat-tracked').textContent = trackedCount;
@@ -787,6 +852,7 @@ async function pollHero() {
       imapAnimated = true;
       document.querySelectorAll('.imap-line').forEach((el, i) => setTimeout(() => el.classList.add('drawn'), i * 90));
       document.querySelectorAll('.imap-node').forEach((el, i) => setTimeout(() => el.classList.add('in'), 260 + i * 110));
+      document.querySelectorAll('.imap-badge').forEach((el, i) => setTimeout(() => el.classList.add('in'), 700 + i * 140));
     }
     heroLastUpdated = Date.now();
     tickHeroUpdated();
