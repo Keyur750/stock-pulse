@@ -1324,6 +1324,18 @@ function directionClass(direction) {
   return direction === 'up' ? 'up' : direction === 'down' ? 'down' : 'na';
 }
 
+// See mergeLiveIntraday's twin in dashboard_template.html for the full
+// rationale: the baked 1D series is frozen at bake time, refresh_quotes.py
+// separately accumulates real points every ~15 minutes through the
+// session, this stitches them into one continuous line.
+function mergeLiveIntraday(bakedSeries, quote) {
+  const live = quote && quote.intraday;
+  if (!live || !live.length) return bakedSeries;
+  const firstLiveDate = live[0].date;
+  const bakedBefore = (bakedSeries || []).filter(p => p.date < firstLiveDate);
+  return [...bakedBefore, ...live.map(p => ({ date: p.date, close: p.close, volume: null }))];
+}
+
 // The single function every timeframe button calls — chart data, $/%
 // change, color, and tooltip source all update from the SAME timeframe
 // record in one pass, so they can never disagree with each other.
@@ -1378,7 +1390,8 @@ function selectTimeframe(sym, timeframe) {
     asofEl.className = 'chart-modal-asof';
   }
 
-  const series = tfData.series;
+  let series = tfData.series;
+  if (timeframe === '1D') series = mergeLiveIntraday(series, q);
   if (!series || !series.length) {
     chartEl.innerHTML = `<div class="chart-empty">No chart data available for ${sym} yet.</div>`;
     chartMeta = null;

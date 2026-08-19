@@ -9,11 +9,28 @@ math that must never drift from what the daily pipeline separately
 computed) and a real market_status, computed from the actual NYSE
 calendar via pandas_market_calendars — not a hardcoded holiday list that
 would silently go stale year over year.
+
+Also accumulates a real, growing intraday point per flagship ticker
+(`intraday`) through the trading session, so the 1D chart's line can
+actually advance every ~15 minutes instead of sitting frozen at whatever
+main.py's once-daily bake captured. Previously this file only ever wrote
+a single current-price snapshot -- the price badge updated live, but the
+plotted line never did, which is a real, confusing mismatch (verified:
+the badge and the chart's last point could show two different prices).
+Timestamps are in America/New_York, matching the wall-clock time
+market_history.py's own intraday bars already use (yfinance's 5m bars
+come back tz-aware in that zone) -- using a different zone here would
+silently misalign the live points on the same x-axis. Only accumulated
+while the market is genuinely open, matching the scope of the baked
+series itself (yfinance's default 5m bars are regular-session-only, no
+pre/post-market) -- accumulating flat repeated points overnight or on a
+closed day would add noise, not signal.
 """
 
 import json
 import os
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import pandas_market_calendars as mcal
@@ -23,6 +40,8 @@ from market_data import MACRO_INSTRUMENTS, fetch_quotes
 ROOT = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(ROOT, "config.json")
 QUOTES_PATH = os.path.join(ROOT, "docs", "quotes.json")
+_ET = ZoneInfo("America/New_York")
+_INTRADAY_POINTS_CAP = 100  # generous headroom over ~26 real 15-min ticks in a 6.5h session
 
 _NYSE = mcal.get_calendar("NYSE")
 
@@ -55,19 +74,58 @@ def load_tickers():
     return config["watchlist"]
 
 
+def load_previous_intraday():
+    """Each run is a fresh GitHub Actions checkout, so the growing
+    intraday array has to be read back from the last commit rather than
+    kept in memory -- returns {ticker: [{"date", "close"}, ...]}."""
+    if not os.path.exists(QUOTES_PATH):
+        return {}
+    try:
+        with open(QUOTES_PATH, encoding="utf-8") as f:
+            prev = json.load(f)
+    except Exception:
+        return {}
+    return {
+        sym: q.get("intraday", [])
+        for sym, q in (prev.get("quotes") or {}).items()
+        if q.get("intraday")
+    }
+
+
 def main():
     tickers = load_tickers()
     raw = fetch_quotes(tickers, period="5d")
     status = market_status(datetime.now(timezone.utc))
+    now_et = datetime.now(_ET)
+    today_et = now_et.strftime("%Y-%m-%d")
+    point_ts = now_et.strftime("%Y-%m-%d %H:%M")
+    previous_intraday = load_previous_intraday()
+
     quotes = {}
     for sym, q in raw.items():
         hist = q.get("history") or []
         previous_close = hist[-2]["close"] if len(hist) >= 2 else None
+
+        # Same-day accumulation, reset on a new trading day; only while
+        # the market's genuinely open (see module docstring for why).
+        existing = previous_intraday.get(sym, [])
+        existing_today = [p for p in existing if p["date"].startswith(today_et)]
+        intraday = existing_today
+        if status == "open":
+            price = q.get("price")
+            if price is not None:
+                if intraday and intraday[-1]["date"] == point_ts:
+                    intraday[-1] = {"date": point_ts, "close": round(price, 4)}
+                else:
+                    intraday = intraday + [{"date": point_ts, "close": round(price, 4)}]
+                intraday = intraday[-_INTRADAY_POINTS_CAP:]
+
         quotes[sym] = {
             "price": q["price"],
             "change_pct": q["change_pct"],
             "previous_close": previous_close,
             "market_status": status,
+            "intraday": intraday,
         }
     # Macro instruments (indices, crypto, commodities, global markets) have
     # no once-daily source the way the flagship watchlist does (they're not

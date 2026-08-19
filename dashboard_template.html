@@ -1047,6 +1047,23 @@ function directionClass(direction) {
   return direction === 'up' ? 'up' : direction === 'down' ? 'down' : 'na';
 }
 
+// The baked 1D series is frozen at whatever main.py's once-daily run
+// captured; refresh_quotes.py separately accumulates real points every
+// ~15 minutes through the session (see its module docstring). Take the
+// baked points strictly before the first live point (string comparison
+// is safe -- both use zero-padded "YYYY-MM-DD HH:MM"), then append the
+// live ones, so the line keeps advancing instead of sitting stale next
+// to a price badge that already moved on. Falls back to the baked
+// series untouched if there's no live data yet (e.g. quotes.json hasn't
+// refreshed since market open, or this ticker has none).
+function mergeLiveIntraday(bakedSeries, quote) {
+  const live = quote && quote.intraday;
+  if (!live || !live.length) return bakedSeries;
+  const firstLiveDate = live[0].date;
+  const bakedBefore = (bakedSeries || []).filter(p => p.date < firstLiveDate);
+  return [...bakedBefore, ...live.map(p => ({ date: p.date, close: p.close, volume: null }))];
+}
+
 // The single function every timeframe button calls — chart data, $/%
 // change, color, and tooltip source all update from the SAME timeframe
 // record in one pass, so they can never disagree with each other.
@@ -1101,7 +1118,8 @@ function selectTimeframe(sym, timeframe) {
     asofEl.className = 'chart-modal-asof';
   }
 
-  const series = tfData.series;
+  let series = tfData.series;
+  if (timeframe === '1D') series = mergeLiveIntraday(series, q);
   if (!series || !series.length) {
     chartEl.innerHTML = `<div class="chart-empty">No chart data available for ${sym} yet.</div>`;
     chartMeta = null;
