@@ -37,6 +37,12 @@
   a { color: inherit; }
   .mono { font-family: 'JetBrains Mono', monospace; }
   .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+  /* Wide canvas for the hero and its immediate surroundings -- the rest
+     of the page stays on the narrower .wrap grid until later phases of
+     this redesign bring it along. Fluid side padding (clamp) so a
+     4K display doesn't just stretch the same 28px gutter absurdly thin
+     relative to the content. */
+  .wrap-wide { max-width: 1560px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 56px); }
 
   /* Ticker tape — same live pattern already proven on Dashboard/Sentiment/
      Stock Intelligence, missing here before now. This is the single
@@ -66,8 +72,15 @@
      content show through behind it, which read as duplicated/ghosted
      text as the hero's CTAs passed underneath. A serious finance tool
      doesn't need the glassmorphism effect. */
-  .nav-wrap { position: sticky; top: 0; z-index: 30; background: var(--bg-secondary); border-bottom: 1px solid var(--border); }
-  nav.topnav { max-width: 1180px; margin: 0 auto; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; }
+  .nav-wrap { position: sticky; top: 0; z-index: 30; background: var(--bg-secondary); border-bottom: 1px solid var(--border); transition: background-color .2s ease, box-shadow .2s ease; }
+  /* On scroll: slightly translucent + a hint of shadow for depth, but
+     deliberately NO backdrop-filter blur -- that's what caused the old
+     "ghosted double button" bug where scrolled hero content visibly
+     showed through behind the nav. A flat rgba tint gets the "more
+     premium once you've moved past the hero" feel with none of the risk. */
+  .nav-wrap.scrolled { background: rgba(15,28,46,0.97); box-shadow: 0 8px 24px -12px rgba(0,0,0,0.5); }
+  nav.topnav { max-width: 1560px; margin: 0 auto; padding: 14px clamp(20px, 4vw, 56px); display: flex; align-items: center; justify-content: space-between; transition: padding .2s ease; }
+  .nav-wrap.scrolled nav.topnav { padding-top: 10px; padding-bottom: 10px; }
   .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; }
   .brand-mark { width: 30px; height: 30px; border-radius: 7px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .brand-word { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
@@ -84,18 +97,55 @@
   .reveal-1 { transition-delay: .05s; } .reveal-2 { transition-delay: .12s; }
   .reveal-3 { transition-delay: .19s; } .reveal-4 { transition-delay: .26s; }
 
-  /* Hero */
-  .hero { padding: 88px 0 60px; text-align: center; }
+  /* Hero -- asymmetric split: ~40% messaging, ~60% the live intelligence
+     visualization, instead of everything stacked in a centered column.
+     This is the single biggest fix for "too much unused horizontal
+     space on desktop": the previous layout put a 780px-wide hero inside
+     a page that can be 2500px+ wide and left the rest empty. */
+  .hero { padding: 56px 0 0; }
+  .hero-grid { display: grid; grid-template-columns: minmax(340px, 42%) 1fr; gap: 56px; align-items: center; }
+  .hero-left { text-align: left; }
   .hero-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); background: var(--accent-dim); border: 1px solid var(--accent-border); display: inline-flex; padding: 6px 15px; border-radius: 20px; }
-  .hero h1 { font-size: clamp(34px, 5.2vw, 58px); line-height: 1.08; font-weight: 800; letter-spacing: -0.02em; margin: 24px auto 0; max-width: 780px; }
+  .hero h1 { font-size: clamp(36px, 3.6vw, 56px); line-height: 1.08; font-weight: 800; letter-spacing: -0.02em; margin: 22px 0 0; }
   .hero h1 .accent { color: var(--accent); }
-  .hero-sub { font-size: 17px; color: var(--text-secondary); max-width: 560px; margin: 20px auto 0; line-height: 1.55; }
-  .hero-ctas { display: flex; gap: 12px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
+  .hero-sub { font-size: 16.5px; color: var(--text-secondary); max-width: 480px; margin: 20px 0 0; line-height: 1.6; }
+  .hero-ctas { display: flex; gap: 12px; justify-content: flex-start; margin-top: 30px; flex-wrap: wrap; }
   .btn { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; padding: 13px 24px; border-radius: var(--radius-md); text-decoration: none; transition: transform .15s ease, filter .15s ease, background-color .15s ease; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
   .btn-ghost { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border); }
   .btn-ghost:hover { border-color: var(--border-hover); background: var(--surface-2); }
+  .hero-trust { margin-top: 34px; }
+  @media (max-width: 1080px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+    .hero-left { text-align: center; }
+    .hero-sub { margin-left: auto; margin-right: auto; }
+    .hero-ctas, .hero-trust { justify-content: center; }
+  }
+
+  /* Hero visualization panel — a terminal-like frame around the
+     Company Intelligence Map: faint grid, faint radial glow, thin
+     border, small corner labels. Gives the diagram somewhere to live
+     other than bare page background, and is most of what makes it read
+     as "an intelligence screen" rather than "a floating decoration."
+     Kept deliberately quiet (see rule: background must never compete
+     with the data) -- the grid lines are ~5% white, the glow is a
+     single soft radial well behind the center node. */
+  .hero-viz-panel {
+    position: relative; border: 1px solid var(--border); border-radius: var(--radius-lg);
+    background:
+      radial-gradient(560px 420px at 50% 34%, rgba(59,130,246,0.08), transparent 68%),
+      repeating-linear-gradient(rgba(148,163,184,0.045) 0 1px, transparent 1px 44px),
+      repeating-linear-gradient(90deg, rgba(148,163,184,0.045) 0 1px, transparent 1px 44px),
+      var(--surface-1);
+    padding: 26px clamp(18px, 3vw, 40px) 32px;
+    box-shadow: var(--shadow-md);
+  }
+  .hero-viz-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .hero-viz-tag { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); font-weight: 700; }
+  .hero-viz-updated { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
+  .hero-viz-updated .live-badge-dot { background: var(--bull); }
+  @media (max-width: 1080px) { .hero-viz-panel { padding: 24px 20px 28px; } }
 
   /* Company Intelligence Map — the actual product mechanism (four
      independent signals cross-checked against one company) drawn as a
@@ -103,8 +153,8 @@
      it is real: queried live from the same database the product pages
      read, including real day-over-day pillar movement now that
      signal_history has accumulated multiple real days. */
-  .imap { max-width: 780px; margin: 20px auto 0; }
-  .imap-canvas { position: relative; width: 100%; max-width: 540px; aspect-ratio: 1 / 1; margin: 0 auto; }
+  .imap { max-width: 100%; margin: 6px auto 0; }
+  .imap-canvas { position: relative; width: 100%; max-width: 620px; aspect-ratio: 1 / 1; margin: 0 auto; }
   .imap-stats { display: flex; justify-content: center; gap: 10px; margin-top: 28px; flex-wrap: wrap; }
   .imap-stat { text-align: center; padding: 12px 22px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface-1); min-width: 140px; }
   .imap-stat-val { font-family: 'JetBrains Mono', monospace; font-size: 21px; font-weight: 800; }
@@ -270,55 +320,65 @@
 </div>
 
 <header class="hero">
-  <div class="wrap">
-    <span class="hero-kicker reveal visible">FOUR SIGNALS · ONE PLACE THEY STOP AGREEING</span>
-    <h1 class="reveal visible">See where the market<br><span class="accent">disagrees with itself.</span></h1>
-    <p class="hero-sub reveal visible reveal-1">Retail sentiment, Wall Street consensus, business fundamentals, and price behavior — cross-checked against each other, live. When they align, that's confirmation. When they don't, that's the story worth reading.</p>
-    <div class="hero-ctas reveal visible reveal-2">
-      <a class="btn btn-primary" href="dashboard.html">Explore the Intelligence</a>
-      <a class="btn btn-ghost" href="#how-it-works">See how Undertow works</a>
+  <div class="wrap-wide hero-grid">
+    <div class="hero-left">
+      <span class="hero-kicker reveal visible">FOUR SIGNALS · ONE PLACE THEY STOP AGREEING</span>
+      <h1 class="reveal visible">See where the market<br><span class="accent">disagrees with itself.</span></h1>
+      <p class="hero-sub reveal visible reveal-1">Retail sentiment, Wall Street consensus, business fundamentals, and price behavior — cross-checked against each other, live. When they align, that's confirmation. When they don't, that's the story worth reading.</p>
+      <div class="hero-ctas reveal visible reveal-2">
+        <a class="btn btn-primary" href="dashboard.html">Explore the Intelligence</a>
+        <a class="btn btn-ghost" href="#how-it-works">See how Undertow works</a>
+      </div>
+      <div class="hero-trust reveal visible reveal-2">
+        <div class="live-badge" id="hero-live-badge" style="display: inline-flex;"><span class="live-badge-dot"></span>Live across <span id="hero-ticker-name">…</span> tracked companies</div>
+      </div>
     </div>
 
-    <div class="imap reveal visible reveal-3" id="imap">
-      <div class="live-badge" id="hero-live-badge" style="margin: 0 auto 22px; display: flex; width: fit-content;"><span class="live-badge-dot"></span>Live across <span id="hero-ticker-name">…</span> tracked companies</div>
-      <div class="imap-canvas" id="imap-canvas">
-        <svg class="imap-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <path class="imap-line" data-key="crowd" d="M50,50 L50,8"/>
-          <path class="imap-line" data-key="wall_street" d="M50,50 L91,50"/>
-          <path class="imap-line" data-key="business" d="M50,50 L50,92"/>
-          <path class="imap-line" data-key="market" d="M50,50 L9,50"/>
-        </svg>
-        <div class="imap-center">
-          <div class="imap-center-sym" id="imap-sym">MARKET</div>
-          <div class="imap-center-score"><span id="imap-overall">—</span><span>/100</span></div>
-          <div class="imap-center-tag" id="imap-tag">—</div>
-        </div>
-        <div class="imap-node" data-key="crowd">
-          <div class="imap-node-label">Crowd</div>
-          <div class="imap-node-val" id="node-crowd">—</div>
-          <div class="imap-node-delta" id="delta-crowd"></div>
-        </div>
-        <div class="imap-node" data-key="wall_street">
-          <div class="imap-node-label">Wall Street</div>
-          <div class="imap-node-val" id="node-wall_street">—</div>
-          <div class="imap-node-delta" id="delta-wall_street"></div>
-        </div>
-        <div class="imap-node" data-key="business">
-          <div class="imap-node-label">Business</div>
-          <div class="imap-node-val" id="node-business">—</div>
-          <div class="imap-node-delta" id="delta-business"></div>
-        </div>
-        <div class="imap-node" data-key="market">
-          <div class="imap-node-label">Market</div>
-          <div class="imap-node-val" id="node-market">—</div>
-          <div class="imap-node-delta" id="delta-market"></div>
-        </div>
+    <div class="hero-viz-panel reveal visible reveal-3">
+      <div class="hero-viz-head">
+        <span class="hero-viz-tag">MARKET INTELLIGENCE MAP</span>
+        <span class="hero-viz-updated"><span class="live-badge-dot"></span>UPDATED <span id="hero-updated">JUST NOW</span></span>
       </div>
-      <div class="imap-detail" id="imap-detail">Hover a signal to see what changed since yesterday, averaged across every company we track.</div>
-      <div class="imap-stats" id="imap-stats">
-        <div class="imap-stat"><div class="imap-stat-val" id="stat-tracked">—</div><div class="imap-stat-label">Companies Tracked</div></div>
-        <div class="imap-stat"><div class="imap-stat-val" id="stat-breadth">—</div><div class="imap-stat-label">Up Today</div></div>
-        <div class="imap-stat"><div class="imap-stat-val" id="stat-diverging">—</div><div class="imap-stat-label">Diverging Right Now</div></div>
+      <div class="imap" id="imap">
+        <div class="imap-canvas" id="imap-canvas">
+          <svg class="imap-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path class="imap-line" data-key="crowd" d="M50,50 L50,8"/>
+            <path class="imap-line" data-key="wall_street" d="M50,50 L91,50"/>
+            <path class="imap-line" data-key="business" d="M50,50 L50,92"/>
+            <path class="imap-line" data-key="market" d="M50,50 L9,50"/>
+          </svg>
+          <div class="imap-center">
+            <div class="imap-center-sym" id="imap-sym">MARKET</div>
+            <div class="imap-center-score"><span id="imap-overall">—</span><span>/100</span></div>
+            <div class="imap-center-tag" id="imap-tag">—</div>
+          </div>
+          <div class="imap-node" data-key="crowd">
+            <div class="imap-node-label">Crowd</div>
+            <div class="imap-node-val" id="node-crowd">—</div>
+            <div class="imap-node-delta" id="delta-crowd"></div>
+          </div>
+          <div class="imap-node" data-key="wall_street">
+            <div class="imap-node-label">Wall Street</div>
+            <div class="imap-node-val" id="node-wall_street">—</div>
+            <div class="imap-node-delta" id="delta-wall_street"></div>
+          </div>
+          <div class="imap-node" data-key="business">
+            <div class="imap-node-label">Business</div>
+            <div class="imap-node-val" id="node-business">—</div>
+            <div class="imap-node-delta" id="delta-business"></div>
+          </div>
+          <div class="imap-node" data-key="market">
+            <div class="imap-node-label">Market</div>
+            <div class="imap-node-val" id="node-market">—</div>
+            <div class="imap-node-delta" id="delta-market"></div>
+          </div>
+        </div>
+        <div class="imap-detail" id="imap-detail">Hover a signal to see what changed since yesterday, averaged across every company we track.</div>
+        <div class="imap-stats" id="imap-stats">
+          <div class="imap-stat"><div class="imap-stat-val" id="stat-tracked">—</div><div class="imap-stat-label">Companies Tracked</div></div>
+          <div class="imap-stat"><div class="imap-stat-val" id="stat-breadth">—</div><div class="imap-stat-label">Up Today</div></div>
+          <div class="imap-stat"><div class="imap-stat-val" id="stat-diverging">—</div><div class="imap-stat-label">Diverging Right Now</div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -453,6 +513,13 @@ const obs = new IntersectionObserver((entries) => {
 }, { threshold: 0.12 });
 document.querySelectorAll('.reveal:not(.visible)').forEach(el => obs.observe(el));
 
+// Nav: compact + faintly tinted once you've scrolled past the hero --
+// no blur (see the .nav-wrap.scrolled comment in <style> for why).
+const navWrapEl = document.querySelector('.nav-wrap');
+window.addEventListener('scroll', () => {
+  navWrapEl.classList.toggle('scrolled', window.scrollY > 24);
+}, { passive: true });
+
 // ============================================================
 // Live data — same Supabase tables/pattern already proven on
 // Dashboard/Sentiment/Stock Intelligence, wired here for the first time.
@@ -530,6 +597,18 @@ function deltaColor(d) {
 
 let imapAnimated = false;
 let pillarDeltas = {};
+let heroLastUpdated = null;
+
+// "UPDATED 12S AGO" -- a real, ticking readout of how stale the hero
+// visualization actually is, not a decorative label. Set once pollHero()
+// genuinely succeeds below; this interval just re-renders the elapsed time.
+function tickHeroUpdated() {
+  const el = document.getElementById('hero-updated');
+  if (!el || heroLastUpdated === null) return;
+  const secs = Math.round((Date.now() - heroLastUpdated) / 1000);
+  el.textContent = secs < 5 ? 'JUST NOW' : secs < 60 ? `${secs}S AGO` : `${Math.round(secs / 60)}M AGO`;
+}
+setInterval(tickHeroUpdated, 1000);
 
 function average(nums) {
   const present = nums.filter(v => v !== null && v !== undefined);
@@ -597,6 +676,8 @@ async function pollHero() {
       document.querySelectorAll('.imap-line').forEach((el, i) => setTimeout(() => el.classList.add('drawn'), i * 90));
       document.querySelectorAll('.imap-node').forEach((el, i) => setTimeout(() => el.classList.add('in'), 260 + i * 110));
     }
+    heroLastUpdated = Date.now();
+    tickHeroUpdated();
   } catch (e) {}
 }
 pollHero();
