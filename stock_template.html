@@ -109,11 +109,11 @@
   .stock-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 18px; }
   .stock-id { display: flex; align-items: center; gap: 14px; }
   .stock-avatar {
-    width: 52px; height: 52px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace;
-    font-weight: 700; font-size: 18px; color: var(--accent); flex-shrink: 0; overflow: hidden;
+    width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-family: 'Inter', sans-serif; font-weight: 700; font-size: 18px; color: #fff; flex-shrink: 0; overflow: hidden;
   }
-  .stock-avatar img { width: 100%; height: 100%; object-fit: contain; }
+  .stock-avatar.letter { background: var(--surface-2); border: 1px solid var(--border); color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+  .stock-logo { width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0; object-fit: cover; }
   .stock-sym-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
   .stock-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 23px; letter-spacing: -0.01em; }
   .stock-name { font-size: 13.5px; color: var(--text-secondary); }
@@ -290,7 +290,7 @@
 
     <div class="stock-header">
       <div class="stock-id">
-        <div class="stock-avatar" id="stock-avatar"></div>
+        <div id="stock-avatar-wrap"></div>
         <div>
           <div class="stock-sym-row"><span class="stock-sym" id="stock-sym"></span><span class="stock-name" id="stock-name"></span></div>
           <div class="stock-meta" id="stock-meta"></div>
@@ -382,6 +382,24 @@ const DATA = /*__DATA__*/;
 // ============================================================
 
 function tickerUrl(sym) { return `https://finance.yahoo.com/quote/${encodeURIComponent(sym)}`; }
+// Real company logos, cached locally by the daily pipeline (see logos.py)
+// -- same source/pattern already proven on the Dashboard and Sentiment
+// pages. Falls back to a colored-letter avatar for any ticker without a
+// cached logo yet (e.g. brand new to the watchlist), never a broken image.
+const AVATAR_PALETTE = ['#8B5CF6', '#EC4899', '#D946EF', '#0891B2', '#64748B', '#6366F1'];
+function avatarColor(ticker) {
+  let hash = 0;
+  for (let i = 0; i < ticker.length; i++) hash = (hash * 31 + ticker.charCodeAt(i)) >>> 0;
+  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+}
+function handleLogoError(img, ticker) {
+  const div = document.createElement('div');
+  div.className = 'stock-avatar letter';
+  div.style.background = avatarColor(ticker);
+  div.style.color = '#fff';
+  div.textContent = ticker.charAt(0);
+  img.replaceWith(div);
+}
 function tickerLink(sym, innerHtml) {
   return `<a class="ticker-link" href="stock.html?t=${encodeURIComponent(sym)}">${innerHtml}</a>`;
 }
@@ -994,7 +1012,8 @@ function initPage(sym) {
   document.getElementById('stock-sym').textContent = sym;
   document.getElementById('stock-name').textContent = fundamentals.name || sym;
   document.getElementById('stock-meta').textContent = fundamentals.sector || '';
-  document.getElementById('stock-avatar').textContent = sym.charAt(0);
+  document.getElementById('stock-avatar-wrap').innerHTML =
+    `<img class="stock-logo" src="logos/${sym}.png" alt="${sym} logo" loading="lazy" onerror="handleLogoError(this,'${sym}')">`;
 
   document.getElementById('stock-price').textContent = fmtPrice(info.price);
   const chgEl = document.getElementById('stock-chg');
