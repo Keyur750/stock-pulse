@@ -276,24 +276,21 @@
   .surface-hover { transition: border-color .18s ease, background-color .18s ease; }
   .surface-hover:hover { border-color: var(--border-hover); background: var(--surface-2); }
 
-  /* Four signals -- a real 2x2 bento grid: each card leads with the same
-     live number the hero diagram shows (score, delta, a progress bar),
-     with the description demoted to a caption. Reuses the exact
-     score/delta/color logic already computed once in pollHero(), not a
-     second data source. */
+  /* Four signals -- a 2x2 bento grid that EXPLAINS each pillar rather than
+     re-displaying its score: the number is already the centerpiece of the
+     hero diagram above, so here it's a small reference chip in the
+     header, not a second giant number. The description is the actual
+     content of the card. */
   .signal-bento-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 44px; }
   @media (max-width: 780px) { .signal-bento-grid { grid-template-columns: 1fr; } }
-  .signal-bento { border-radius: var(--radius-lg); padding: 30px 32px; background: var(--surface-1); border: 1px solid var(--border); transition: border-color .18s ease, background-color .18s ease; }
+  .signal-bento { border-radius: var(--radius-lg); padding: 28px 32px; background: var(--surface-1); border: 1px solid var(--border); transition: border-color .18s ease, background-color .18s ease; }
   .signal-bento:hover { border-color: var(--border-hover); background: var(--surface-2); }
-  .signal-bento-head { display: flex; align-items: center; gap: 12px; }
+  .signal-bento-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .signal-bento-head-left { display: flex; align-items: center; gap: 12px; }
   .signal-bento-icon { width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 14px; flex-shrink: 0; }
   .signal-bento-name { font-size: 16px; font-weight: 700; }
-  .signal-bento-score { font-family: 'JetBrains Mono', monospace; font-size: clamp(38px, 4vw, 52px); font-weight: 800; margin-top: 18px; line-height: 1; }
-  .signal-bento-delta { display: flex; align-items: center; gap: 5px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; margin-top: 9px; min-height: 17px; }
-  .signal-bento-delta svg { width: 14px; height: 14px; }
-  .signal-bento-track { height: 8px; background: var(--surface-3); border-radius: 4px; overflow: hidden; margin-top: 20px; }
-  .signal-bento-fill { height: 100%; border-radius: 4px; width: 0; transition: width 1.1s cubic-bezier(.16,.8,.24,1); }
-  .signal-bento-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: 18px 0 0; }
+  .signal-bento-ref { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 700; color: var(--text-faint); background: var(--surface-2); border: 1px solid var(--border); padding: 4px 10px; border-radius: 20px; flex-shrink: 0; }
+  .signal-bento-desc { font-size: 14.5px; color: var(--text-secondary); line-height: 1.7; margin: 20px 0 0; }
 
   /* The difference */
   .difference-quote { text-align: center; font-size: clamp(22px, 3vw, 30px); font-weight: 700; line-height: 1.4; max-width: 760px; margin: 40px auto 0; letter-spacing: -0.01em; }
@@ -484,43 +481,43 @@
     <div class="signal-bento-grid">
       <div class="signal-bento reveal reveal-1" data-key="crowd">
         <div class="signal-bento-head">
-          <div class="signal-bento-icon" style="background:var(--bull-soft);color:var(--bull);">C</div>
-          <div class="signal-bento-name">Crowd</div>
+          <div class="signal-bento-head-left">
+            <div class="signal-bento-icon" style="background:var(--bull-soft);color:var(--bull);">C</div>
+            <div class="signal-bento-name">Crowd</div>
+          </div>
+          <div class="signal-bento-ref" id="sig-crowd-val">—/100</div>
         </div>
-        <div class="signal-bento-score" id="sig-crowd-val">—</div>
-        <div class="signal-bento-delta" id="sig-crowd-delta"></div>
-        <div class="signal-bento-track"><div class="signal-bento-fill" id="sig-crowd-fill" data-w="0"></div></div>
-        <p class="signal-bento-desc">What retail is actually saying — StockTwits, Reddit, and search interest, cross-checked against each other.</p>
+        <p class="signal-bento-desc">Retail sentiment is loud but often wrong on its own. We cross-check StockTwits, Reddit, and Google search interest against each other — three independent crowds instead of one — before calling anything a real signal.</p>
       </div>
       <div class="signal-bento reveal reveal-2" data-key="wall_street">
         <div class="signal-bento-head">
-          <div class="signal-bento-icon" style="background:var(--amber-soft);color:var(--amber);">W</div>
-          <div class="signal-bento-name">Wall Street</div>
+          <div class="signal-bento-head-left">
+            <div class="signal-bento-icon" style="background:var(--amber-soft);color:var(--amber);">W</div>
+            <div class="signal-bento-name">Wall Street</div>
+          </div>
+          <div class="signal-bento-ref" id="sig-wall_street-val">—/100</div>
         </div>
-        <div class="signal-bento-score" id="sig-wall_street-val">—</div>
-        <div class="signal-bento-delta" id="sig-wall_street-delta"></div>
-        <div class="signal-bento-track"><div class="signal-bento-fill" id="sig-wall_street-fill" data-w="0"></div></div>
-        <p class="signal-bento-desc">Analyst consensus and price targets — whether professional sentiment is getting more or less bullish over time.</p>
+        <p class="signal-bento-desc">Analyst ratings move slowly, which makes the direction more useful than the number itself. We track whether professional sentiment is getting more or less bullish over time, not just where it happens to sit today.</p>
       </div>
       <div class="signal-bento reveal reveal-3" data-key="business">
         <div class="signal-bento-head">
-          <div class="signal-bento-icon" style="background:var(--bull-soft);color:var(--bull);">B</div>
-          <div class="signal-bento-name">Business</div>
+          <div class="signal-bento-head-left">
+            <div class="signal-bento-icon" style="background:var(--bull-soft);color:var(--bull);">B</div>
+            <div class="signal-bento-name">Business</div>
+          </div>
+          <div class="signal-bento-ref" id="sig-business-val">—/100</div>
         </div>
-        <div class="signal-bento-score" id="sig-business-val">—</div>
-        <div class="signal-bento-delta" id="sig-business-delta"></div>
-        <div class="signal-bento-track"><div class="signal-bento-fill" id="sig-business-fill" data-w="0"></div></div>
-        <p class="signal-bento-desc">Revenue, margins, cash flow, balance sheet health, and valuation — what's actually happening inside the company.</p>
+        <p class="signal-bento-desc">Revenue, margins, cash flow, balance sheet health, and valuation — the company underneath the ticker. It's the slowest-moving of the four signals, and usually the most durable one.</p>
       </div>
       <div class="signal-bento reveal reveal-4" data-key="market">
         <div class="signal-bento-head">
-          <div class="signal-bento-icon" style="background:var(--accent-dim);color:var(--accent);">M</div>
-          <div class="signal-bento-name">Market</div>
+          <div class="signal-bento-head-left">
+            <div class="signal-bento-icon" style="background:var(--accent-dim);color:var(--accent);">M</div>
+            <div class="signal-bento-name">Market</div>
+          </div>
+          <div class="signal-bento-ref" id="sig-market-val">—/100</div>
         </div>
-        <div class="signal-bento-score" id="sig-market-val">—</div>
-        <div class="signal-bento-delta" id="sig-market-delta"></div>
-        <div class="signal-bento-track"><div class="signal-bento-fill" id="sig-market-fill" data-w="0"></div></div>
-        <p class="signal-bento-desc">Where the stock already sits relative to its own range and trend — is the story already priced in, or still fresh.</p>
+        <p class="signal-bento-desc">Price already knows things the other three signals haven't caught up to yet. This measures momentum and extension relative to the stock's own range — whether the move looks fresh, or already stretched.</p>
       </div>
     </div>
   </div>
@@ -807,19 +804,11 @@ async function pollHero() {
         deltaEl.style.color = deltaColor(delta);
       }
 
-      // Four Signals bento grid below -- same score/delta, same colors,
-      // just a second view over data already computed above (not a
-      // second fetch).
-      const bentoScoreEl = document.getElementById(`sig-${key}-val`);
-      if (bentoScoreEl) { bentoScoreEl.textContent = text; bentoScoreEl.style.color = scoreColor(val); }
-      const bentoDeltaEl = document.getElementById(`sig-${key}-delta`);
-      if (bentoDeltaEl) { bentoDeltaEl.innerHTML = deltaHtml; bentoDeltaEl.style.color = delta === null ? '' : deltaColor(delta); }
-      const bentoFillEl = document.getElementById(`sig-${key}-fill`);
-      if (bentoFillEl) {
-        const pct = val === null ? 0 : Math.max(0, Math.min(100, val));
-        bentoFillEl.style.width = pct + '%';
-        bentoFillEl.style.background = scoreColor(val);
-      }
+      // Four Signals section below -- a small reference chip only (the
+      // score's real home is the hero diagram above); this section's job
+      // is the explanation, not a second display of the number.
+      const bentoRefEl = document.getElementById(`sig-${key}-val`);
+      if (bentoRefEl) { bentoRefEl.textContent = `${text}/100`; }
     });
 
     const overall = average(PILLAR_KEYS.map(k => pillarDeltas[k].val));
