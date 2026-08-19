@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-19 07:03 UTC",
+  "generated_at": "2026-08-19 07:51 UTC",
   "quotes": {
     "META": {
       "price": 543.67,
@@ -574,9 +574,9 @@
     "^VIX": {
       "name": "VIX",
       "category": "US",
-      "price": 15.84,
-      "change_pct": 4.28,
-      "previous_close": 15.19,
+      "price": 15.81,
+      "change_pct": -0.19,
+      "previous_close": 15.84,
       "history": [
         {
           "date": "2026-07-20",
@@ -665,15 +665,19 @@
         {
           "date": "2026-08-18",
           "close": 15.84
+        },
+        {
+          "date": "2026-08-19",
+          "close": 15.81
         }
       ]
     },
     "BTC-USD": {
       "name": "Bitcoin",
       "category": "Crypto",
-      "price": 64249.71,
-      "change_pct": -0.4,
-      "previous_close": 64506.2539,
+      "price": 64293.55,
+      "change_pct": -0.6,
+      "previous_close": 64680.7109,
       "history": [
         {
           "date": "2026-07-19",
@@ -796,17 +800,21 @@
           "close": 64506.2539
         },
         {
+          "date": "2026-08-18",
+          "close": 64680.7109
+        },
+        {
           "date": "2026-08-19",
-          "close": 64249.7109
+          "close": 64293.5508
         }
       ]
     },
     "ETH-USD": {
       "name": "Ethereum",
       "category": "Crypto",
-      "price": 1914.05,
-      "change_pct": 0.1,
-      "previous_close": 1912.2021,
+      "price": 1917.11,
+      "change_pct": 0.03,
+      "previous_close": 1916.4596,
       "history": [
         {
           "date": "2026-07-19",
@@ -929,16 +937,20 @@
           "close": 1912.2021
         },
         {
+          "date": "2026-08-18",
+          "close": 1916.4596
+        },
+        {
           "date": "2026-08-19",
-          "close": 1914.05
+          "close": 1917.11
         }
       ]
     },
     "GC=F": {
       "name": "Gold",
       "category": "Commodities",
-      "price": 4399.9,
-      "change_pct": 0.78,
+      "price": 4410.7,
+      "change_pct": 1.02,
       "previous_close": 4366.0,
       "history": [
         {
@@ -1031,15 +1043,15 @@
         },
         {
           "date": "2026-08-19",
-          "close": 4399.8999
+          "close": 4410.7002
         }
       ]
     },
     "SI=F": {
       "name": "Silver",
       "category": "Commodities",
-      "price": 63.17,
-      "change_pct": -1.21,
+      "price": 63.18,
+      "change_pct": -1.19,
       "previous_close": 63.941,
       "history": [
         {
@@ -1132,15 +1144,15 @@
         },
         {
           "date": "2026-08-19",
-          "close": 63.165
+          "close": 63.18
         }
       ]
     },
     "CL=F": {
       "name": "Crude Oil",
       "category": "Commodities",
-      "price": 84.67,
-      "change_pct": -0.32,
+      "price": 84.41,
+      "change_pct": -0.62,
       "previous_close": 84.94,
       "history": [
         {
@@ -1233,7 +1245,7 @@
         },
         {
           "date": "2026-08-19",
-          "close": 84.67
+          "close": 84.41
         }
       ]
     },
@@ -1333,8 +1345,8 @@
     "^NSEI": {
       "name": "Nifty 50",
       "category": "Global",
-      "price": 24052.15,
-      "change_pct": -0.43,
+      "price": 24041.3,
+      "change_pct": -0.47,
       "previous_close": 24154.9004,
       "history": [
         {
@@ -1427,15 +1439,15 @@
         },
         {
           "date": "2026-08-19",
-          "close": 24052.1504
+          "close": 24041.3008
         }
       ]
     },
     "000001.SS": {
       "name": "Shanghai Composite",
       "category": "Global",
-      "price": 3891.21,
-      "change_pct": -2.48,
+      "price": 3894.42,
+      "change_pct": -2.4,
       "previous_close": 3990.304,
       "history": [
         {
@@ -1528,7 +1540,7 @@
         },
         {
           "date": "2026-08-19",
-          "close": 3891.2136
+          "close": 3894.4224
         }
       ]
     },
