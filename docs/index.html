@@ -292,16 +292,35 @@
   .signal-bento-ref { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 700; color: var(--text-faint); background: var(--surface-2); border: 1px solid var(--border); padding: 4px 10px; border-radius: 20px; flex-shrink: 0; }
   .signal-bento-desc { font-size: 14.5px; color: var(--text-secondary); line-height: 1.7; margin: 20px 0 0; }
 
-  /* The difference */
-  .difference-quote { text-align: center; font-size: clamp(22px, 3vw, 30px); font-weight: 700; line-height: 1.4; max-width: 760px; margin: 40px auto 0; letter-spacing: -0.01em; }
-  .difference-quote .muted { color: var(--text-faint); }
-  .difference-quote .accent { color: var(--accent); }
+  /* Signal Fingerprints -- every tracked company compressed into one
+     small glyph (a 2x2 grid of its four pillar buckets) instead of a
+     table to read row by row. Aligned companies render muted/translucent
+     so they recede into a quiet field; companies the real Divergence
+     Engine has actually flagged today render full-color, ringed, and
+     lifted, so the eye catches them by contrast and position, not by
+     reading. Replaces the old text-only "difference" quote entirely --
+     this section demonstrates the claim instead of stating it. */
+  .fp-field { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 720px; margin: 44px auto 0; }
+  .fp-glyph {
+    position: relative; width: 22px; height: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+    padding: 5px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-1);
+    opacity: 0; transform: scale(0.7);
+    transition: opacity .4s ease, transform .4s cubic-bezier(.2,.8,.2,1), border-color .2s ease;
+  }
+  .fp-glyph.in { opacity: 1; transform: scale(1); }
+  .fp-glyph:hover { transform: scale(1.2); }
+  .fp-glyph.flagged { border: 1.5px solid var(--accent); background: var(--accent-dim); cursor: pointer; }
+  .fp-glyph.flagged.in { transform: translateY(-3px) scale(1); }
+  .fp-glyph.flagged:hover { transform: translateY(-6px) scale(1.15); }
+  .fp-dot { width: 8px; height: 8px; border-radius: 2px; }
+  .fp-badge { position: absolute; top: -7px; right: -7px; background: var(--accent); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 8.5px; font-weight: 700; padding: 1.5px 4px; border-radius: 6px; }
 
-  /* Divergence example -- a real, currently-flagged ticker from the
-     actual Divergence Engine (signal_history.divergence), not a
-     hardcoded illustration. */
+  /* Divergence detail panel -- appears when a flagged glyph is clicked.
+     Reuses the same card/header/badge/callout components the standalone
+     divergence card used to own outright, just without the bar rows
+     (the glyph itself is the compact visual now). */
   .divergence-card { max-width: 640px; margin: 32px auto 0; border-radius: var(--radius-lg); padding: 28px 30px; position: relative; overflow: hidden; }
-  .divergence-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
+  .divergence-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 0; flex-wrap: wrap; }
   .divergence-ticker { display: flex; align-items: center; gap: 12px; }
   .divergence-ticker-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-3); overflow: hidden; flex-shrink: 0; }
   .divergence-ticker-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -313,12 +332,6 @@
   .divergence-pattern-badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-border); }
   .divergence-pattern-badge.down { background: var(--bear-soft); color: var(--bear); border: 1px solid var(--bear-border); }
   .divergence-pattern-badge.info { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
-  .divergence-bars { display: flex; flex-direction: column; gap: 14px; }
-  .div-row-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 5px; }
-  .div-row-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.03em; }
-  .div-row-val { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; font-weight: 700; }
-  .div-row-track { height: 8px; background: var(--surface-3); border-radius: 4px; overflow: hidden; }
-  .div-row-fill { height: 100%; border-radius: 4px; width: 0; transition: width 1.1s cubic-bezier(.16,.8,.24,1); }
   .divergence-callout { display: flex; align-items: flex-start; gap: 11px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
   .divergence-callout-icon { color: var(--amber); flex-shrink: 0; margin-top: 2px; }
   .divergence-callout-icon svg { width: 16px; height: 16px; }
@@ -523,24 +536,16 @@
   </div>
 </section>
 
-<section class="section">
-  <div class="wrap">
-    <span class="section-kicker reveal">THE DIFFERENCE</span>
-    <p class="difference-quote reveal reveal-1">
-      <span class="muted">Most platforms show you the data.</span><br>
-      <span class="accent">Undertow shows you where the data disagrees.</span>
-    </p>
-  </div>
-</section>
+<section class="section" id="fingerprints">
+  <div class="wrap-wide">
+    <span class="section-kicker reveal">SIGNAL FINGERPRINTS</span>
+    <h2 class="section-title reveal reveal-1">Most companies agree with themselves today. A few don't.</h2>
+    <p class="section-sub reveal reveal-2" id="fp-dominant" style="min-height:20px;"></p>
+    <p class="section-sub reveal reveal-2" id="fp-stat" style="margin-top:2px;min-height:20px;"></p>
 
-<section class="section" style="padding-top:0;">
-  <div class="wrap">
-    <span class="section-kicker reveal">A REAL DIVERGENCE, RIGHT NOW</span>
-    <h2 class="section-title reveal reveal-1">When the signals disagree, that's the story.</h2>
-    <p class="section-sub reveal reveal-2" id="divergence-context" style="min-height:22px;"></p>
-    <div class="divergence-card surface reveal reveal-2" id="divergence-card">
-      <div style="text-align:center;padding:20px 0;color:var(--text-faint);font-size:13px;">Checking today's signals…</div>
-    </div>
+    <div class="fp-field reveal reveal-3" id="fp-field"></div>
+
+    <div class="divergence-card surface" id="fp-why" style="display:none;"></div>
   </div>
 </section>
 
@@ -924,13 +929,11 @@ document.querySelectorAll('.imap-node').forEach(node => {
 });
 
 // ============================================================
-// "A real divergence, right now" -- pulls whichever ticker the actual
-// Divergence Engine has genuinely flagged today (signal_history.divergence
-// is written by the same classify_divergence() logic that runs in the
-// daily pipeline), not a hardcoded illustration. Falls back to the most
-// recent prior day with a flagged ticker if today's run hasn't happened
-// yet; shows an honest empty state if nothing qualifies at all -- never
-// a fabricated example.
+// Signal Fingerprints -- every tracked company's real four-pillar state
+// compressed into one glyph, so the section demonstrates "where the data
+// disagrees" as a pattern the eye catches, not a table to read. Flagged
+// tickers are whichever ones the actual Divergence Engine has genuinely
+// classified today (signal_history.divergence), not hardcoded picks.
 // ============================================================
 const ICON_FLAME = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/></svg>';
 const ICON_WARN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
@@ -958,89 +961,127 @@ const DIVERGENCE_COPY = {
     detail: p => `Wall Street and the fundamentals are both strong, but retail attention hasn't caught up yet.`,
   },
 };
-const PILLAR_BAR_COLOR = { crowd: 'var(--bull)', wall_street: 'var(--amber)', business: 'var(--bull)', market: 'var(--bull)' };
+const DIVERGENCE_ICON_COLOR = { up: 'var(--bull)', warn: 'var(--amber)', down: 'var(--bear)', info: 'var(--accent)' };
 
-async function loadDivergence() {
-  const cardEl = document.getElementById('divergence-card');
+// Bucket-to-color helpers for the glyph dots -- full saturation for a
+// flagged (genuinely diverging) company, muted/translucent for an aligned
+// one, so aligned companies recede into quiet texture instead of
+// competing with the handful that actually stand out.
+function bucketColor(b) {
+  return b === 'bull' ? 'var(--bull)' : b === 'bear' ? 'var(--bear)' : b === 'mixed' ? 'var(--amber)' : 'var(--text-faint)';
+}
+function bucketColorMuted(b) {
+  return b === 'bull' ? 'rgba(16,185,129,0.32)' : b === 'bear' ? 'rgba(239,68,68,0.32)' : b === 'mixed' ? 'rgba(245,158,11,0.32)' : 'var(--border)';
+}
+
+async function loadFingerprints() {
+  const fieldEl = document.getElementById('fp-field');
+  const whyEl = document.getElementById('fp-why');
+  const domEl = document.getElementById('fp-dominant');
+  const statEl = document.getElementById('fp-stat');
   try {
-    const { data: rows } = await sbClient.from('signal_history').select('*').not('divergence', 'is', null).order('date', { ascending: false }).limit(20);
-    if (!rows || !rows.length) {
-      cardEl.innerHTML = `<div style="text-align:center;padding:20px 0;color:var(--text-faint);font-size:13px;">No signals are diverging enough to flag right now — check back soon.</div>`;
-      return;
-    }
+    // Enough history (30 tickers x up to ~30 days) to compute a real
+    // "diverging for N consecutive days" streak per ticker, not just
+    // today's snapshot -- the streak is the part a competitor can't
+    // fake with a one-day scrape.
+    const { data: rows } = await sbClient.from('signal_history').select('*').order('date', { ascending: false }).limit(900);
+    if (!rows || !rows.length) { fieldEl.innerHTML = ''; return; }
+
     const latestDate = rows[0].date;
-    const todaysRows = rows.filter(r => r.date === latestDate);
-    // If several tickers are flagged the same day, feature the one with
-    // the widest real spread between its strongest and weakest pillar --
-    // the most visually and substantively clear-cut case, not a random pick.
-    const spread = r => {
-      const vals = [r.crowd, r.wall_street, r.business, r.market].filter(v => v !== null && v !== undefined);
-      return vals.length ? Math.max(...vals) - Math.min(...vals) : 0;
-    };
-    const row = todaysRows.sort((a, b) => spread(b) - spread(a))[0];
-    const copy = DIVERGENCE_COPY[row.divergence];
-    if (!copy) { cardEl.innerHTML = ''; return; }
+    const allDates = [...new Set(rows.map(r => r.date))].sort().reverse();
+    const todayRows = rows.filter(r => r.date === latestDate);
+    if (!todayRows.length) { fieldEl.innerHTML = ''; return; }
 
-    const { count: totalTracked } = await sbClient.from('signal_history').select('ticker', { count: 'exact', head: true }).eq('date', latestDate);
-    const contextEl = document.getElementById('divergence-context');
-    if (contextEl && totalTracked) {
-      const verb = todaysRows.length === 1 ? 'shows' : 'show';
-      contextEl.textContent = `${todaysRows.length} of ${totalTracked} companies we track ${verb} a real divergence right now — here's the clearest one.`;
+    const byTickerDate = {};
+    rows.forEach(r => { (byTickerDate[r.ticker] = byTickerDate[r.ticker] || {})[r.date] = r; });
+    function divergenceStreak(ticker) {
+      let streak = 0;
+      for (const d of allDates) {
+        const r = byTickerDate[ticker] && byTickerDate[ticker][d];
+        if (r && r.divergence) streak++;
+        else break;
+      }
+      return streak;
     }
 
-    const { data: snap } = await sbClient.from('ticker_snapshots').select('*').eq('ticker', row.ticker).single();
-    const price = snap ? snap.price : row.price;
-    const chg = snap ? snap.change_pct : null;
+    const patterns = todayRows.map(r => ({
+      t: r.ticker,
+      dirs: PILLAR_KEYS.map(k => bucket(r[k])),
+      flagged: !!r.divergence,
+      pattern: r.divergence,
+      days: r.divergence ? divergenceStreak(r.ticker) : 0,
+      row: r,
+    })).sort((a, b) => a.t.localeCompare(b.t));
 
-    const pillars = [
-      { key: 'crowd', label: 'Crowd', val: row.crowd },
-      { key: 'wall_street', label: 'Wall Street', val: row.wall_street },
-      { key: 'business', label: 'Business', val: row.business },
-      { key: 'market', label: 'Market', val: row.market },
-    ];
-    const barsHtml = pillars.map(p => {
-      const v = p.val;
-      const text = (v === null || v === undefined) ? 'n/a' : Math.round(v);
-      const color = scoreColor(v);
-      return `<div><div class="div-row-top"><span class="div-row-label">${p.label}</span><span class="div-row-val" style="color:${color}">${text}</span></div><div class="div-row-track"><div class="div-row-fill" data-w="${v || 0}" style="background:${color}"></div></div></div>`;
+    // Real "dominant pattern" -- the majority bucket per pillar across
+    // every tracked company today (an actual vote count, not just the
+    // average score's bucket), so the headline reflects breadth.
+    const domParts = PILLAR_KEYS.map(key => {
+      const counts = { bull: 0, mixed: 0, bear: 0 };
+      todayRows.forEach(r => { const b = bucket(r[key]); if (b) counts[b]++; });
+      const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+      return { key, top: top[1] > 0 ? top[0] : null };
+    });
+    const joinList = arr => arr.length <= 1 ? (arr[0] || '') : arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1];
+    const bullish = domParts.filter(p => p.top === 'bull').map(p => PILLAR_LABELS[p.key]);
+    const bearish = domParts.filter(p => p.top === 'bear').map(p => PILLAR_LABELS[p.key]);
+    const mixed = domParts.filter(p => p.top === 'mixed').map(p => PILLAR_LABELS[p.key]);
+    let domText = '';
+    if (bullish.length) domText += `${joinList(bullish)} ${bullish.length === 1 ? 'is' : 'are'} mostly bullish today. `;
+    if (bearish.length) domText += `${joinList(bearish)} ${bearish.length === 1 ? 'is' : 'are'} mostly bearish today. `;
+    if (mixed.length) domText += `${joinList(mixed)} ${mixed.length === 1 ? 'is' : 'are'} mixed.`;
+    domEl.textContent = domText.trim();
+
+    const flaggedCount = patterns.filter(p => p.flagged).length;
+    const alignedCount = patterns.length - flaggedCount;
+    statEl.textContent = flaggedCount === 0
+      ? `Every one of the ${patterns.length} companies we track has its signals broadly agreeing today.`
+      : `${alignedCount} of ${patterns.length} tracked companies have their signals broadly agreeing today. ${flaggedCount === 1 ? "This one doesn't." : `These ${flaggedCount} don't.`}`;
+
+    fieldEl.innerHTML = patterns.map(p => {
+      const colorFn = p.flagged ? bucketColor : bucketColorMuted;
+      const dots = p.dirs.map(d => `<div class="fp-dot" style="background:${colorFn(d)}"></div>`).join('');
+      const badge = p.flagged ? `<div class="fp-badge">${p.days}D</div>` : '';
+      return `<div class="fp-glyph${p.flagged ? ' flagged' : ''}" data-t="${p.t}" title="${p.t}${p.flagged ? ' — click for why' : ''}">${dots}${badge}</div>`;
     }).join('');
 
-    const isToday = latestDate === new Date().toISOString().slice(0, 10);
-    cardEl.innerHTML = `
-      <div class="divergence-header">
-        <div class="divergence-ticker">
-          <div class="divergence-ticker-avatar"><img src="logos/${row.ticker}.png" alt="" onerror="this.style.display='none'"></div>
-          <div>
-            <div class="divergence-ticker-sym">${row.ticker}</div>
-            <div class="divergence-ticker-price">${price ? '$' + price.toFixed(2) : ''}${chg !== null && chg !== undefined ? ` <span class="${chgClass(chg)}">${fmtChg(chg)}</span>` : ''}</div>
+    document.querySelectorAll('.fp-glyph').forEach((el, i) => {
+      setTimeout(() => el.classList.add('in'), 500 + i * 22);
+      const p = patterns.find(x => x.t === el.dataset.t);
+      if (!p.flagged) return;
+      el.addEventListener('click', () => {
+        const copy = DIVERGENCE_COPY[p.pattern];
+        if (!copy) return;
+        const price = p.row.price;
+        whyEl.style.display = 'block';
+        whyEl.innerHTML = `
+          <div class="divergence-header">
+            <div class="divergence-ticker">
+              <div class="divergence-ticker-avatar"><img src="logos/${p.t}.png" alt="" onerror="this.style.display='none'"></div>
+              <div>
+                <div class="divergence-ticker-sym">${p.t}</div>
+                <div class="divergence-ticker-price">${price ? '$' + Number(price).toFixed(2) : ''} <span style="color:var(--text-faint);">· diverging ${p.days} day${p.days === 1 ? '' : 's'}</span></div>
+              </div>
+            </div>
+            <span class="divergence-pattern-badge ${copy.cls}">${copy.icon}${copy.label}</span>
           </div>
-        </div>
-        <span class="divergence-pattern-badge ${copy.cls}">${copy.icon}${copy.label}</span>
-      </div>
-      <div class="divergence-bars">${barsHtml}</div>
-      <div class="divergence-callout">
-        <span class="divergence-callout-icon" style="color:${row.divergence === 'fundamental_deterioration' ? 'var(--bear)' : row.divergence === 'emerging_consensus' ? 'var(--bull)' : row.divergence === 'under_the_radar' ? 'var(--accent)' : 'var(--amber)'}">${copy.icon}</span>
-        <div class="divergence-callout-text"><strong>${copy.headline}</strong> ${copy.detail(row)}</div>
-      </div>
-      <div class="divergence-footer">
-        <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-faint);">${isToday ? 'Flagged today' : `Flagged ${latestDate}`} · real data, not an example</span>
-        <a href="stock.html?t=${row.ticker}">Full breakdown on ${row.ticker} →</a>
-      </div>`;
-
-    // Animate bars from 0 to real width once the card is in the DOM.
-    // Forces a synchronous reflow between the width:0 initial paint and
-    // the real target width so the CSS transition actually animates --
-    // more reliable than a double requestAnimationFrame, which some
-    // browsers throttle or skip entirely for a backgrounded/inactive tab.
-    cardEl.querySelectorAll('.div-row-fill').forEach(el => {
-      void el.offsetHeight;
-      el.style.width = `${el.dataset.w}%`;
+          <div class="divergence-callout">
+            <span class="divergence-callout-icon" style="color:${DIVERGENCE_ICON_COLOR[copy.cls]}">${copy.icon}</span>
+            <div class="divergence-callout-text"><strong>${copy.headline}</strong> ${copy.detail(p.row)}</div>
+          </div>
+          <div class="divergence-footer">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-faint);">Real data, not an example</span>
+            <a href="stock.html?t=${p.t}">Full breakdown on ${p.t} →</a>
+          </div>`;
+        whyEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
     });
   } catch (e) {
-    cardEl.innerHTML = `<div style="text-align:center;padding:20px 0;color:var(--text-faint);font-size:13px;">Couldn't load today's signals.</div>`;
+    fieldEl.innerHTML = '';
   }
 }
-loadDivergence();
+loadFingerprints();
+setInterval(loadFingerprints, 60000);
 </script>
 
 </body>
