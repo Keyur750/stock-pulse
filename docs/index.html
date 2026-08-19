@@ -395,6 +395,34 @@
   .chart-axis-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; fill: var(--text-faint); }
   .chart-date-label { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; fill: var(--text-faint); }
 
+  /* Interactive Stock Explorer -- every tracked ticker is real (built
+     from the same todayRows Signal Fingerprints already fetched), so
+     every pill genuinely has data behind it. Reuses divergence-ticker*
+     classes for the header and DIVERGENCE_COPY for the read, same as
+     Insight of the Day and Fingerprints' click panel -- one consistent
+     visual language for "here's a ticker's real signal state" wherever
+     it appears on the page. */
+  .explorer-picker { display: flex; gap: 8px; overflow-x: auto; padding: 6px 2px 14px; margin-top: 40px; }
+  .explorer-pill { flex-shrink: 0; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 700; padding: 9px 16px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-secondary); cursor: pointer; transition: border-color .15s ease, color .15s ease, background-color .15s ease; white-space: nowrap; }
+  .explorer-pill:hover { border-color: var(--border-hover); color: var(--text-primary); }
+  .explorer-pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .explorer-card { max-width: 1000px; margin: 6px auto 0; border-radius: var(--radius-lg); padding: 32px 36px; }
+  .explorer-price { font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 800; margin-top: 6px; line-height: 1; }
+  .explorer-chg { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; margin-top: 6px; }
+  .explorer-spark-wrap { margin-top: 22px; height: 100px; }
+  .explorer-body { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; margin-top: 26px; padding-top: 24px; border-top: 1px solid var(--border); }
+  @media (max-width: 700px) { .explorer-body { grid-template-columns: 1fr; } }
+  .explorer-pillars { display: flex; flex-direction: column; gap: 14px; }
+  .explorer-pillar-row { display: flex; align-items: center; justify-content: space-between; }
+  .explorer-pillar-name { font-size: 13.5px; color: var(--text-secondary); font-weight: 600; }
+  .explorer-pillar-num { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 15px; }
+  .explorer-read-label { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: .08em; color: var(--text-faint); font-weight: 700; text-transform: uppercase; margin-bottom: 10px; }
+  .explorer-read-text { font-size: 14px; color: var(--text-secondary); line-height: 1.65; }
+  .explorer-read-text strong { color: var(--text-primary); }
+  .explorer-cta { display: inline-block; margin-top: 18px; font-size: 12.5px; font-weight: 700; color: var(--accent); text-decoration: none; }
+  .explorer-cta:hover { text-decoration: underline; }
+  @media (max-width: 640px) { .explorer-card { padding: 24px 22px; } }
+
   /* Why Undertow */
   .why-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 44px; }
   @media (max-width: 900px) { .why-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -623,6 +651,20 @@
     <div class="tl-card surface reveal reveal-3">
       <div class="tl-chart-wrap" id="tl-chart-wrap"><div style="text-align:center;padding:60px 0;color:var(--text-faint);font-size:13px;">Loading signal history…</div></div>
       <p class="tl-detail" id="tl-detail">Hover a point to see that day's real reading.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="explorer">
+  <div class="wrap-wide">
+    <span class="section-kicker reveal">SEE THE INTELLIGENCE FOR YOURSELF</span>
+    <h2 class="section-title reveal reveal-1">Pick any company we track.</h2>
+    <p class="section-sub reveal reveal-2">Same real data as the map above, for whichever one you want to look at.</p>
+
+    <div class="explorer-picker reveal reveal-2" id="explorer-picker"></div>
+
+    <div class="explorer-card surface reveal reveal-3" id="explorer-card">
+      <div style="text-align:center;padding:60px 0;color:var(--text-faint);font-size:13px;">Loading tracked companies…</div>
     </div>
   </div>
 </section>
@@ -1193,15 +1235,20 @@ async function loadFingerprints() {
     // flagged tickers, reusing the exact same `patterns` this function
     // already built (no second query for the pick itself).
     const flaggedPatterns = patterns.filter(p => p.flagged);
+    let featuredTicker = null;
     if (flaggedPatterns.length) {
       const spreadOf = p => {
         const vals = PILLAR_KEYS.map(k => p.row[k]).filter(v => v !== null && v !== undefined);
         return vals.length ? Math.max(...vals) - Math.min(...vals) : 0;
       };
-      renderInsightOfDay(flaggedPatterns.sort((a, b) => spreadOf(b) - spreadOf(a))[0]);
+      const featured = flaggedPatterns.sort((a, b) => spreadOf(b) - spreadOf(a))[0];
+      featuredTicker = featured.t;
+      renderInsightOfDay(featured);
     } else {
       renderInsightOfDay(null);
     }
+
+    initStockExplorer(todayRows, featuredTicker);
   } catch (e) {
     fieldEl.innerHTML = '';
   }
@@ -1358,6 +1405,122 @@ function renderSignalTimeline(rows) {
     }, i * 150);
   });
   attachTimelineHover(dailyAverages);
+}
+
+// ============================================================
+// Interactive Stock Explorer -- picker built from the same real
+// todayRows Signal Fingerprints already fetched, so every pill has real
+// data behind it (never a guessed/hardcoded ticker list). Snapshots and
+// quotes.json are each fetched once and cached; only the currently
+// selected ticker re-renders on each poll cycle.
+// ============================================================
+let explorerInitialized = false;
+let explorerCurrentTicker = null;
+const EXPLORER_ROWS = {};
+let EXPLORER_SNAPSHOTS = {};
+let EXPLORER_QUOTES = {};
+
+async function initStockExplorer(todayRows, featuredTicker) {
+  const pickerEl = document.getElementById('explorer-picker');
+  const cardEl = document.getElementById('explorer-card');
+  if (!pickerEl || !cardEl || !todayRows.length) return;
+
+  todayRows.forEach(r => { EXPLORER_ROWS[r.ticker] = r; });
+
+  if (explorerInitialized) {
+    if (explorerCurrentTicker) selectExplorerTicker(explorerCurrentTicker);
+    return;
+  }
+  explorerInitialized = true;
+
+  try {
+    const [{ data: snaps }, quotesPayload] = await Promise.all([
+      sbClient.from('ticker_snapshots').select('*'),
+      fetch('quotes.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]);
+    if (snaps) snaps.forEach(s => { EXPLORER_SNAPSHOTS[s.ticker] = s; });
+    if (quotesPayload && quotesPayload.quotes) EXPLORER_QUOTES = quotesPayload.quotes;
+  } catch (e) {}
+
+  const tickers = Object.keys(EXPLORER_ROWS).sort();
+  pickerEl.innerHTML = tickers.map(t => `<button type="button" class="explorer-pill" data-t="${t}">${t}</button>`).join('');
+  pickerEl.querySelectorAll('.explorer-pill').forEach(btn => {
+    btn.addEventListener('click', () => selectExplorerTicker(btn.dataset.t));
+  });
+
+  const initial = (featuredTicker && EXPLORER_ROWS[featuredTicker]) ? featuredTicker : tickers[0];
+  if (initial) selectExplorerTicker(initial);
+}
+
+function buildSparkline(points) {
+  const width = 400, height = 100;
+  const vals = points.map(p => p.close);
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const range = (max - min) || 1;
+  const stepX = width / (points.length - 1);
+  const yAt = v => height - ((v - min) / range) * (height - 10) - 5;
+  const pts = points.map((p, i) => `${(i * stepX).toFixed(1)},${yAt(p.close).toFixed(1)}`).join(' ');
+  const areaPts = `0,${height} ${pts} ${width},${height}`;
+  const up = vals[vals.length - 1] >= vals[0];
+  const color = up ? 'var(--bull)' : 'var(--bear)';
+  return `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="width:100%;height:100%;display:block;">
+    <polygon points="${areaPts}" fill="${color}" opacity="0.08"/>
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+function selectExplorerTicker(ticker) {
+  explorerCurrentTicker = ticker;
+  document.querySelectorAll('.explorer-pill').forEach(b => b.classList.toggle('active', b.dataset.t === ticker));
+
+  const cardEl = document.getElementById('explorer-card');
+  const row = EXPLORER_ROWS[ticker];
+  if (!cardEl || !row) return;
+
+  const snap = EXPLORER_SNAPSHOTS[ticker];
+  const price = snap ? snap.price : row.price;
+  const chg = (snap && snap.change_pct !== null && snap.change_pct !== undefined) ? snap.change_pct : null;
+  const q = EXPLORER_QUOTES[ticker];
+  const sparkHtml = (q && q.intraday && q.intraday.length >= 2)
+    ? buildSparkline(q.intraday)
+    : `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-faint);font-size:12px;">Chart unavailable right now</div>`;
+
+  const pillarsHtml = PILLAR_KEYS.map(k => {
+    const v = row[k];
+    const text = (v === null || v === undefined) ? '—' : Math.round(v);
+    return `<div class="explorer-pillar-row"><span class="explorer-pillar-name">${PILLAR_LABELS[k]}</span><span class="explorer-pillar-num" style="color:${scoreColor(v)}">${text}</span></div>`;
+  }).join('');
+
+  let readHtml;
+  if (row.divergence && DIVERGENCE_COPY[row.divergence]) {
+    const copy = DIVERGENCE_COPY[row.divergence];
+    readHtml = `<span class="divergence-pattern-badge ${copy.cls}" style="margin-bottom:12px;">${copy.icon}${copy.label}</span><div class="explorer-read-text"><strong>${copy.headline}</strong> ${copy.detail(row)}</div>`;
+  } else {
+    const vals = PILLAR_KEYS.map(k => row[k]).filter(v => v !== null && v !== undefined);
+    const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    const b = bucket(avg);
+    const readText = b === 'bull' ? 'a bullish read' : b === 'bear' ? 'a bearish read' : 'a mixed read';
+    readHtml = `<div class="explorer-read-text"><strong>Crowd, Wall Street, Business, and Market are broadly aligned</strong> around ${readText} today — no real divergence flagged.</div>`;
+  }
+
+  cardEl.innerHTML = `
+    <div class="divergence-ticker">
+      <div class="divergence-ticker-avatar" style="width:48px;height:48px;"><img src="logos/${ticker}.png" alt="" onerror="this.style.display='none'"></div>
+      <div>
+        <div class="divergence-ticker-sym" style="font-size:18px;">${ticker}</div>
+        <div class="explorer-price">${price ? '$' + Number(price).toFixed(2) : '—'}</div>
+        ${chg !== null ? `<div class="explorer-chg ${chgClass(chg)}">${fmtChg(chg)}</div>` : ''}
+      </div>
+    </div>
+    <div class="explorer-spark-wrap">${sparkHtml}</div>
+    <div class="explorer-body">
+      <div class="explorer-pillars">${pillarsHtml}</div>
+      <div>
+        <div class="explorer-read-label">Intelligence</div>
+        ${readHtml}
+        <a class="explorer-cta" href="stock.html?t=${ticker}">Full breakdown on ${ticker} →</a>
+      </div>
+    </div>`;
 }
 </script>
 
