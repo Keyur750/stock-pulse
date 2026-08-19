@@ -16,7 +16,8 @@ FIELDS = [
     "operatingMargins", "profitMargins", "returnOnEquity", "freeCashflow",
     "operatingCashflow", "totalRevenue", "totalDebt", "totalCash",
     "debtToEquity", "currentRatio", "trailingPE", "forwardPE",
-    "priceToSalesTrailing12Months", "enterpriseToEbitda", "shortName", "sector",
+    "priceToSalesTrailing12Months", "enterpriseToEbitda", "trailingEps",
+    "shortName", "sector",
 ]
 
 
@@ -60,7 +61,73 @@ def fetch_fundamentals(symbol: str) -> dict | None:
         "forward_pe": g("forwardPE"),
         "price_to_sales": g("priceToSalesTrailing12Months"),
         "ev_to_ebitda": g("enterpriseToEbitda"),
+        "trailing_eps": g("trailingEps"),
     }
+
+
+_QUARTERLY_PERIODS_KEPT = 8
+_ANNUAL_PERIODS_KEPT = 5
+
+
+def _clean(value):
+    """yfinance's financial statements come back as a pandas Series --
+    missing periods are NaN, not absent, and NaN != None (isnan() is the
+    only reliable check). Never fabricate a 0 for a genuinely missing
+    quarter/year; None means "not reported," a real and common state for
+    the most recent quarter or a newly-public company's early history."""
+    if value is None:
+        return None
+    try:
+        if isinstance(value, float) and value != value:  # NaN
+            return None
+    except Exception:
+        pass
+    return float(value)
+
+
+def _quarter_label(ts):
+    q = (ts.month - 1) // 3 + 1
+    return f"Q{q}'{ts.year % 100:02d}"
+
+
+def fetch_financial_history(symbol: str) -> dict | None:
+    """Real quarterly (up to 8) and annual (up to 5) Revenue / Diluted EPS
+    / Net Income history from yfinance's income statement -- confirmed
+    against live data for the full watchlist (2026-08-18): every ticker
+    had at least 5 real quarters and 4 real years, ~0.4s/ticker. Returns
+    oldest-to-newest (yfinance itself returns newest-first) so a chart
+    can plot left-to-right without the caller re-sorting. A period with a
+    missing field comes through as value: None -- rendered as a gap, not
+    guessed. Returns None only if the ticker has no statement data at all
+    (bad symbol, not yet covered)."""
+    try:
+        t = yf.Ticker(symbol)
+        q_stmt = t.quarterly_income_stmt
+        a_stmt = t.income_stmt
+    except Exception:
+        return None
+
+    def _series(stmt, periods_kept, label_fn):
+        if stmt is None or stmt.empty:
+            return {"revenue": [], "eps": [], "net_income": []}
+        cols = list(stmt.columns)[:periods_kept]
+        cols = list(reversed(cols))  # oldest -> newest
+        out = {"revenue": [], "eps": [], "net_income": []}
+        row_map = {"revenue": "Total Revenue", "eps": "Diluted EPS", "net_income": "Net Income"}
+        for key, row_name in row_map.items():
+            if row_name not in stmt.index:
+                out[key] = [{"period": label_fn(c), "value": None} for c in cols]
+                continue
+            row = stmt.loc[row_name]
+            out[key] = [{"period": label_fn(c), "value": _clean(row.get(c))} for c in cols]
+        return out
+
+    quarterly = _series(q_stmt, _QUARTERLY_PERIODS_KEPT, _quarter_label)
+    annual = _series(a_stmt, _ANNUAL_PERIODS_KEPT, lambda ts: str(ts.year))
+
+    if not quarterly["revenue"] and not annual["revenue"]:
+        return None
+    return {"quarterly": quarterly, "annual": annual}
 
 
 def _scale(value, points):

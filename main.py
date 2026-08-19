@@ -28,7 +28,7 @@ from sentiment import (
 from reddit import extract_tickers
 from market_data import MACRO_INSTRUMENTS, fetch_quotes
 from supabase_sync import sync_sentiment_history, sync_signal_history, sync_ticker_snapshots
-from fundamentals import fetch_fundamentals, score_fundamentals
+from fundamentals import fetch_fundamentals, score_fundamentals, fetch_financial_history
 from market_history import build_ticker_history
 from logos import ensure_logo
 from wallstreet import fetch_analyst_data, score_wallstreet
@@ -47,6 +47,8 @@ DASHBOARD_PATH = os.path.join(ROOT, "docs", "dashboard.html")
 TEMPLATE_PATH = os.path.join(ROOT, "dashboard_template.html")
 SENTIMENT_PAGE_PATH = os.path.join(ROOT, "docs", "sentiment.html")
 SENTIMENT_TEMPLATE_PATH = os.path.join(ROOT, "sentiment_template.html")
+STOCK_PAGE_PATH = os.path.join(ROOT, "docs", "stock.html")
+STOCK_TEMPLATE_PATH = os.path.join(ROOT, "stock_template.html")
 
 
 def load_config():
@@ -680,6 +682,14 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     the AI prompt and then discarded, leaving only a single blended
     0-100 score reachable by the dashboard. The Fundamental Intelligence
     page needs the real numbers, not just the score derived from them.
+    (The 5 category 0-100 sub-scores and the blended `overall` score were
+    themselves being computed and then thrown away too — now persisted
+    alongside the raw metrics, needed by the Stock Intelligence page's
+    fundamentals bars.)
+    financial_history_data carries real quarterly (up to 8) and annual
+    (up to 5) Revenue/Diluted EPS/Net Income series per ticker straight
+    from yfinance's income statement — see fundamentals.py's
+    fetch_financial_history for exactly what's real vs. a genuine gap.
     history_data carries every timeframe's real, pre-resolved chart data
     and performance (see market_history.py) — a ticker missing here (no
     fetchable history at all) simply has no chart system for the day,
@@ -688,6 +698,7 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     analyst_results = {}
     pillar_scores = {}
     fundamentals_data = {}
+    financial_history_data = {}
     history_data = {}
 
     logo_results = {}
@@ -721,7 +732,13 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
                 "metrics": {k: v for k, v in f.items() if k not in ("name", "sector")},
                 "coverage": fscore.get("coverage") if fscore else None,
                 "missing_categories": [k for k, v in (fscore.get("categories") or {}).items() if v is None] if fscore else [],
+                "categories": fscore.get("categories") if fscore else {},
+                "overall": fscore.get("overall") if fscore else None,
             }
+
+        financial_history = fetch_financial_history(ticker)
+        if financial_history:
+            financial_history_data[ticker] = financial_history
 
         q = quotes.get(ticker, {})
         period_chg, period_days = _period_change(hist)
@@ -757,7 +774,8 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     print(f"  [logos] {sum(logo_results.values())}/{len(logo_results)} tickers have a real cached logo "
           f"(rest fall back to the letter avatar)")
     print(f"  [history] {len(history_data)}/{len(flagship_tickers)} tickers have real multi-timeframe chart data")
-    return analyst_results, pillar_scores, fundamentals_data, history_data
+    print(f"  [financials] {len(financial_history_data)}/{len(flagship_tickers)} tickers have real quarterly/annual financial history")
+    return analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data
 
 
 def fetch_macro_history(sleep_seconds=2.0):
@@ -813,6 +831,21 @@ def render_sentiment_page(payload):
     html = template.replace("/*__DATA__*/", json.dumps(payload, separators=(",", ":")))
     os.makedirs(os.path.dirname(SENTIMENT_PAGE_PATH), exist_ok=True)
     with open(SENTIMENT_PAGE_PATH, "w", encoding="utf-8") as f:
+        f.write(html)
+
+
+def render_stock_page(payload):
+    """Same embed-and-write pattern as render_dashboard/render_sentiment_page,
+    same source payload -- one static file (docs/stock.html), routed
+    client-side by a ?t=TICKER query param rather than one file per
+    ticker. Every flagship ticker (currently the full watchlist) already
+    has everything this page needs in `payload` -- nothing here is a new
+    data source."""
+    with open(STOCK_TEMPLATE_PATH, encoding="utf-8") as f:
+        template = f.read()
+    html = template.replace("/*__DATA__*/", json.dumps(payload, separators=(",", ":")))
+    os.makedirs(os.path.dirname(STOCK_PAGE_PATH), exist_ok=True)
+    with open(STOCK_PAGE_PATH, "w", encoding="utf-8") as f:
         f.write(html)
 
 
@@ -924,9 +957,10 @@ def main():
     pillar_scores = {}
     fundamentals_data = {}
     history_data = {}
+    financial_history_data = {}
     if flagship_tickers:
         print(f"Running the 4-pillar engine + AI analyst on {len(flagship_tickers)} flagship tickers...")
-        analyst_results, pillar_scores, fundamentals_data, history_data = run_analyst_pipeline(
+        analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data = run_analyst_pipeline(
             flagship_tickers, ticker_results, news_items, price_history, quotes,
             sleep_seconds=config.get("analyst_call_sleep_seconds", 7),
         )
@@ -972,13 +1006,16 @@ def main():
         "analyst": analyst_results,
         "pillar_scores": pillar_scores,
         "fundamentals": fundamentals_data,
+        "financial_history": financial_history_data,
         "timeframe_history": history_data,
         "market_insight": market_insight,
         "material_events": material_events,
         "company_news": company_news,
+        "flagship_tickers": flagship_tickers,
     }
     render_dashboard(payload)
     render_sentiment_page(payload)
+    render_stock_page(payload)
 
     save_history(history, {
         "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),

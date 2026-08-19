@@ -687,7 +687,10 @@
     <div class="chart-modal-chart" id="cm-chart"></div>
     <div class="chart-modal-footer">
       <span id="cm-source"></span>
-      <a id="cm-yahoo" href="#" target="_blank" rel="noopener">View on Yahoo Finance ↗</a>
+      <span style="display:flex;gap:14px;">
+        <a id="cm-stock-page" href="#">Full Stock Intelligence →</a>
+        <a id="cm-yahoo" href="#" target="_blank" rel="noopener">View on Yahoo Finance ↗</a>
+      </span>
     </div>
 
     <div class="pillar-row" id="cm-pillar-row"></div>
@@ -1656,6 +1659,7 @@ function openChartModal(sym) {
   const src = sourceTitle(info);
   document.getElementById('cm-source').textContent = src ? `Based on ${src}` : '';
   document.getElementById('cm-yahoo').href = tickerUrl(sym);
+  document.getElementById('cm-stock-page').href = `stock.html?t=${encodeURIComponent(sym)}`;
 
   const hasHistory = !!(DATA.timeframe_history || {})[sym];
   if (!hasHistory) {
