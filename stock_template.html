@@ -218,7 +218,9 @@
   .fin-toggle button.active { background: var(--accent); color: #fff; }
   .fin-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
   @media (max-width: 640px) { .fin-charts { grid-template-columns: 1fr; } .stat-tiles { grid-template-columns: repeat(2, 1fr) !important; } }
-  .fin-chart-panel { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 14px; }
+  .fin-chart-panel { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 14px; position: relative; }
+  .fin-chart-panel svg { cursor: crosshair; }
+  .fin-tooltip { position: absolute; pointer-events: none; background: var(--surface-3); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; font-size: 11px; font-family: 'JetBrains Mono', monospace; box-shadow: var(--shadow-md); opacity: 0; transition: opacity .1s ease; white-space: nowrap; transform: translate(-50%, 0); z-index: 5; }
   .fin-chart-title { font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; display: flex; justify-content: space-between; }
   .fin-chart-title .fin-chart-now { font-family: 'JetBrains Mono', monospace; color: var(--text-primary); }
   .fin-chart-view { display: none; }
@@ -937,6 +939,19 @@ function deltaHtml(pct, unit) {
   return `<span class="stat-tile-sub ${cls}">${arrow} ${Math.abs(pct).toFixed(1)}% ${unit}</span>`;
 }
 
+// A leading/trailing run of nulls means the source (yfinance) simply
+// doesn't have that period at all -- there's nothing to reserve chart
+// space for. An interior null (a genuinely missing quarter between two
+// real ones) is different and stays as a real, visible gap. Trimmed only
+// for display; the underlying arrays (used for YoY math elsewhere) are
+// never mutated.
+function trimEdgeNulls(items) {
+  let start = 0, end = items.length;
+  while (start < end && items[start].value === null) start++;
+  while (end > start && items[end - 1].value === null) end--;
+  return items.slice(start, end);
+}
+
 function finBarChart(items, color) {
   const width = 300, height = 70;
   const n = items.length;
@@ -989,6 +1004,36 @@ function finLineChart(items, color) {
 
 function barLabelsHtml(items) {
   return `<div class="bar-labels">${items.map(i => `<span>${i.period}</span>`).join('')}</div>`;
+}
+
+// Hover tooltip, shared by both the bar and line fin-charts -- shows the
+// real value on hover, hides on mouseleave, same interaction the main
+// price chart already has. Uses proportional mouse-x -> nearest index
+// (both charts space their points evenly across the 300-unit viewBox),
+// not per-element listeners, so it works identically for either chart
+// shape.
+function attachFinHover(panelEl, items, formatFn) {
+  const svg = panelEl.querySelector('svg');
+  const tooltip = panelEl.querySelector('.fin-tooltip');
+  if (!svg || !tooltip) return;
+  const n = items.length;
+  const viewboxWidth = 300;
+  svg.addEventListener('mousemove', (e) => {
+    const rect = svg.getBoundingClientRect();
+    if (!rect.width) return;
+    const relX = (e.clientX - rect.left) / rect.width * viewboxWidth;
+    let idx = Math.floor(relX / (viewboxWidth / n));
+    idx = Math.max(0, Math.min(n - 1, idx));
+    const it = items[idx];
+    if (!it || it.value === null) { tooltip.style.opacity = '0'; return; }
+    tooltip.textContent = `${it.period}: ${formatFn(it.value)}`;
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    tooltip.style.left = Math.max(0, Math.min(rect.width - 4, px)) + 'px';
+    tooltip.style.top = Math.max(0, py - 30) + 'px';
+    tooltip.style.opacity = '1';
+  });
+  svg.addEventListener('mouseleave', () => { tooltip.style.opacity = '0'; });
 }
 
 // ============================================================
@@ -1155,17 +1200,24 @@ function renderFinCharts() {
   }
   const revLast = lastRealPoint(period.revenue);
   const epsLast = lastRealPoint(period.eps);
+  const revTrimmed = trimEdgeNulls(period.revenue);
+  const epsTrimmed = trimEdgeNulls(period.eps);
   el.innerHTML = `
     <div class="fin-chart-panel">
       <div class="fin-chart-title">Revenue <span class="fin-chart-now">${revLast ? fmtMoney(revLast.value) + ' (' + revLast.period + ')' : '—'}</span></div>
-      ${finBarChart(period.revenue, '#3B82F6')}
-      ${barLabelsHtml(period.revenue)}
+      ${finBarChart(revTrimmed, '#3B82F6')}
+      ${barLabelsHtml(revTrimmed)}
+      <div class="fin-tooltip"></div>
     </div>
     <div class="fin-chart-panel">
       <div class="fin-chart-title">EPS, Diluted <span class="fin-chart-now">${epsLast ? fmtEps(epsLast.value) + ' (' + epsLast.period + ')' : '—'}</span></div>
-      ${finLineChart(period.eps, '#10B981')}
-      ${barLabelsHtml(period.eps)}
+      ${finLineChart(epsTrimmed, '#10B981')}
+      ${barLabelsHtml(epsTrimmed)}
+      <div class="fin-tooltip"></div>
     </div>`;
+  const panels = el.querySelectorAll('.fin-chart-panel');
+  attachFinHover(panels[0], revTrimmed, fmtMoney);
+  attachFinHover(panels[1], epsTrimmed, fmtEps);
 }
 
 function renderStatTiles() {
