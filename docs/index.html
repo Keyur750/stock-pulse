@@ -57,6 +57,21 @@
   .tape-item .up { color: var(--bull); }
   .tape-item .down { color: var(--bear); }
 
+  /* Live signal ticker -- a second, distinct scrolling band (not a
+     repeat of the top tape, which lists individual stock movers). This
+     one reads the four pillars themselves in motion: live score + delta
+     per pillar, overall, breadth, and today's real divergences -- a
+     combination not shown anywhere else on the page, mid-page so the
+     "this is monitoring the market continuously" feeling isn't only at
+     the very top. */
+  .live-ticker-wrap { background: var(--bg-secondary); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); overflow: hidden; white-space: nowrap; padding: 16px 0; }
+  .live-ticker { display: inline-block; padding-left: 100%; animation: scroll-left 42s linear infinite; }
+  .live-ticker-wrap:hover .live-ticker { animation-play-state: paused; }
+  .lt-item { display: inline-flex; align-items: baseline; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; margin-right: 16px; }
+  .lt-label { color: var(--text-faint); font-weight: 700; letter-spacing: .04em; font-size: 10.5px; text-transform: uppercase; }
+  .lt-val { font-weight: 800; color: var(--text-primary); }
+  .lt-sep { color: var(--text-faint); margin-right: 16px; opacity: .5; }
+
   /* Live badge + flash-on-change -- a brief, tasteful pulse when a
      polled number actually changes, not a decorative loop. Real trading
      UIs (Bloomberg, Robinhood) use exactly this to telegraph "this just
@@ -549,6 +564,8 @@
   </div>
 </section>
 
+<div class="live-ticker-wrap"><div class="live-ticker" id="live-ticker"></div></div>
+
 <section class="section">
   <div class="wrap">
     <span class="section-kicker reveal">WHY UNDERTOW</span>
@@ -770,6 +787,31 @@ function average(nums) {
   return present.length ? present.reduce((a, b) => a + b, 0) / present.length : null;
 }
 
+// Live signal ticker -- built from the exact same pillarDeltas/overall
+// pollHero() already computed for the hero diagram this same cycle, not
+// a second fetch. Duplicated once (html+html) for a seamless scroll loop,
+// same technique as the top movers tape.
+function renderLiveTicker({ overall, tag, breadth, divergingTickers }) {
+  const el = document.getElementById('live-ticker');
+  if (!el) return;
+  const items = [];
+  PILLAR_KEYS.forEach(key => {
+    const d = pillarDeltas[key];
+    if (!d || d.val === null || d.val === undefined) return;
+    const flat = d.delta === null || Math.abs(d.delta) < 0.5;
+    const deltaText = d.delta === null ? '' : flat ? ' FLAT' : ` ${d.delta > 0 ? '▲' : '▼'}${Math.abs(d.delta).toFixed(1)}`;
+    const deltaColorVal = d.delta === null ? 'var(--text-faint)' : flat ? 'var(--text-faint)' : deltaColor(d.delta);
+    items.push(`<span class="lt-item"><span class="lt-label">${PILLAR_LABELS[key]}</span><span class="lt-val" style="color:${scoreColor(d.val)}">${Math.round(d.val)}</span><span style="color:${deltaColorVal};font-weight:700;">${deltaText}</span></span>`);
+  });
+  items.push(`<span class="lt-item"><span class="lt-label">Overall</span><span class="lt-val" style="color:${scoreColor(overall)}">${overall === null ? '—' : Math.round(overall)}/100</span><span style="color:var(--text-faint);">${tag ? tag.toUpperCase() : ''}</span></span>`);
+  items.push(`<span class="lt-item"><span class="lt-val">${breadth || '—'}</span><span class="lt-label">Up Today</span></span>`);
+  items.push(divergingTickers.length
+    ? `<span class="lt-item"><span class="lt-val" style="color:var(--accent);">${divergingTickers.length}</span><span class="lt-label">Diverging · ${divergingTickers.join(', ')}</span></span>`
+    : `<span class="lt-item"><span class="lt-label">No divergences flagged today</span></span>`);
+  const html = items.join('<span class="lt-sep">·</span>');
+  el.innerHTML = html + '<span class="lt-sep">·</span>' + html;
+}
+
 async function pollHero() {
   try {
     // Real cross-portfolio aggregates -- every tracked company's pillar
@@ -885,8 +927,15 @@ async function pollHero() {
       const upCount = withChange.filter(s => s.change_pct > 0).length;
       document.getElementById('stat-breadth').textContent = withChange.length ? `${upCount}/${withChange.length}` : '—';
     }
-    const divergingCount = todayRows.filter(r => r.divergence).length;
-    document.getElementById('stat-diverging').textContent = divergingCount;
+    const divergingTickers = todayRows.filter(r => r.divergence).map(r => r.ticker);
+    document.getElementById('stat-diverging').textContent = divergingTickers.length;
+
+    renderLiveTicker({
+      overall,
+      tag: tagEl.textContent,
+      breadth: document.getElementById('stat-breadth').textContent,
+      divergingTickers,
+    });
 
     if (!imapAnimated) {
       imapAnimated = true;
