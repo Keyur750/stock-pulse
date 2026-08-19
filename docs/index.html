@@ -102,9 +102,14 @@
      This is the single biggest fix for "too much unused horizontal
      space on desktop": the previous layout put a 780px-wide hero inside
      a page that can be 2500px+ wide and left the rest empty. */
-  .hero { padding: 56px 0 0; }
-  .hero-grid { display: grid; grid-template-columns: minmax(340px, 42%) 1fr; gap: 56px; align-items: center; }
-  .hero-left { text-align: left; }
+  .hero { padding: 56px 0 64px; }
+  /* align-items: start, not center -- centering the shorter text column
+     against the much-taller diagram panel left a huge dead gap ABOVE the
+     headline (and another below the CTAs), which looked like a layout
+     bug on load, not "generous whitespace". Anchoring both to the top
+     keeps the headline right under the nav where the eye expects it. */
+  .hero-grid { display: grid; grid-template-columns: minmax(340px, 42%) 1fr; gap: 56px; align-items: start; }
+  .hero-left { text-align: left; padding-top: 6px; }
   .hero-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); background: var(--accent-dim); border: 1px solid var(--accent-border); display: inline-flex; padding: 6px 15px; border-radius: 20px; }
   .hero h1 { font-size: clamp(36px, 3.6vw, 56px); line-height: 1.08; font-weight: 800; letter-spacing: -0.02em; margin: 22px 0 0; }
   .hero h1 .accent { color: var(--accent); }
@@ -138,7 +143,7 @@
       repeating-linear-gradient(rgba(148,163,184,0.045) 0 1px, transparent 1px 44px),
       repeating-linear-gradient(90deg, rgba(148,163,184,0.045) 0 1px, transparent 1px 44px),
       var(--surface-1);
-    padding: 26px clamp(18px, 3vw, 40px) 32px;
+    padding: 22px clamp(18px, 3vw, 40px) 26px;
     box-shadow: var(--shadow-md);
   }
   .hero-viz-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
@@ -154,8 +159,8 @@
      read, including real day-over-day pillar movement now that
      signal_history has accumulated multiple real days. */
   .imap { max-width: 100%; margin: 6px auto 0; }
-  .imap-canvas { position: relative; width: 100%; max-width: 620px; aspect-ratio: 1 / 1; margin: 0 auto; }
-  .imap-stats { display: flex; justify-content: center; gap: 10px; margin-top: 28px; flex-wrap: wrap; }
+  .imap-canvas { position: relative; width: 100%; max-width: 520px; aspect-ratio: 1 / 1; margin: 0 auto; }
+  .imap-stats { display: flex; justify-content: center; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
   .imap-stat { text-align: center; padding: 12px 22px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface-1); min-width: 140px; }
   .imap-stat-val { font-family: 'JetBrains Mono', monospace; font-size: 21px; font-weight: 800; }
   .imap-stat-label { font-size: 11px; color: var(--text-faint); margin-top: 3px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
