@@ -194,7 +194,11 @@
   .cm-ai-score.up { color: var(--bull); } .cm-ai-score.down { color: var(--bear); } .cm-ai-score.na { color: var(--amber); }
   .cm-ai-score-label { font-size: 12px; color: var(--text-faint); }
   .cm-ai-verdict { font-size: 15px; font-weight: 700; margin-top: 12px; }
-  .cm-ai-summary { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: 8px 0 18px; max-width: 68ch; }
+  /* No character-count cap -- 68ch was sized for the old 1000px card and
+     left a large empty gap beside the paragraph once the card widened to
+     1400px, while the factors grid right below it correctly spans full
+     width. Matching that instead of an arbitrary narrow column. */
+  .cm-ai-summary { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: 8px 0 18px; max-width: 100%; }
   /* Four columns at the new wider container -- Bullish/Bearish/Risks/
      Catalysts fit in one row instead of two stacked 2x1 pairs. */
   .cm-ai-cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 16px; }
