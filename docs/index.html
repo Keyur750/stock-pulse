@@ -194,7 +194,7 @@
   .imap-stat-label { font-size: 11px; color: var(--text-faint); margin-top: 3px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
   .imap-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   .imap-line {
-    stroke: var(--border); stroke-width: 0.6; fill: none;
+    stroke: var(--text-faint); stroke-width: 0.7; fill: none; opacity: 0.55;
     stroke-dasharray: 60; stroke-dashoffset: 60;
     transition: stroke .25s ease, stroke-width .25s ease;
   }
@@ -968,27 +968,21 @@ async function pollHero() {
     tagEl.style.color = scoreColor(overall);
     setRing(document.getElementById('ring-overall'), overall, CENTER_RING_CIRC);
 
-    // Connection lines colored by real agreement -- a pillar whose bucket
-    // (bull/mixed/bear) matches the overall read lights up in that same
-    // color; a pillar in a different bucket than the overall stays muted,
-    // visually flagging it as the outlier. This is the actual "where do
-    // signals disagree" mechanism drawn into the diagram at rest, not just
-    // on hover.
+    // Alignment count only -- NOT reflected in line color anymore. It
+    // was, briefly: a pillar's line lit up in its own scoreColor when
+    // its bucket matched the overall, muted gray otherwise. That put two
+    // conflicting color meanings on the same diagram (ring color = this
+    // pillar's own score; line color = agreement with the group), so a
+    // bullish-green ring could sit on a muted-gray line, which reads as
+    // a bug, not a signal (caught live). Lines are now a single neutral
+    // connector style; the "which pillar disagrees" story is told by the
+    // X/4 ALIGNED text below and the hover detail, not by a second color
+    // channel fighting the first.
     const overallBucket = bucket(overall);
     let alignedCount = 0;
     PILLAR_KEYS.forEach(key => {
       const val = pillarDeltas[key].val;
-      const lineEl = document.querySelector(`.imap-line[data-key="${key}"]`);
-      if (!lineEl) return;
-      const aligned = overallBucket !== null && bucket(val) === overallBucket;
-      if (aligned) alignedCount++;
-      // Unaligned lines use text-faint, not the border token -- border
-      // is tuned to be a barely-there UI hairline, and at reduced
-      // opacity on top of that it disappeared entirely instead of
-      // reading as "muted" (caught on the live site: the outlier
-      // pillar's line looked missing, not de-emphasized).
-      lineEl.style.stroke = aligned ? scoreColor(val) : 'var(--text-faint)';
-      lineEl.style.opacity = aligned ? '0.85' : '0.65';
+      if (overallBucket !== null && bucket(val) === overallBucket) alignedCount++;
     });
     const alignEl = document.getElementById('imap-align');
     if (alignEl) {
