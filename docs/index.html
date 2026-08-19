@@ -982,8 +982,13 @@ async function pollHero() {
       if (!lineEl) return;
       const aligned = overallBucket !== null && bucket(val) === overallBucket;
       if (aligned) alignedCount++;
-      lineEl.style.stroke = aligned ? scoreColor(val) : 'var(--border)';
-      lineEl.style.opacity = aligned ? '0.85' : '0.45';
+      // Unaligned lines use text-faint, not the border token -- border
+      // is tuned to be a barely-there UI hairline, and at reduced
+      // opacity on top of that it disappeared entirely instead of
+      // reading as "muted" (caught on the live site: the outlier
+      // pillar's line looked missing, not de-emphasized).
+      lineEl.style.stroke = aligned ? scoreColor(val) : 'var(--text-faint)';
+      lineEl.style.opacity = aligned ? '0.85' : '0.65';
     });
     const alignEl = document.getElementById('imap-align');
     if (alignEl) {
