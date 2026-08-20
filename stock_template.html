@@ -279,9 +279,16 @@
   .tier-badge.material { background: var(--amber-soft); color: var(--amber); }
   .tier-badge.company { background: var(--accent-dim); color: var(--accent); }
   .tier-badge.market { background: var(--gray-soft); color: var(--text-secondary); }
-  .news-item { display: flex; justify-content: space-between; gap: 14px; padding: 9px 0; border-top: 1px solid var(--border); font-size: 13px; }
+  /* Same orphaned-width bug as the AI summary and the fundamentals
+     legend, a third time: justify-content:space-between with no flex
+     value on .news-title meant a short headline just sat at its own
+     natural width and the source badge got pushed to the far right
+     edge of the now-1320px row -- gaps measured 688-1016px live across
+     real headlines. .news-title now grows to fill the row up to the
+     source badge instead. */
+  .news-item { display: flex; gap: 14px; padding: 9px 0; border-top: 1px solid var(--border); font-size: 13px; }
   .news-item:first-of-type { border-top: none; }
-  .news-title { color: var(--text-primary); line-height: 1.4; text-decoration: none; }
+  .news-title { flex: 1; min-width: 0; color: var(--text-primary); line-height: 1.4; text-decoration: none; }
   .news-title:hover { color: var(--accent); }
   .news-source { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; font-weight: 700; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
   .news-importance { display: inline-flex; gap: 2px; vertical-align: middle; margin-left: 4px; }
