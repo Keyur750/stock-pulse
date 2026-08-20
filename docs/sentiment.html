@@ -254,60 +254,70 @@
   .toolbar-select:hover, .toolbar-select:focus { border-color: var(--border-hover); color: var(--text-primary); }
   .toolbar-spacer { flex: 1; }
 
-  /* ---------- Table ---------- */
+  /* ---------- Table ----------
+     Removed the Confidence column entirely: checked the real data
+     across all 30 tracked securities and every single one reads 100%
+     (all 4 pillars populated) -- an entire column of identical dots
+     saying "High" 30 times in a row carries zero information. The
+     underlying confidence value is still real and still shown in the
+     per-security detail pane below, where a factual "100% confidence"
+     read makes sense; it just doesn't earn a column when it can't
+     differentiate a single row from another right now. Composition
+     stays -- verified it genuinely varies (AMD 43/30/27 vs CRWD
+     15/12/73) -- but now surfaces its own bullish % as real text
+     instead of asking you to hover a bare bar to find out. Bigger type
+     and roomier rows throughout, same complaint pattern already fixed
+     elsewhere on this page. */
   .sec-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-1); }
-  table.sec-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px; }
+  table.sec-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 720px; }
   .sec-table thead th {
-    position: sticky; top: 0; z-index: 2; background: var(--surface-2); text-align: left; font-weight: 600;
-    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint);
-    padding: 11px 14px; border-bottom: 1px solid var(--border); white-space: nowrap;
+    position: sticky; top: 0; z-index: 2; background: var(--surface-2); text-align: left; font-weight: 700;
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);
+    padding: 14px 16px; border-bottom: 1px solid var(--border); white-space: nowrap;
   }
   .sec-table th.sortable { cursor: pointer; user-select: none; transition: color .12s ease; }
-  .sec-table th.sortable:hover { color: var(--text-secondary); }
+  .sec-table th.sortable:hover { color: var(--text-primary); }
   .sec-table th.sortable .sort-arrow { display: inline-block; margin-left: 3px; opacity: 0.4; }
   .sec-table th.sortable.active-sort { color: var(--accent); }
   .sec-table th.sortable.active-sort .sort-arrow { opacity: 1; }
-  .sec-table td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .sec-table td { padding: 15px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
   .sec-table tbody tr.sec-row:last-child > td { border-bottom: none; }
   .sec-table th:first-child, .sec-table td:first-child { position: sticky; left: 0; background: var(--surface-1); z-index: 1; }
   .sec-table thead th:first-child { background: var(--surface-2); z-index: 3; }
-  .sec-row { cursor: pointer; transition: background-color .12s ease; }
+  .sec-row { cursor: pointer; transition: background-color .12s ease; box-shadow: inset 3px 0 0 transparent; }
   .sec-row:hover { background: var(--surface-2); }
   .sec-row:hover td:first-child { background: var(--surface-2); }
-  .sec-row.selected { background: var(--accent-dim); }
+  .sec-row.selected { background: var(--accent-dim); box-shadow: inset 3px 0 0 var(--accent); }
   .sec-row.selected td:first-child { background: var(--accent-dim); }
   .sec-row.selected .sec-sym { color: var(--accent); }
 
   .ticker-avatar {
-    width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
-    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+    width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
   }
   .ticker-logo {
-    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; object-fit: cover;
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; object-fit: cover;
     vertical-align: middle;
   }
-  .sec-sym-cell { display: flex; align-items: center; gap: 10px; }
-  .sec-sym-text { display: flex; flex-direction: column; gap: 1px; }
-  .sec-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
-  .sec-subtext { font-size: 10.5px; color: var(--text-faint); }
-  .sec-score-cell { display: flex; align-items: baseline; gap: 7px; }
-  .sec-score { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px; }
-  .sec-label { font-size: 11px; color: var(--text-faint); }
-  .sec-delta { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; }
+  .sec-sym-cell { display: flex; align-items: center; gap: 12px; }
+  .sec-sym-text { display: flex; flex-direction: column; gap: 2px; }
+  .sec-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px; }
+  .sec-subtext { font-size: 11.5px; color: var(--text-faint); }
+  .sec-score-cell { display: flex; align-items: baseline; gap: 8px; }
+  .sec-score { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 17px; }
+  .sec-label { font-size: 12.5px; color: var(--text-secondary); }
+  .sec-delta { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; font-weight: 700; }
   .sec-delta.up { color: var(--bull); }
   .sec-delta.down { color: var(--bear); }
   .sec-delta.flat { color: var(--text-faint); }
-  .sec-comp-bar { width: 64px; height: 5px; border-radius: 3px; overflow: hidden; display: flex; background: var(--surface-3); cursor: help; }
+  .sec-comp-wrap { display: flex; align-items: center; gap: 10px; }
+  .sec-comp-bar { width: 68px; height: 8px; border-radius: 4px; overflow: hidden; display: flex; background: var(--surface-3); cursor: help; flex-shrink: 0; }
   .sec-comp-seg.bull { background: var(--bull); }
   .sec-comp-seg.neutral { background: var(--gray); }
   .sec-comp-seg.bear { background: var(--bear); }
-  .confidence-cell { display: flex; align-items: center; gap: 7px; }
-  .conf-dots { display: flex; gap: 2.5px; }
-  .conf-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--surface-3); }
-  .conf-dot.filled { background: var(--accent); }
-  .conf-label { font-size: 10.5px; color: var(--text-faint); }
-  .sec-price-cell { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
-  .sec-price-chg { font-size: 11px; margin-top: 1px; }
+  .sec-comp-pct { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+  .sec-price-cell { font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+  .sec-price-chg { font-size: 12px; margin-top: 2px; }
   .sec-price-chg.up { color: var(--bull); }
   .sec-price-chg.down { color: var(--bear); }
   .sec-price-chg.na { color: var(--text-faint); }
@@ -316,7 +326,7 @@
   .mobile-summary { display: none; }
 
   @media (max-width: 780px) {
-    .col-comp, .col-confidence { display: none; }
+    .col-comp { display: none; }
   }
   @media (max-width: 640px) {
     .table-toolbar { flex-wrap: wrap; }
@@ -688,7 +698,6 @@
             <th scope="col" class="sortable" data-sort="score" tabindex="0" role="button" aria-label="Sort by sentiment score">Sentiment <span class="sort-arrow">↓</span></th>
             <th scope="col" class="sortable" data-sort="delta" tabindex="0" role="button" aria-label="Sort by 1-day change" title="Change in sentiment score vs. yesterday">Δ 1D <span class="sort-arrow">↓</span></th>
             <th scope="col" class="col-comp" title="Share of bullish, neutral, and bearish messages for this security">Composition</th>
-            <th scope="col" class="col-confidence" title="Share of the 4 intelligence pillars (Crowd, Business, Market, Wall Street) with real data for this security">Confidence</th>
             <th scope="col" class="sortable" data-sort="price" tabindex="0" role="button" aria-label="Sort by price">Price <span class="sort-arrow">↓</span></th>
             <th scope="col">7-Day</th>
           </tr>
@@ -970,15 +979,6 @@ function avatarHtml(ticker) {
   return `<img class="ticker-logo" src="logos/${ticker}.png" alt="${ticker} logo" loading="lazy" onerror="handleLogoError(this,'${ticker}')">`;
 }
 
-function confidenceCellHtml(confidence) {
-  if (confidence === null || confidence === undefined) {
-    return `<span class="confidence-cell confidence-cell--limited" title="This security isn't yet covered by the 4-pillar intelligence engine, so a confidence read isn't available."><span class="conf-dots"><span class="conf-dot"></span><span class="conf-dot"></span><span class="conf-dot"></span><span class="conf-dot"></span><span class="conf-dot"></span></span><span class="conf-label">Limited</span></span>`;
-  }
-  const filled = Math.round(confidence / 20);
-  const label = confidence >= 80 ? 'High' : confidence >= 50 ? 'Medium' : 'Low';
-  const dots = Array.from({ length: 5 }, (_, i) => `<span class="conf-dot${i < filled ? ' filled' : ''}"></span>`).join('');
-  return `<span class="confidence-cell" title="${confidence}% of intelligence pillars have real data for this security"><span class="conf-dots">${dots}</span><span class="conf-label">${label}</span></span>`;
-}
 
 // --- Chart modal (identical mechanics to the other pages) ---
 const tickerInfo = {};
@@ -2156,7 +2156,7 @@ function renderTable() {
   document.getElementById('page-next').disabled = currentPage >= totalPages;
 
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">No securities match your search or filter.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">No securities match your search or filter.</div></td></tr>';
     return;
   }
 
@@ -2167,7 +2167,6 @@ function renderTable() {
     const bullPct = hasData ? (s.bullish_pct || 0) : 0;
     const bearPct = hasData ? (s.bearish_pct || 0) : 0;
     const neutralPct = Math.max(0, 100 - bullPct - bearPct);
-    const confidence = s.pillars.confidence;
     const isSelected = s.ticker === selectedTicker;
     const subtext = hasData ? `${s.mentions} mentions (24h)` : 'No recent chatter';
 
@@ -2199,13 +2198,15 @@ function renderTable() {
       </td>
       <td><span class="sec-delta ${deltaCls}">${deltaText}</span></td>
       <td class="col-comp">
-        ${hasData ? `<div class="sec-comp-bar" title="${bullPct}% bullish · ${neutralPct}% neutral · ${bearPct}% bearish">
-          <div class="sec-comp-seg bull" style="width:${bullPct}%"></div>
-          <div class="sec-comp-seg neutral" style="width:${neutralPct}%"></div>
-          <div class="sec-comp-seg bear" style="width:${bearPct}%"></div>
+        ${hasData ? `<div class="sec-comp-wrap">
+          <div class="sec-comp-bar" title="${bullPct}% bullish · ${neutralPct}% neutral · ${bearPct}% bearish">
+            <div class="sec-comp-seg bull" style="width:${bullPct}%"></div>
+            <div class="sec-comp-seg neutral" style="width:${neutralPct}%"></div>
+            <div class="sec-comp-seg bear" style="width:${bearPct}%"></div>
+          </div>
+          <span class="sec-comp-pct">${bullPct}%</span>
         </div>` : '—'}
       </td>
-      <td class="col-confidence">${confidenceCellHtml(confidence)}</td>
       <td>
         <div class="sec-price-cell">
           ${fmtPrice(s.price)}
@@ -2216,7 +2217,7 @@ function renderTable() {
     </tr>`;
 
     if (!isSelected) return row;
-    return row + `<tr class="detail-row" id="detail-row-${s.ticker}"><td colspan="7">${renderDetailPane(s)}</td></tr>`;
+    return row + `<tr class="detail-row" id="detail-row-${s.ticker}"><td colspan="6">${renderDetailPane(s)}</td></tr>`;
   }).join('');
 
   tbody.querySelectorAll('.sec-row').forEach(tr => {
