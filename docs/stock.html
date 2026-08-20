@@ -105,8 +105,13 @@
   .not-found h1 { color: var(--text-primary); font-size: 20px; margin-bottom: 8px; }
   .not-found a { color: var(--accent); text-decoration: none; font-weight: 600; }
 
-  /* Header */
-  .stock-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 18px; }
+  /* Header -- clustered together with explicit gaps instead of
+     justify-content:space-between, which pinned the price block to the
+     far right edge of the 1320px-wide row, stranded away from the name/
+     logo. Price, change, and the AI score (moved up here from inside
+     the AI Analysis card below) now read as one compact group next to
+     the ticker identity. */
+  .stock-header { display: flex; align-items: flex-start; gap: 48px; flex-wrap: wrap; margin-bottom: 18px; }
   .stock-id { display: flex; align-items: center; gap: 14px; }
   .stock-avatar {
     width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
@@ -121,11 +126,20 @@
   .live-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--bull); margin-right: 5px; box-shadow: 0 0 0 3px var(--bull-soft); animation: livePulse 2s ease-in-out infinite; }
   @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
-  .stock-price-block { text-align: right; }
+  .stock-price-block { text-align: left; }
   .stock-price { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; }
   .stock-chg { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; font-weight: 600; margin-top: 2px; }
   .stock-chg.up { color: var(--bull); } .stock-chg.down { color: var(--bear); } .stock-chg.na { color: var(--text-faint); }
   .stock-asof { font-size: 10.5px; color: var(--text-faint); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+
+  /* AI score, moved here from the AI Analysis card so it reads
+     alongside price/change instead of being buried lower on the page. */
+  .stock-ai-block { text-align: left; }
+  .stock-ai-score-wrap { display: flex; align-items: baseline; gap: 4px; }
+  .stock-ai-score { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; }
+  .stock-ai-score.up { color: var(--bull); } .stock-ai-score.down { color: var(--bear); } .stock-ai-score.na { color: var(--amber); }
+  .stock-ai-score-label { font-size: 12px; color: var(--text-faint); }
+  .stock-ai-label { font-size: 10.5px; color: var(--text-faint); margin-top: 4px; font-family: 'JetBrains Mono', monospace; letter-spacing: .05em; text-transform: uppercase; }
 
   .sentiment-strip { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
   .label-pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 6px; }
@@ -186,13 +200,10 @@
   .chart-price-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
   .chart-price { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; }
 
-  /* AI section */
-  .cm-ai-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 4px; }
+  /* AI section -- the score itself now lives in the page header next to
+     price/change (.stock-ai-block); this card keeps just the badge. */
+  .cm-ai-header { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 4px; }
   .cm-ai-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: var(--accent-dim); border: 1px solid var(--accent-border); padding: 3px 9px; border-radius: var(--radius-sm); font-weight: 700; }
-  .cm-ai-score-wrap { display: flex; align-items: baseline; gap: 4px; }
-  .cm-ai-score { font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 700; }
-  .cm-ai-score.up { color: var(--bull); } .cm-ai-score.down { color: var(--bear); } .cm-ai-score.na { color: var(--amber); }
-  .cm-ai-score-label { font-size: 12px; color: var(--text-faint); }
   .cm-ai-verdict { font-size: 15px; font-weight: 700; margin-top: 12px; }
   /* No character-count cap -- 68ch was sized for the old 1000px card and
      left a large empty gap beside the paragraph once the card widened to
@@ -200,10 +211,17 @@
      width. Matching that instead of an arbitrary narrow column. */
   .cm-ai-summary { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: 8px 0 18px; max-width: 100%; }
   /* Four columns at the new wider container -- Bullish/Bearish/Risks/
-     Catalysts fit in one row instead of two stacked 2x1 pairs. */
-  .cm-ai-cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 16px; }
+     Catalysts fit in one row instead of two stacked 2x1 pairs. A subtle
+     hairline divider (not a heavy border) sits in the middle of the gap
+     between columns, so each list reads as its own group without the
+     grid looking like four unrelated blocks. */
+  .cm-ai-cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; margin-bottom: 16px; }
   @media (max-width: 900px) { .cm-ai-cols { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 560px) { .cm-ai-cols { grid-template-columns: 1fr; } }
+  .cm-ai-col { border-left: 1px solid var(--border); padding-left: 16px; margin-left: -16px; }
+  .cm-ai-col:first-child { border-left: none; padding-left: 0; margin-left: 0; }
+  @media (max-width: 900px) { .cm-ai-col:nth-child(3) { border-left: none; padding-left: 0; margin-left: 0; } }
+  @media (max-width: 560px) { .cm-ai-col { border-left: none; padding-left: 0; margin-left: 0; } }
   .cm-ai-col-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 8px; font-family: 'JetBrains Mono', monospace; font-weight: 700; }
   .cm-ai-col-title.bull { color: var(--bull); } .cm-ai-col-title.bear { color: var(--bear); }
   .cm-ai-col-title.risk { color: var(--amber); } .cm-ai-col-title.catalyst { color: var(--accent); }
@@ -353,6 +371,10 @@
         <div class="stock-chg mono" id="stock-chg"></div>
         <div class="stock-asof" id="stock-asof"><span class="live-dot"></span>live</div>
       </div>
+      <div class="stock-ai-block" id="stock-ai-block" style="display:none;">
+        <div class="stock-ai-score-wrap"><span class="stock-ai-score" id="header-ai-score"></span><span class="stock-ai-score-label">/ 100</span></div>
+        <div class="stock-ai-label">AI Score</div>
+      </div>
     </div>
 
     <div class="sentiment-strip" id="sentiment-strip"></div>
@@ -375,7 +397,6 @@
     <div class="card">
       <div class="cm-ai-header">
         <span class="cm-ai-badge">AI Analysis</span>
-        <div class="cm-ai-score-wrap"><span class="cm-ai-score" id="cm-ai-score"></span><span class="cm-ai-score-label">/ 100</span></div>
       </div>
       <div class="cm-ai-verdict" id="cm-ai-verdict"></div>
       <p class="cm-ai-summary" id="cm-ai-summary"></p>
@@ -521,10 +542,10 @@ const DIVERGENCE_META = {
 function renderAiSection(result) {
   const bodyEl = document.getElementById('cm-ai-body');
   const emptyEl = document.getElementById('cm-ai-empty');
-  const scoreWrap = document.querySelector('.cm-ai-score-wrap');
+  const headerScoreBlock = document.getElementById('stock-ai-block');
   if (!result) {
     bodyEl.style.display = 'none';
-    scoreWrap.style.display = 'none';
+    headerScoreBlock.style.display = 'none';
     document.getElementById('cm-ai-verdict').textContent = '';
     document.getElementById('cm-ai-summary').textContent = '';
     emptyEl.style.display = 'block';
@@ -532,10 +553,12 @@ function renderAiSection(result) {
   }
   emptyEl.style.display = 'none';
   bodyEl.style.display = 'block';
-  scoreWrap.style.display = 'flex';
-  const scoreEl = document.getElementById('cm-ai-score');
+  headerScoreBlock.style.display = 'block';
+  // Score moved up to the page header (next to price/change) so it reads
+  // as part of the ticker's headline stats, not buried in a lower card.
+  const scoreEl = document.getElementById('header-ai-score');
   scoreEl.textContent = result.overall_score;
-  scoreEl.className = 'cm-ai-score ' + scoreClass(result.overall_score);
+  scoreEl.className = 'stock-ai-score ' + scoreClass(result.overall_score);
   document.getElementById('cm-ai-verdict').textContent = result.verdict || '';
   document.getElementById('cm-ai-summary').textContent = result.summary || '';
   fillList('cm-ai-bullish', result.bullish_factors);
