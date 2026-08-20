@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-20 08:03 UTC",
+  "generated_at": "2026-08-20 08:54 UTC",
   "quotes": {
     "META": {
       "price": 546.03,
@@ -225,6 +225,14 @@
           "close": 7443.2798
         },
         {
+          "date": "2026-07-21",
+          "close": 7509.2002
+        },
+        {
+          "date": "2026-07-22",
+          "close": 7498.96
+        },
+        {
           "date": "2026-07-23",
           "close": 7408.2998
         },
@@ -247,6 +255,10 @@
         {
           "date": "2026-07-30",
           "close": 7437.6299
+        },
+        {
+          "date": "2026-07-31",
+          "close": 7489.7202
         },
         {
           "date": "2026-08-03",
@@ -572,13 +584,21 @@
     "^VIX": {
       "name": "VIX",
       "category": "US",
-      "price": 14.98,
-      "change_pct": 0.6,
+      "price": 15.18,
+      "change_pct": 1.95,
       "previous_close": 14.89,
       "history": [
         {
           "date": "2026-07-20",
           "close": 18.65
+        },
+        {
+          "date": "2026-07-21",
+          "close": 17.05
+        },
+        {
+          "date": "2026-07-22",
+          "close": 16.64
         },
         {
           "date": "2026-07-23",
@@ -603,6 +623,10 @@
         {
           "date": "2026-07-30",
           "close": 17.09
+        },
+        {
+          "date": "2026-07-31",
+          "close": 15.99
         },
         {
           "date": "2026-08-03",
@@ -658,15 +682,15 @@
         },
         {
           "date": "2026-08-20",
-          "close": 14.98
+          "close": 15.18
         }
       ]
     },
     "BTC-USD": {
       "name": "Bitcoin",
       "category": "Crypto",
-      "price": 69838.5,
-      "change_pct": 0.83,
+      "price": 71736.17,
+      "change_pct": 3.57,
       "previous_close": 69266.1875,
       "history": [
         {
@@ -795,15 +819,15 @@
         },
         {
           "date": "2026-08-20",
-          "close": 69838.5
+          "close": 71736.1719
         }
       ]
     },
     "ETH-USD": {
       "name": "Ethereum",
       "category": "Crypto",
-      "price": 2251.96,
-      "change_pct": 0.02,
+      "price": 2278.38,
+      "change_pct": 1.2,
       "previous_close": 2251.458,
       "history": [
         {
@@ -932,15 +956,15 @@
         },
         {
           "date": "2026-08-20",
-          "close": 2251.96
+          "close": 2278.3799
         }
       ]
     },
     "GC=F": {
       "name": "Gold",
       "category": "Commodities",
-      "price": 4546.4,
-      "change_pct": 1.27,
+      "price": 4548.7,
+      "change_pct": 1.32,
       "previous_close": 4489.3999,
       "history": [
         {
@@ -1037,15 +1061,15 @@
         },
         {
           "date": "2026-08-20",
-          "close": 4546.3999
+          "close": 4548.7002
         }
       ]
     },
     "SI=F": {
       "name": "Silver",
       "category": "Commodities",
-      "price": 66.75,
-      "change_pct": 1.55,
+      "price": 66.76,
+      "change_pct": 1.56,
       "previous_close": 65.734,
       "history": [
         {
@@ -1142,15 +1166,15 @@
         },
         {
           "date": "2026-08-20",
-          "close": 66.755
+          "close": 66.76
         }
       ]
     },
     "CL=F": {
       "name": "Crude Oil",
       "category": "Commodities",
-      "price": 85.77,
-      "change_pct": -0.07,
+      "price": 86.27,
+      "change_pct": 0.51,
       "previous_close": 85.83,
       "history": [
         {
@@ -1247,7 +1271,7 @@
         },
         {
           "date": "2026-08-20",
-          "close": 85.77
+          "close": 86.27
         }
       ]
     },
@@ -1339,21 +1363,13 @@
     "^NSEI": {
       "name": "Nifty 50",
       "category": "Global",
-      "price": 24248.2,
-      "change_pct": 0.71,
+      "price": 24236.1,
+      "change_pct": 0.66,
       "previous_close": 24078.3008,
       "history": [
         {
           "date": "2026-07-20",
           "close": 24238.5
-        },
-        {
-          "date": "2026-07-21",
-          "close": 24187.6992
-        },
-        {
-          "date": "2026-07-22",
-          "close": 23996.25
         },
         {
           "date": "2026-07-23",
@@ -1378,10 +1394,6 @@
         {
           "date": "2026-07-30",
           "close": 24317.1504
-        },
-        {
-          "date": "2026-07-31",
-          "close": 24383.5996
         },
         {
           "date": "2026-08-03",
@@ -1437,7 +1449,7 @@
         },
         {
           "date": "2026-08-20",
-          "close": 24248.1992
+          "close": 24236.0996
         }
       ]
     },
