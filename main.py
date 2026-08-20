@@ -23,8 +23,9 @@ from news_fetcher import fetch_news, fetch_ticker_news
 from news_ranker import rank_news
 from sec_filings import fetch_recent_8ks
 from sentiment import (
-    classify_and_score_messages, weighted_average, score_messages, score_text, label_for_score,
-    MAX_SCORE_MAGNITUDE, tag_of, build_market_insight, dedupe_by_author,
+    classify_and_score_messages, score_messages, score_text, label_for_score,
+    MAX_SCORE_MAGNITUDE, TAGGED_WEIGHT, tag_of, build_market_insight, dedupe_by_author,
+    crowd_confidence, crowd_confidence_label,
 )
 from reddit import extract_tickers
 from market_data import MACRO_INSTRUMENTS, fetch_quotes
@@ -148,7 +149,8 @@ def _sort_key(m):
 def analyze(symbol_messages: dict, trending_symbols: set, watchlist: set,
             prev_snapshot: Optional[dict], sentiment_sample_size: int = 60,
             sentiment_call_sleep_seconds: float = 3.0, max_messages_per_author: int = 3,
-            shrinkage_k: float = 3.0, decay_half_life_hours: float = 8.0):
+            shrinkage_k: float = 3.0, decay_half_life_hours: float = 8.0,
+            confidence_target_n: float = 25.0):
     """Aggregate mention counts, bull/bear breakdown, and sentiment per
     ticker, with day-over-day sentiment shift where history allows.
 
@@ -175,7 +177,7 @@ def analyze(symbol_messages: dict, trending_symbols: set, watchlist: set,
         sample = sorted(deduped, key=_sort_key, reverse=True)[:sentiment_sample_size]
 
         scored = classify_and_score_messages(symbol, sample)
-        avg = score_messages(scored, shrinkage_k=shrinkage_k, decay_half_life_hours=decay_half_life_hours)
+        avg, effective_n = score_messages(scored, shrinkage_k=shrinkage_k, decay_half_life_hours=decay_half_life_hours)
         if any(m.get("_weight") == 1.0 for m in scored):  # an LLM call was made for this ticker
             time.sleep(sentiment_call_sleep_seconds)
 
@@ -190,10 +192,20 @@ def analyze(symbol_messages: dict, trending_symbols: set, watchlist: set,
         by_source = {}
         for m in scored:
             by_source.setdefault(m.get("chatter_source", "stocktwits"), []).append(m)
-        source_scores = {
-            src: round(score_messages(msgs, shrinkage_k=shrinkage_k, decay_half_life_hours=decay_half_life_hours), 3)
-            for src, msgs in by_source.items()
-        }
+        source_scores = {}
+        for src, msgs in by_source.items():
+            src_score, _ = score_messages(msgs, shrinkage_k=shrinkage_k, decay_half_life_hours=decay_half_life_hours)
+            source_scores[src] = round(src_score, 3)
+
+        # A real, composite confidence measure for this ticker's crowd
+        # score -- see crowd_confidence()'s docstring for the three
+        # signals it combines. Replaces nothing existing (the 4-pillar
+        # "confidence" field elsewhere is untouched); this is new and
+        # specific to the crowd pillar.
+        tag_count = sum(1 for m in scored if m["_weight"] == TAGGED_WEIGHT)
+        tag_ratio = tag_count / len(scored) if scored else 0.0
+        confidence = crowd_confidence(source_scores, effective_n, tag_ratio, target_n=confidence_target_n)
+        confidence_label = crowd_confidence_label(confidence)
 
         bullish_count = sum(1 for m in scored if m["_sentiment"] == "bullish")
         bearish_count = sum(1 for m in scored if m["_sentiment"] == "bearish")
@@ -243,6 +255,8 @@ def analyze(symbol_messages: dict, trending_symbols: set, watchlist: set,
             "examples": examples,
             "source_counts": source_counts,
             "source_scores": source_scores,
+            "crowd_confidence": confidence,
+            "crowd_confidence_label": confidence_label,
             "reddit_mentions": None,
             "reddit_mentions_24h_ago": None,
             "reddit_upvotes": None,
@@ -928,6 +942,7 @@ def main():
         max_messages_per_author=config.get("crowd_max_messages_per_author", 3),
         shrinkage_k=config.get("crowd_shrinkage_k", 3.0),
         decay_half_life_hours=config.get("crowd_decay_half_life_hours", 8.0),
+        confidence_target_n=config.get("crowd_confidence_target_n", 25.0),
     )
 
     # Union with the full watchlist, not just tickers with chatter today —

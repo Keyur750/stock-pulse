@@ -282,7 +282,7 @@ def _parse_created_at(value):
 
 
 def score_messages(scored_messages: list, shrinkage_k: float = 3.0,
-                    decay_half_life_hours: float | None = 8.0, now=None) -> float:
+                    decay_half_life_hours: float | None = 8.0, now=None) -> tuple:
     """The real, final way to turn a list of already-classified messages
     into one score — weighted_average() stays the plain building block
     (still used directly wherever a bare average is genuinely what's
@@ -304,9 +304,14 @@ def score_messages(scored_messages: list, shrinkage_k: float = 3.0,
        lower both the score's weight and how much it should be trusted.
 
     Either can be disabled by passing 0/None, which recovers plain
-    weighted_average() behavior exactly."""
+    weighted_average() behavior exactly.
+
+    Returns (score, effective_weight) — the second value is the same
+    decay-adjusted total weight used internally for shrinkage, returned
+    so crowd_confidence() can reuse it as a real sample-size signal
+    instead of recomputing the same decay math a second time."""
     if not scored_messages:
-        return 0.0
+        return 0.0, 0.0
     now = now or datetime.now(timezone.utc)
 
     weighted = []
@@ -321,12 +326,59 @@ def score_messages(scored_messages: list, shrinkage_k: float = 3.0,
 
     total_weight = sum(m["_weight"] for m in weighted)
     if not total_weight:
-        return 0.0
+        return 0.0, 0.0
     raw_avg = weighted_average(weighted)
 
     if shrinkage_k:
         raw_avg *= total_weight / (total_weight + shrinkage_k)
-    return raw_avg
+    return raw_avg, total_weight
+
+
+def crowd_confidence(source_scores: dict, effective_n: float, tag_ratio: float,
+                      target_n: float = 25.0) -> float:
+    """Combines three independent, already-available signals into one
+    0-100 measure of how much to trust a ticker's crowd score — a real
+    replacement for a binary "did we get any data" check, scoped to the
+    crowd pillar specifically (cross-pillar confidence stays a separate,
+    later concern, one pillar at a time).
+
+    1. Sample size (50% weight) — effective_n is the same decay-adjusted
+       total weight score_messages() already computes for shrinkage,
+       scaled against target_n and capped at 100. The single most
+       statistically justified of the three terms, so it carries the
+       most weight.
+    2. Cross-source agreement (30% weight) — a published technique, not
+       an invented one: agreement between independent sources is itself
+       a real confidence signal, distinct from just averaging them
+       together. Needs 2+ contributing sources to mean anything; a
+       single-source ticker gets a neutral 50 here rather than a
+       misleadingly low or high number, since agreement genuinely can't
+       be assessed from one reading alone.
+    3. Tag ratio (20% weight) — share of the scored sample that's
+       self-tagged ground truth rather than AI-inferred. Real, but the
+       softest of the three signals (a large untagged sample can still
+       be reliable), weighted accordingly.
+    """
+    size_term = min(100.0, 100.0 * effective_n / target_n) if target_n else 100.0
+
+    if len(source_scores) >= 2:
+        vals = list(source_scores.values())
+        spread = max(vals) - min(vals)
+        agreement_term = max(0.0, 100.0 * (1 - spread / (2 * MAX_SCORE_MAGNITUDE)))
+    else:
+        agreement_term = 50.0
+
+    tag_term = 100.0 * max(0.0, min(1.0, tag_ratio))
+
+    return round(0.5 * size_term + 0.3 * agreement_term + 0.2 * tag_term, 1)
+
+
+def crowd_confidence_label(score: float) -> str:
+    if score >= 70:
+        return "High"
+    if score >= 40:
+        return "Medium"
+    return "Low"
 
 
 MARKET_INSIGHT_SCHEMA = {
