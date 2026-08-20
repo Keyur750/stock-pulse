@@ -135,6 +135,45 @@ def tag_of(msg: dict):
     return sentiment.get("basic")
 
 
+def author_of(msg: dict):
+    """Normalizes the poster identity across all three sources so
+    dedupe_by_author() can treat them uniformly. Raw StockTwits messages
+    carry a nested user object (verified live: user.username); reddit.py
+    and bluesky.py normalize their own 'author' field directly onto the
+    message dict at collection time."""
+    if msg.get("chatter_source") in ("reddit", "bluesky"):
+        return msg.get("author")
+    return (msg.get("user") or {}).get("username")
+
+
+def dedupe_by_author(messages: list, max_per_author: int = 3) -> list:
+    """Caps how many messages any single poster contributes to a ticker's
+    pool, per source — one prolific account (a mechanical trade-log bot
+    like lordcandle.bsky.social, which contributed 5 of 15 raw $TSLA
+    posts in testing, or any human power-poster) shouldn't get to
+    dominate what's supposed to be a read on the crowd. Messages with no
+    identifiable author (deleted/removed posts) are never capped against
+    each other — a missing author isn't evidence they're the same
+    person, so they all pass through untouched. Keeps each author's most
+    recent messages when trimming, consistent with the sample already
+    favoring recency elsewhere in this pipeline."""
+    by_author = {}
+    unattributed = []
+    for m in messages:
+        author = author_of(m)
+        if not author:
+            unattributed.append(m)
+        else:
+            key = (m.get("chatter_source", "stocktwits"), author)
+            by_author.setdefault(key, []).append(m)
+
+    kept = list(unattributed)
+    for msgs in by_author.values():
+        msgs.sort(key=lambda m: m.get("created_at") or "", reverse=True)
+        kept.extend(msgs[:max_per_author])
+    return kept
+
+
 def _extract_retry_delay(exc, default=45):
     m = re.search(r"retry in (\d+(?:\.\d+)?)s", str(exc))
     return float(m.group(1)) + 2 if m else default

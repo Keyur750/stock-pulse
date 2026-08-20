@@ -24,7 +24,7 @@ from news_ranker import rank_news
 from sec_filings import fetch_recent_8ks
 from sentiment import (
     classify_and_score_messages, weighted_average, score_text, label_for_score,
-    MAX_SCORE_MAGNITUDE, tag_of, build_market_insight,
+    MAX_SCORE_MAGNITUDE, tag_of, build_market_insight, dedupe_by_author,
 )
 from reddit import extract_tickers
 from market_data import MACRO_INSTRUMENTS, fetch_quotes
@@ -147,29 +147,46 @@ def _sort_key(m):
 
 def analyze(symbol_messages: dict, trending_symbols: set, watchlist: set,
             prev_snapshot: Optional[dict], sentiment_sample_size: int = 60,
-            sentiment_call_sleep_seconds: float = 3.0):
+            sentiment_call_sleep_seconds: float = 3.0, max_messages_per_author: int = 3):
     """Aggregate mention counts, bull/bear breakdown, and sentiment per
     ticker, with day-over-day sentiment shift where history allows.
 
     `mentions` is the true chatter volume — every message from the
-    configured time window, StockTwits + Reddit combined, uncapped except
-    for stocktwits.py's own safety ceiling. Sentiment scoring runs on a
-    bounded, most-recent sample of that (`sentiment_sample_size`) rather
-    than the full set, since scoring is now an LLM call — bounding it
-    keeps a single viral ticker from blowing up run time/cost while still
-    reporting its real volume honestly."""
+    configured time window, StockTwits + Reddit + Bluesky combined,
+    uncapped except for each source's own safety ceiling; author-capping
+    (below) only affects what gets *scored*, never this reported total,
+    so it stays an honest read of real volume. Sentiment scoring runs on
+    a bounded, most-recent sample of that (`sentiment_sample_size`)
+    rather than the full set, since scoring is now an LLM call — bounding
+    it keeps a single viral ticker from blowing up run time/cost while
+    still reporting its real volume honestly."""
     results = []
     for symbol, messages in symbol_messages.items():
         if not messages:
             continue
 
         total = len(messages)
-        sample = sorted(messages, key=_sort_key, reverse=True)[:sentiment_sample_size]
+        # Cap any single poster's contribution before taking the
+        # most-recent slice, not after — otherwise a burst from one
+        # prolific account can crowd real voices out of the sample
+        # entirely before dedup ever gets a chance to trim it back down.
+        deduped = dedupe_by_author(messages, max_per_author=max_messages_per_author)
+        sample = sorted(deduped, key=_sort_key, reverse=True)[:sentiment_sample_size]
 
         scored = classify_and_score_messages(symbol, sample)
         avg = weighted_average(scored)
         if any(m.get("_weight") == 1.0 for m in scored):  # an LLM call was made for this ticker
             time.sleep(sentiment_call_sleep_seconds)
+
+        # Per-source score, alongside the pooled one -- lets later logic
+        # (and, downstream, a real cross-source-agreement confidence
+        # measure) see whether StockTwits/Reddit/Bluesky actually agree,
+        # instead of only ever seeing one blended number that could mask
+        # real disagreement between independent communities.
+        by_source = {}
+        for m in scored:
+            by_source.setdefault(m.get("chatter_source", "stocktwits"), []).append(m)
+        source_scores = {src: round(weighted_average(msgs), 3) for src, msgs in by_source.items()}
 
         bullish_count = sum(1 for m in scored if m["_sentiment"] == "bullish")
         bearish_count = sum(1 for m in scored if m["_sentiment"] == "bearish")
@@ -218,6 +235,7 @@ def analyze(symbol_messages: dict, trending_symbols: set, watchlist: set,
             "change_pct": None,
             "examples": examples,
             "source_counts": source_counts,
+            "source_scores": source_scores,
             "reddit_mentions": None,
             "reddit_mentions_24h_ago": None,
             "reddit_upvotes": None,
@@ -900,6 +918,7 @@ def main():
         symbol_messages, trending_symbols, watchlist, prev_snapshot,
         sentiment_sample_size=config.get("sentiment_sample_size", 60),
         sentiment_call_sleep_seconds=config.get("sentiment_call_sleep_seconds", 3.0),
+        max_messages_per_author=config.get("crowd_max_messages_per_author", 3),
     )
 
     # Union with the full watchlist, not just tickers with chatter today —

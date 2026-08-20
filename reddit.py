@@ -120,6 +120,7 @@ def collect_reddit(known_symbols: set, watchlist: set, subreddits: list,
                 "chatter_source": "reddit",
                 "score": post.score,
                 "id": post.id,
+                "author": str(post.author) if post.author else None,
                 "created_at": _iso(post.created_utc),
             }
             for t in tickers:
@@ -139,6 +140,7 @@ def collect_reddit(known_symbols: set, watchlist: set, subreddits: list,
                             "chatter_source": "reddit",
                             "score": getattr(c, "score", 0),
                             "id": c.id,
+                            "author": str(c.author) if getattr(c, "author", None) else None,
                             "created_at": _iso(getattr(c, "created_utc", None)),
                         }
                         for t in watchlist_hits:

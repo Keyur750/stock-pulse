@@ -169,6 +169,7 @@ def collect_bluesky(watchlist: list, max_age_hours: float = 24.0,
                     "chatter_source": "bluesky",
                     "score": p.get("likeCount", 0),
                     "id": p.get("cid"),
+                    "author": p.get("author", {}).get("handle"),
                     "created_at": p.get("record", {}).get("createdAt"),
                 }
                 for p in posts
