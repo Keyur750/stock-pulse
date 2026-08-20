@@ -230,7 +230,13 @@
      is bigger to use some of the reclaimed width for real content, and
      the whole block is centered so any leftover space reads as
      deliberate margins, not a void. */
-  .fund-radar-wrap { display: flex; align-items: center; justify-content: center; gap: 40px; flex-wrap: wrap; }
+  /* gap measured and verified live against the real rendered "Profitability"
+     label (the longest of the 5, and the one that overflows furthest past
+     the chart's own box on the right side) -- 40px was not enough; the
+     label itself extended ~81px past the chart box edge, so at 40px gap
+     it landed 41px inside the legend column. See label offset fix below
+     too (maxR+18, not +24) which trims some of that overhang directly. */
+  .fund-radar-wrap { display: flex; align-items: center; justify-content: center; gap: 100px; flex-wrap: wrap; }
   .fund-radar-chart { position: relative; flex-shrink: 0; width: 300px; }
   .fund-radar-svg { width: 100%; height: auto; display: block; overflow: visible; }
   .radar-label { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; fill: var(--text-secondary); }
@@ -1286,7 +1292,7 @@ function renderFundamentalsRadar(fundamentals) {
   // left instead of staying centered.
   const labels = FUND_CATEGORY_KEYS.map((key, i) => {
     const angle = angleFor(i);
-    const [x, y] = toXY(angle, maxR + 24);
+    const [x, y] = toXY(angle, maxR + 18);
     const cosA = Math.cos(angle * Math.PI / 180);
     let anchor = 'middle';
     if (cosA > 0.15) anchor = 'start';
