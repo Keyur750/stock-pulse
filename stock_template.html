@@ -1264,8 +1264,10 @@ const FUND_CATEGORY_META = {
   growth: { label: 'Growth', desc: 'Revenue & earnings growth rate' },
   profitability: { label: 'Profitability', desc: 'Margins & return on equity' },
   cash_flow: { label: 'Cash Flow', desc: 'Free cash flow as % of revenue' },
-  balance_sheet: { label: 'Balance Sheet', desc: 'Debt-to-equity & current ratio' },
+  balance_sheet: { label: 'Balance Sheet', desc: "Altman Z''-Score bankruptcy-risk composite (debt/liquidity ratios for banks)" },
   valuation: { label: 'Valuation', desc: 'P/E relative to earnings' },
+  trend: { label: 'Trend', desc: 'Year-over-year direction, not just current level' },
+  earnings_quality: { label: 'Earnings Quality', desc: 'Net income vs. operating cash flow' },
 };
 const FUND_CATEGORY_KEYS = Object.keys(FUND_CATEGORY_META);
 

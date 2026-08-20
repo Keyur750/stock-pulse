@@ -108,17 +108,36 @@ RECENT NEWS HEADLINES (may be sparse — use general knowledge to fill context, 
 Respond with the synthesis described above."""
 
 
+def _fmt_balance_sheet_detail(fundamentals, bs_detail):
+    if not bs_detail:
+        return "not available"
+    if bs_detail.get("method") == "altman_z_double_prime":
+        z = bs_detail.get("z_score")
+        zone = "safe zone" if z > 2.6 else ("distress zone" if z < 1.1 else "grey zone")
+        return f"Altman Z''-Score {z} ({zone} — bankruptcy-risk composite from working capital, retained earnings, EBIT & liabilities relative to assets/market cap)"
+    return (f"debt/equity {fundamentals.get('debt_to_equity')}, current ratio {fundamentals.get('current_ratio')} "
+            f"(bank/lender-style balance sheet — no reported working capital or EBIT, so Altman Z'' isn't computable; scored on the legacy debt/liquidity blend instead)")
+
+
 def _fmt_fundamentals(fundamentals, fscore):
     if not fundamentals or not fscore:
         return "Not available."
     cats = fscore.get("categories", {})
+    # Coverage denominator derived from the categories dict itself, not
+    # hardcoded -- Business pillar Phase 2 added a 6th category (trend)
+    # and more will follow; a fixed "/5" would silently go stale.
+    sector_note = ("scored sector-relative vs. industry peers (Damodaran benchmarks)"
+                   if fscore.get("sector_benchmark_matched")
+                   else "no industry benchmark match — scored on fixed global breakpoints")
     lines = [
-        f"- Overall fundamentals score: {fscore.get('overall')}/100 (data coverage: {fscore.get('coverage')}/5 categories)",
+        f"- Overall fundamentals score: {fscore.get('overall')}/100 (data coverage: {fscore.get('coverage')}/{len(cats)} categories; growth/profitability/valuation {sector_note})",
         f"- Growth score: {cats.get('growth')}/100 — revenue growth {_pct(fundamentals.get('revenue_growth'))}, earnings growth {_pct(fundamentals.get('earnings_growth'))}",
-        f"- Profitability score: {cats.get('profitability')}/100 — profit margin {_pct(fundamentals.get('profit_margin'))}, operating margin {_pct(fundamentals.get('operating_margin'))}, ROE {_pct(fundamentals.get('return_on_equity'))}",
+        f"- Profitability score: {cats.get('profitability')}/100 — profit margin {_pct(fundamentals.get('profit_margin'))}, operating margin {_pct(fundamentals.get('operating_margin'))}, ROE {_pct(fundamentals.get('return_on_equity'))} (ROE discounted when leverage runs well above industry peers — DuPont logic, so a high ROE built mostly on debt scores lower than the same ROE built on margin/efficiency)",
         f"- Cash flow score: {cats.get('cash_flow')}/100 — FCF margin {_pct(fundamentals.get('fcf_margin'))}",
-        f"- Balance sheet score: {cats.get('balance_sheet')}/100 — debt/equity {fundamentals.get('debt_to_equity')}, current ratio {fundamentals.get('current_ratio')}",
+        f"- Balance sheet score: {cats.get('balance_sheet')}/100 — {_fmt_balance_sheet_detail(fundamentals, fscore.get('balance_sheet_detail'))}",
         f"- Valuation score: {cats.get('valuation')}/100 — forward P/E {fundamentals.get('forward_pe')}, trailing P/E {fundamentals.get('trailing_pe')}, P/S {fundamentals.get('price_to_sales')}",
+        f"- Trend score: {cats.get('trend')}/100 — year-over-year direction across revenue, margins, leverage & dilution (Piotroski-inspired; a rising score means the business is getting healthier, not just currently healthy)",
+        f"- Earnings quality score: {cats.get('earnings_quality')}/100 — net income vs. operating cash flow (Sloan accrual check; a low score means reported profit is running ahead of actual cash generation, a real warning sign even when every other score looks strong; None for banks/lenders where operating cash flow isn't comparable under GAAP — don't read a missing score here as a red flag)",
         f"- Market cap: {fundamentals.get('market_cap')}",
     ]
     return "\n".join(lines)

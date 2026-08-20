@@ -1,0 +1,219 @@
+# Undertow — orientation doc for a fresh Claude session
+
+Read this first if you have no memory of this project (a new session, a
+lost conversation, whatever). It's a map, not a replacement for the docs
+it points to — go read those for real depth, this just tells you where
+to look and what to know before you touch anything.
+
+## What this is
+
+**Undertow** — a retail-sentiment + market-analytics dashboard, live at
+a GitHub Pages site. Not just a dashboard: a real product idea (see
+`PRODUCT.md`) — a "why layer" that reconciles four pillars of stock
+analysis (Crowd sentiment, Wall Street analysts, Business fundamentals,
+Market/price context) and explains *why* they agree or disagree, instead
+of fusing everything into one opaque number the way every competitor
+researched does (`COMPETITIVE_INTELLIGENCE.md`).
+
+Solo project, $0/month budget, built almost entirely through Claude Code
+sessions. GitHub: `keyur750/stock-pulse` (public repo — GitHub Pages and
+unlimited Actions minutes both require this). Runs unattended: GitHub
+Actions regenerates the dashboard once a day and refreshes live quotes
+every 15 minutes, commits straight to `main`, no PR workflow, no server
+to maintain.
+
+**Read in this order if you're getting oriented:**
+1. This file (fast map)
+2. `README.md` — user-facing setup + "how it works under the hood"
+3. `PRODUCT.md` — the actual product vision, the moat, the phased
+   roadmap, every major decision and why it was made. This is the real
+   source of truth for *why* things are built the way they are — it's
+   long, but it's kept meticulously current. If something here conflicts
+   with `PRODUCT.md`, trust `PRODUCT.md` and fix this file.
+4. `COMPETITIVE_INTELLIGENCE.md` — deep per-competitor research (Phase 1
+   of the roadmap), useful context for "why doesn't Undertow just do X
+   like TipRanks/Simply Wall St."
+
+## Architecture map
+
+**Orchestration:** `main.py` — the daily pipeline. Reads `config.json`,
+runs every source/pillar/signal step below in order, writes three static
+HTML pages (`docs/dashboard.html`, `docs/sentiment.html`,
+`docs/stock.html`) by embedding a JSON payload into
+`dashboard_template.html` / `sentiment_template.html` / `stock_template.html`.
+`refresh_quotes.py` is a separate, lighter script (prices only, every 15
+min) that writes `docs/quotes.json`.
+
+**Crowd pillar** (what retail is saying):
+- `stocktwits.py`, `reddit.py`, `bluesky.py` — three independent chatter
+  sources, each returns `{ticker: [message_dicts]}` in a common shape
+  (a `body` key + `chatter_source` + `author` + `created_at`). All three
+  are additive/optional — missing credentials just means fewer sources,
+  never a broken pipeline.
+- `apewisdom.py`, `trends.py` — mention-volume-only cross-checks (no
+  sentiment direction), used for spike detection, not scoring.
+- `sentiment.py` — the actual scoring engine. Two-tier trust: StockTwits
+  self-tagged Bullish/Bearish messages are ground truth (weight 2.0);
+  everything else is read by one batched Gemini call per ticker (an LLM
+  handles sarcasm/slang/negation, which the old pure-VADER approach
+  couldn't — VADER is kept only as an offline fallback). Then:
+  author-capping (`dedupe_by_author`, max 3 msgs/author/source, applied
+  before sampling) → recency decay + Bayesian shrinkage toward neutral
+  for thin samples (`score_messages`, half-life 8h, k=3) →
+  `crowd_confidence()`, a real 0-100 composite (sample size 50% / cross-
+  source agreement 30% / tag ratio 20%) added 2026-08-20 as "Phase 3" of
+  a 4-phase crowd-score-engine plan.
+
+**Wall Street pillar:** `wallstreet.py` — consensus rating, price-target
+upside, recommendation-trend, all free via `yfinance`. Note: sell-side
+ratings cluster structurally bullish, so this pillar uses its own higher
+divergence thresholds (55/78 vs. 35/65 for the other three pillars) —
+see `main.py`'s `_WALLSTREET_LEVEL_THRESHOLDS`.
+
+**Business pillar** (renamed from "Fundamentals"): `fundamentals.py` —
+five 0-100 category scores (growth/profitability/cash flow/balance
+sheet/valuation) via `yfinance`, transparent piecewise-linear scoring
+(`_scale`), raw metrics always carried alongside the score.
+
+**Market pillar:** `market.py` — momentum/extension (distance from
+52-week high, position vs. moving averages) + realized volatility.
+Deliberately not a "good/bad" verdict — a high score means "priced for
+strength," which the Divergence Engine and the AI analyst reason about
+rather than treat as automatically good.
+
+**Synthesis:** `analyst.py` — the AI analyst. One Gemini call per
+flagship ticker, reads all four pillars + price + matched news, returns
+a structured score/verdict/summary/bullish-bearish factors/risks/
+catalysts/per-pillar reasoning. Deliberately not a fixed formula — see
+its docstring and prompt for the reasoning-in-context principle.
+`llm_client.py` holds the shared Gemini client (pinned model, see
+"Conventions" below), used by `sentiment.py`, `analyst.py`, and
+`news_ranker.py`.
+
+**Divergence Engine:** `main.py`'s `classify_divergence` /
+`compute_signals` — full pairwise comparison across all four pillar
+scores, classified into four named patterns (Emerging Consensus, Retail
+Euphoria, Fundamental Deterioration, Under-the-Radar). This — not any
+single pillar, not the AI — is the actual differentiator; see
+`PRODUCT.md`'s "The moat."
+
+**News Intelligence** (three tiers, each answering a different
+question): `sec_filings.py` (Tier 1, real SEC 8-Ks, ground-truth
+materiality, not LLM-filtered) → `news_fetcher.py` +`news_ranker.py`
+(Tier 2, per-company news via `yfinance`, one batched Gemini call per
+ticker to separate real news from listicle/opinion filler) → generic RSS
+feeds (Tier 3, ambient market context, unranked).
+
+**Charts:** `market_data.py` (quotes + macro instruments: indices,
+crypto, commodities, global markets) and `market_history.py`
+(multi-timeframe 1D-20Y chart data, price-return not total-return, never
+fabricates a data point). `logos.py` caches real company logos to
+`docs/logos/` once per ticker.
+
+**Live backend (in progress):** `supabase_sync.py` + `supabase/schema.sql`
+— migrating off "commit a JSON file to git" onto live Supabase tables,
+one slice at a time (`ticker_snapshots` → `sentiment_history` →
+`signal_history`, in that order, each still additive — the JSON files
+in `data/` are still the primary source, Supabase is a parallel write).
+**Note found during this doc's research, not yet resolved:** `schema.sql`
+references pre-existing `stocks` / `watchlists` / `watchlist_items`
+tables with a `user_id` column referencing `auth.users` — real user-
+account infrastructure already exists in the live Supabase project from
+an earlier "Milestone A" this doc's author didn't find written up
+anywhere else. `PRODUCT.md` currently says "no user accounts" is
+explicitly out of scope — worth reconciling with whoever picks this up,
+not assumed either way.
+
+**Config:** `config.json` — watchlist (30 tickers) = flagship_tickers
+right now (see `PRODUCT.md`'s "Decisions locked in" for why they're kept
+equal), every tunable constant (crowd scoring params, sleep/rate-limit
+timings, history retention). **Never hardcode a constant that already
+has a `config.json` entry.**
+
+**CI:** `.github/workflows/update-dashboard.yml` (daily, full pipeline,
+~20-30 min) and `.github/workflows/refresh-quotes.yml` (every 15 min,
+prices only). Both commit and push straight to `main` with an automatic
+rebase-and-retry loop for the race between them — see the workflow
+files' own comments before touching this.
+
+## Conventions this project actually enforces (not aspirational)
+
+- **Pin AI models, never `-latest`.** A `-latest` alias silently
+  repointed mid-project once and zeroed out a day's free quota. See
+  `llm_client.py`'s `MODEL` constant and its docstring.
+- **Batch before you pay.** Every LLM call in this pipeline is one
+  batched call per ticker (sentiment classification, news ranking),
+  never one call per item — this is why the free tier has always been
+  enough. Don't introduce a per-item LLM call pattern.
+- **Verified live, never assumed.** Every threshold/constant in this
+  codebase that looks arbitrary (shrinkage k=3, Wall Street's 55/78
+  divergence bucket, the piecewise-linear scoring breakpoints) was
+  checked against real fetched data, not picked from a guess or copied
+  from docs/memory. If you're about to tune a constant, check real
+  current data first, the way every phase in `PRODUCT.md` did.
+- **Never fabricate a missing value.** Missing data is `None`/a real gap
+  in a chart, never a guessed placeholder, an interpolated point, or a
+  silently-defaulted neutral score. Every pillar's `coverage` field
+  exists so a partial read is visible, not hidden.
+- **Additive, not breaking.** New fields get added to existing dicts;
+  existing fields don't get repurposed or removed without checking every
+  consumer (frontend templates read this JSON payload directly).
+- **Graceful degradation everywhere.** Every external source
+  (Reddit/Bluesky credentials missing, Gemini call fails, Supabase down,
+  a single ticker's fetch failing) logs a warning and continues with
+  what's available — nothing in this pipeline should take down the
+  whole run.
+- **No comments explaining WHAT — only WHY**, and usually a fairly long
+  WHY when a decision isn't obvious (a specific bug it fixes, a specific
+  live-tested number, a rejected alternative). This is the actual house
+  style across every file — match it.
+- **Public repo, direct-to-main commits.** No PR review step historically
+  — commits go straight to `main`, including from Claude Code sessions
+  (see git log). Confirm with the user before pushing regardless; this
+  describes the existing pattern, not blanket standing authorization.
+
+## Where things stand right now (last updated 2026-08-20)
+
+Actively in progress: **Phase 4 of the crowd-score engine** (Phases 1-3
+— author-capping, shrinkage/decay, `crowd_confidence` — shipped
+2026-08-20, see git log for those commit messages, they're detailed).
+Phase 4 was originally verbally scoped as "add FinBERT for better
+confidence" but never written down before a prior session's history was
+lost — this file, and a round of fresh 2026 research (FinBERT reads
+tone not meaning, scored 16.8% accuracy on genuine positive catalysts in
+a real study, and its confidence score doesn't track its own accuracy —
+see chat history / commit messages once Phase 4 actually lands for
+sources) reframed the plan around **validating FinBERT against
+Undertow's own real self-tagged ground truth before wiring it into
+production**, rather than assuming it would help.
+
+`validate_finbert.py` (repo root, not part of the daily pipeline) does
+exactly that: pulls live self-tagged StockTwits messages, strips the
+tag, and asks FinBERT / Gemini (production's current path) / VADER to
+guess it back, reporting per-class accuracy and whether FinBERT's own
+confidence tracks correctness. A 5-ticker smoke test found Gemini at
+~63% accuracy vs. FinBERT at ~13% (FinBERT defaulted ~78% of tagged
+messages to "neutral") — a full 30-ticker run was kicked off to confirm
+this isn't a quirk of those 5 tickers before drawing a real conclusion.
+**Check `finbert_full_run.log` (repo root) for that result** before
+continuing this work — if it confirms the smoke test, the honest
+conclusion per the user's own instruction ("don't put FinBERT out of
+scope if it's helpful, but let's see") is likely that FinBERT doesn't
+help *as a blanket confidence signal* the way originally imagined, and
+Phase 4 needs a different shape (or a different validated use for
+FinBERT) — the user was clear they still want FinBERT kept in scope if
+some real use for it turns up, not dropped by default.
+
+## Quick facts worth not re-deriving
+
+- Watchlist = flagship tickers, 30 symbols, in `config.json`.
+- Gemini model: `gemini-3.1-flash-lite`, pinned in `llm_client.py`.
+- No raw chat messages are persisted anywhere in the repo — only
+  aggregated daily scores (`data/history.json`,
+  `data/signal_history.json`, `data/analyst_history.json`). Anything
+  needing real message text (like FinBERT validation) has to fetch live.
+- Local dev machine: Windows, Python 3.14, `torch` (CPU build) was
+  already installed before this session added `transformers`.
+- `GEMINI_API_KEY` is set in the local environment already (confirmed
+  this session) — local runs of anything Gemini-dependent work without
+  extra setup.

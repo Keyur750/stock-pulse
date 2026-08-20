@@ -30,7 +30,7 @@ from sentiment import (
 from reddit import extract_tickers
 from market_data import MACRO_INSTRUMENTS, fetch_quotes
 from supabase_sync import sync_sentiment_history, sync_signal_history, sync_ticker_snapshots
-from fundamentals import fetch_fundamentals, score_fundamentals, fetch_financial_history
+from fundamentals import fetch_fundamentals, score_fundamentals, fetch_financial_history, fetch_balance_sheet_history, fetch_cashflow_history
 from market_history import build_ticker_history
 from logos import ensure_logo
 from wallstreet import fetch_analyst_data, score_wallstreet
@@ -730,6 +730,18 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     (up to 5) Revenue/Diluted EPS/Net Income series per ticker straight
     from yfinance's income statement — see fundamentals.py's
     fetch_financial_history for exactly what's real vs. a genuine gap.
+    balance_sheet_data carries the same shape (quarterly/annual, real
+    periods only) for Total Assets/Total Liabilities/Total Equity/
+    Working Capital/Retained Earnings/Shares Outstanding — Business
+    pillar Phase 1 (data foundation). Some tickers (confirmed live: SOFI,
+    JPM) genuinely have no Working Capital or EBIT — banks/lenders don't
+    report a Current Assets/Liabilities split — that comes through as
+    None, not a fetch failure. cashflow_data carries Operating Cash Flow
+    the same way (Phase 3) — used together with financial_history_data
+    and balance_sheet_data by score_fundamentals to compute the `trend`
+    (Phase 2) and `earnings_quality` (Phase 3) categories from real
+    year-over-year history, not just the current snapshot the original
+    five categories are limited to.
     history_data carries every timeframe's real, pre-resolved chart data
     and performance (see market_history.py) — a ticker missing here (no
     fetchable history at all) simply has no chart system for the day,
@@ -739,6 +751,8 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     pillar_scores = {}
     fundamentals_data = {}
     financial_history_data = {}
+    balance_sheet_data = {}
+    cashflow_data = {}
     history_data = {}
 
     logo_results = {}
@@ -748,7 +762,23 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
         logo_results[ticker] = ensure_logo(ticker)
 
         f = fetch_fundamentals(ticker)
-        fscore = score_fundamentals(f) if f else None
+
+        # Fetched before scoring (not after, as before Phase 2) so
+        # score_fundamentals can compute the trend category from real
+        # YoY history in the same call, rather than a second pass.
+        financial_history = fetch_financial_history(ticker)
+        if financial_history:
+            financial_history_data[ticker] = financial_history
+
+        balance_sheet = fetch_balance_sheet_history(ticker)
+        if balance_sheet:
+            balance_sheet_data[ticker] = balance_sheet
+
+        cashflow = fetch_cashflow_history(ticker)
+        if cashflow:
+            cashflow_data[ticker] = cashflow
+
+        fscore = score_fundamentals(f, financial_history, balance_sheet, cashflow) if f else None
 
         w = fetch_analyst_data(ticker)
         wscore = score_wallstreet(w) if w else None
@@ -769,16 +799,17 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
             fundamentals_data[ticker] = {
                 "name": f.get("name"),
                 "sector": f.get("sector"),
-                "metrics": {k: v for k, v in f.items() if k not in ("name", "sector")},
+                "industry": f.get("industry"),
+                "metrics": {k: v for k, v in f.items() if k not in ("name", "sector", "industry")},
                 "coverage": fscore.get("coverage") if fscore else None,
                 "missing_categories": [k for k, v in (fscore.get("categories") or {}).items() if v is None] if fscore else [],
                 "categories": fscore.get("categories") if fscore else {},
+                "trend_signals": fscore.get("trend_signals") if fscore else None,
+                "earnings_quality_detail": fscore.get("earnings_quality_detail") if fscore else None,
+                "balance_sheet_detail": fscore.get("balance_sheet_detail") if fscore else None,
+                "sector_benchmark_matched": fscore.get("sector_benchmark_matched") if fscore else False,
                 "overall": fscore.get("overall") if fscore else None,
             }
-
-        financial_history = fetch_financial_history(ticker)
-        if financial_history:
-            financial_history_data[ticker] = financial_history
 
         q = quotes.get(ticker, {})
         period_chg, period_days = _period_change(hist)
@@ -815,7 +846,9 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
           f"(rest fall back to the letter avatar)")
     print(f"  [history] {len(history_data)}/{len(flagship_tickers)} tickers have real multi-timeframe chart data")
     print(f"  [financials] {len(financial_history_data)}/{len(flagship_tickers)} tickers have real quarterly/annual financial history")
-    return analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data
+    print(f"  [balance sheet] {len(balance_sheet_data)}/{len(flagship_tickers)} tickers have real quarterly/annual balance sheet history")
+    print(f"  [cash flow] {len(cashflow_data)}/{len(flagship_tickers)} tickers have real quarterly/annual operating cash flow history")
+    return analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data, balance_sheet_data, cashflow_data
 
 
 def fetch_macro_history(sleep_seconds=2.0):
@@ -1014,9 +1047,11 @@ def main():
     fundamentals_data = {}
     history_data = {}
     financial_history_data = {}
+    balance_sheet_data = {}
+    cashflow_data = {}
     if flagship_tickers:
         print(f"Running the 4-pillar engine + AI analyst on {len(flagship_tickers)} flagship tickers...")
-        analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data = run_analyst_pipeline(
+        analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data, balance_sheet_data, cashflow_data = run_analyst_pipeline(
             flagship_tickers, ticker_results, news_items, price_history, quotes,
             sleep_seconds=config.get("analyst_call_sleep_seconds", 7),
         )
@@ -1063,6 +1098,8 @@ def main():
         "pillar_scores": pillar_scores,
         "fundamentals": fundamentals_data,
         "financial_history": financial_history_data,
+        "balance_sheet_history": balance_sheet_data,
+        "cashflow_history": cashflow_data,
         "timeframe_history": history_data,
         "market_insight": market_insight,
         "material_events": material_events,
