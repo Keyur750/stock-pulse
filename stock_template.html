@@ -229,7 +229,10 @@
      hairline divider (not a heavy border) sits in the middle of the gap
      between columns, so each list reads as its own group without the
      grid looking like four unrelated blocks. */
-  .cm-ai-cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; margin-bottom: 16px; }
+  /* Same subtle hairline used between the columns themselves, just
+     horizontal here -- separates the summary paragraph above from the
+     factors grid below instead of relying on margin alone. */
+  .cm-ai-cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; margin-bottom: 16px; padding-top: 20px; border-top: 1px solid var(--border); }
   @media (max-width: 900px) { .cm-ai-cols { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 560px) { .cm-ai-cols { grid-template-columns: 1fr; } }
   .cm-ai-col { border-left: 1px solid var(--border); padding-left: 16px; margin-left: -16px; }
