@@ -6,12 +6,13 @@ of what was decided, why, what's built, and what's left — not a replacement
 for the code itself. If this file and the code disagree, trust the code
 and fix this file.
 
-**One-line status (update this line every phase):** Phases 1-4 done and
+**One-line status (update this line every phase):** Phases 1-5 done and
 verified live across the full 30-ticker watchlist (data foundation,
 trend/momentum scoring, earnings quality, sector-relative scoring +
 Altman Z'' + DuPont-leverage-discounted ROE + financial-sector
-carve-out). Phases 5-6 are designed but not started. Next up: Phase 5
-(growth-adjusted valuation).
+carve-out, growth-adjusted valuation via PEG/Rule of 40). Phase 6 is
+designed but not started — needs more accumulated `signal_history.json`
+to backtest against before it's actionable (see that section for why).
 
 ## Why this exists
 
@@ -443,11 +444,58 @@ Verified live (real `fetch_fundamentals` + `score_fundamentals` calls,
   worth a full pipeline dry run before the next daily CI run picks
   this up for real.
 
-### Phase 5 — Growth-adjusted valuation — NOT STARTED
-Make `valuation` reference the already-computed `growth` score (PEG-
-style) instead of an independent P/E lookup. Add a Rule-of-40-style
-supplementary read for thin/negative-earnings names where P/E and P/S
-are both weak signals.
+### Phase 5 — Growth-adjusted valuation ✅ DONE (2026-08-20)
+Goal: make `valuation` reference growth instead of scoring P/E in
+isolation — even after Phase 4's sector-relative fix, a 40x-P/E grower
+and a 40x-P/E non-grower still weren't differentiated by how much
+growth they're paying for.
+
+Checked live before building (not memory): PEG interpretation bands
+(Peter Lynch's original framework, still the standard citation) —
+PEG < 1.0 undervalued vs. growth, 1.0-2.0 reasonably valued, > 2.0
+overvalued; and the Rule of 40 threshold (Brad Feld/Bessemer) — revenue
+growth % + margin % clearing 40 is the healthy-growth baseline for a
+company with no usable P/E.
+
+Built:
+- `fundamentals.py`: `_peg_score()` — PEG = P/E ÷ growth rate, using
+  earnings growth (the traditional denominator) when positive, falling
+  back to revenue growth, returning None (not a garbage ratio) when
+  neither is a usable positive number — a negative/near-zero growth
+  rate flips PEG's sign or blows it up rather than meaning "very cheap."
+  Blended (averaged) with Phase 4's sector-relative P/E score, not a
+  replacement — the peer comparison is still real information a pure
+  growth-adjustment would throw away.
+- `fundamentals.py`: `_rule_of_40_score()` — supplementary read used
+  only on the branch where P/E itself is unusable (thin/negative
+  earnings), same branch that already fell back to P/S-only scoring.
+  Prefers FCF margin over profit margin (checked live: the commonly-
+  cited metric at scale for this framework), blended with the existing
+  P/S score.
+- `score_fundamentals()`: new `valuation_detail` return field (`peg` /
+  `rule_of_40` sub-dicts, parallel to `earnings_quality_detail` and
+  `balance_sheet_detail`) for transparency.
+- `main.py`: `fundamentals_data[ticker]` carries `valuation_detail`
+  alongside the existing fields.
+- `analyst.py`'s `_fmt_fundamentals`: new `_fmt_valuation_detail()` tells
+  the Gemini prompt the actual PEG ratio or Rule-of-40 total and how to
+  read it, not just the resulting blended score.
+
+Verified live (full 30-ticker watchlist): **30/30 scored with no
+exceptions.** PEG computed for **27/30** (any ticker with a usable P/E
+and positive growth); Rule of 40 computed for **2/30** (NBIS, IONQ —
+both unprofitable names with no usable P/E). **COIN got neither** and
+this is correct, not a gap: it has a real forward P/E (57.1), so it
+stays on the PEG branch rather than falling to Rule of 40, and PEG
+itself legitimately returns None there because its revenue growth is
+negative (-17.3%) — meaningless as a PEG denominator — so it falls back
+to the pure sector-relative P/E score alone, same graceful degradation
+as Phase 4, confirmed not a bug. One outlier spot-checked in detail:
+NBIS's Rule of 40 came back at -255.5 (floored to score 5) — confirmed
+against raw fetched numbers (454% revenue growth, but FCF margin of
+-709.5%, i.e. burning far more cash than revenue as it scales AI infra
+capex) — a real, correctly-computed reading, not a units bug.
+`python -m py_compile` clean on all three touched files.
 
 ### Phase 6 — Validation, weighting, and a real confidence score — NOT STARTED
 Validate the (now six) dimensions' relative weight the way
@@ -468,14 +516,15 @@ confidence" capstone.
 | 2 | Trend & momentum (Piotroski-style, 6th category) | ✅ Done, verified live 2026-08-20 |
 | 3 | Earnings quality (Sloan accrual check, 7th category) | ✅ Done, verified live 2026-08-20 |
 | 4 | Sector-relative scoring + leverage-aware ROE + Altman Z'' + bank carve-out (now incl. earnings_quality) | ✅ Done, verified live 2026-08-20 across full 30-ticker watchlist |
-| 5 | Growth-adjusted valuation | Not started |
+| 5 | Growth-adjusted valuation (PEG + Rule of 40) | ✅ Done, verified live 2026-08-20 across full 30-ticker watchlist |
 | 6 | Weight validation + real confidence score | Not started |
 
 **Files touched so far:** `fundamentals.py`, `main.py`, `analyst.py`,
 `stock_template.html`, `build_sector_benchmarks.py` (new),
 `data/sector_benchmarks.json` (new).
 
-**Next step:** Phase 5 (growth-adjusted valuation — reference the
-already-computed `growth` score PEG-style instead of an independent P/E
-lookup, plus a Rule-of-40 supplementary read for thin/negative-earnings
-names).
+**Next step:** Phase 6 (weight validation + real confidence score) —
+best revisited once `signal_history.json` has accumulated a few weeks
+of real outcomes to backtest the (now seven) category weights against;
+backtesting on the few days of history that exist today would mostly be
+noise, not signal.

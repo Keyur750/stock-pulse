@@ -807,6 +807,7 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
                 "trend_signals": fscore.get("trend_signals") if fscore else None,
                 "earnings_quality_detail": fscore.get("earnings_quality_detail") if fscore else None,
                 "balance_sheet_detail": fscore.get("balance_sheet_detail") if fscore else None,
+                "valuation_detail": fscore.get("valuation_detail") if fscore else None,
                 "sector_benchmark_matched": fscore.get("sector_benchmark_matched") if fscore else False,
                 "overall": fscore.get("overall") if fscore else None,
             }

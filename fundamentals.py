@@ -676,6 +676,58 @@ def _score_balance_sheet(f, balance_sheet_history, financial_history):
     return {"score": score, "method": "altman_z_double_prime", "z_score": round(z, 2)}
 
 
+# Business pillar Phase 5 -- growth-adjusted valuation. PEG bands and the
+# Rule of 40 threshold checked live this session (not memory) against
+# current published sources: PEG < 1.0 undervalued, 1.0-2.0 reasonably
+# valued, > 2.0 overvalued (Peter Lynch's original framework, still the
+# standard citation); Rule of 40 (Brad Feld/Bessemer) says revenue growth
+# % + margin % clearing 40 is the healthy-SaaS baseline.
+_PEG_PTS = [(0.0, 95), (0.5, 85), (1.0, 68), (1.5, 48), (2.0, 28), (3.0, 12), (5.0, 2)]
+_RULE40_PTS = [(-40, 5), (-10, 20), (0, 30), (20, 45), (40, 65), (60, 82), (80, 92), (120, 100)]
+
+
+def _peg_score(pe, earnings_growth, revenue_growth):
+    """PEG ratio (Price/Earnings-to-Growth) = P/E ÷ growth rate (as a
+    whole number, e.g. 20 for 20% growth) -- the concrete form of "make
+    valuation reference the already-computed growth score" from the
+    Business pillar research: a sector-relative P/E score alone (Phase
+    4) still can't tell a 40x-P/E grower from a 40x-P/E non-grower.
+    Uses earnings growth, the traditional PEG denominator, only when
+    it's positive -- a negative or near-zero growth rate flips the
+    ratio's sign or blows it up rather than signaling "very cheap,"
+    so this falls back to revenue growth, and returns None (not a
+    garbage ratio) if neither is usable. Deliberately a supplementary
+    signal blended with the sector-relative P/E score, not a
+    replacement -- Phase 4's peer comparison is still real information
+    a pure growth-adjustment would throw away."""
+    growth_pct = None
+    if earnings_growth is not None and earnings_growth > 0:
+        growth_pct = earnings_growth * 100
+    elif revenue_growth is not None and revenue_growth > 0:
+        growth_pct = revenue_growth * 100
+    if pe is None or growth_pct is None:
+        return None
+    peg = pe / growth_pct
+    return {"peg": round(peg, 2), "score": round(_scale(peg, _PEG_PTS), 1)}
+
+
+def _rule_of_40_score(revenue_growth, fcf_margin, profit_margin):
+    """Rule of 40 supplementary read for thin/negative-earnings names,
+    where PEG can't be computed (pe is None) and P/S alone says nothing
+    about whether the growth is being purchased efficiently. Prefers FCF
+    margin (checked live: the commonly-cited metric at scale) over
+    profit margin, falling back to profit margin only when FCF margin
+    isn't available; returns None, not a guessed total, when neither
+    growth nor a margin figure is available."""
+    if revenue_growth is None:
+        return None
+    margin = fcf_margin if fcf_margin is not None else profit_margin
+    if margin is None:
+        return None
+    total = (revenue_growth + margin) * 100
+    return {"rule_of_40": round(total, 1), "score": round(_scale(total, _RULE40_PTS), 1)}
+
+
 def score_fundamentals(f: dict, financial_history: dict | None = None,
                         balance_sheet_history: dict | None = None,
                         cashflow_history: dict | None = None) -> dict:
@@ -704,7 +756,12 @@ def score_fundamentals(f: dict, financial_history: dict | None = None,
     fallback for tickers whose balance sheet doesn't report Working
     Capital/EBIT (see _score_balance_sheet). Category KEY NAMES are
     unchanged — only the math and detail payloads change — so this
-    doesn't touch the radar chart's axis structure."""
+    doesn't touch the radar chart's axis structure.
+
+    Phase 5: `valuation` additionally blends in a growth-adjusted read —
+    PEG ratio when the company is profitable (pe available), Rule of 40
+    when it isn't — alongside Phase 4's sector-relative P/E score (see
+    _peg_score/_rule_of_40_score)."""
     benchmark = _industry_benchmark(f.get("industry"))
 
     growth = _avg([
@@ -743,15 +800,27 @@ def score_fundamentals(f: dict, financial_history: dict | None = None,
     # companies — a negative or missing P/E falls back to price/sales.
     # Sector-relative uses the matching horizon (forward vs. trailing) of
     # whichever P/E value is actually in use, not a mismatched pair.
+    # Phase 5: blends in a growth-adjusted read (PEG when profitable,
+    # Rule of 40 when not) alongside Phase 4's sector-relative P/E — see
+    # _peg_score/_rule_of_40_score. Falls back to the sector-relative (or
+    # plain P/S) score alone whenever the growth-adjusted read isn't
+    # computable, same graceful-degradation discipline as everywhere
+    # else in this file.
     pe = f.get("forward_pe") or f.get("trailing_pe")
     pe_is_forward = bool(f.get("forward_pe"))
     if pe is not None and pe <= 0:
         pe = None
+    peg_result = None
+    rule40_result = None
     if pe is not None:
         industry_pe = (benchmark or {}).get("forward_pe" if pe_is_forward else "trailing_pe")
-        valuation = _relative_pe(pe, industry_pe, _PE_PTS)
+        pe_relative_score = _relative_pe(pe, industry_pe, _PE_PTS)
+        peg_result = _peg_score(pe, f.get("earnings_growth"), f.get("revenue_growth"))
+        valuation = _avg([pe_relative_score, peg_result["score"] if peg_result else None])
     else:
-        valuation = _scale(f.get("price_to_sales"), _PS_PTS)
+        ps_score = _scale(f.get("price_to_sales"), _PS_PTS)
+        rule40_result = _rule_of_40_score(f.get("revenue_growth"), f.get("fcf_margin"), f.get("profit_margin"))
+        valuation = _avg([ps_score, rule40_result["score"] if rule40_result else None])
     if valuation is not None:
         valuation = round(valuation, 1)
 
@@ -795,5 +864,6 @@ def score_fundamentals(f: dict, financial_history: dict | None = None,
         "trend_signals": trend_result["signals"] if trend_result else None,
         "earnings_quality_detail": eq_result,
         "balance_sheet_detail": bs_result,
+        "valuation_detail": {"peg": peg_result, "rule_of_40": rule40_result},
         "sector_benchmark_matched": benchmark is not None,
     }

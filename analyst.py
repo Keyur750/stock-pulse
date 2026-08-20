@@ -119,6 +119,18 @@ def _fmt_balance_sheet_detail(fundamentals, bs_detail):
             f"(bank/lender-style balance sheet — no reported working capital or EBIT, so Altman Z'' isn't computable; scored on the legacy debt/liquidity blend instead)")
 
 
+def _fmt_valuation_detail(val_detail):
+    if not val_detail:
+        return ""
+    peg = val_detail.get("peg")
+    r40 = val_detail.get("rule_of_40")
+    if peg:
+        return f" (PEG ratio {peg['peg']} — growth-adjusted; Lynch framework: <1.0 undervalued vs. growth, 1.0-2.0 reasonable, >2.0 overvalued)"
+    if r40:
+        return f" (Rule of 40: revenue growth + margin = {r40['rule_of_40']} — supplementary read for a name with no P/E to score, 40+ is the healthy-growth baseline)"
+    return ""
+
+
 def _fmt_fundamentals(fundamentals, fscore):
     if not fundamentals or not fscore:
         return "Not available."
@@ -135,7 +147,7 @@ def _fmt_fundamentals(fundamentals, fscore):
         f"- Profitability score: {cats.get('profitability')}/100 — profit margin {_pct(fundamentals.get('profit_margin'))}, operating margin {_pct(fundamentals.get('operating_margin'))}, ROE {_pct(fundamentals.get('return_on_equity'))} (ROE discounted when leverage runs well above industry peers — DuPont logic, so a high ROE built mostly on debt scores lower than the same ROE built on margin/efficiency)",
         f"- Cash flow score: {cats.get('cash_flow')}/100 — FCF margin {_pct(fundamentals.get('fcf_margin'))}",
         f"- Balance sheet score: {cats.get('balance_sheet')}/100 — {_fmt_balance_sheet_detail(fundamentals, fscore.get('balance_sheet_detail'))}",
-        f"- Valuation score: {cats.get('valuation')}/100 — forward P/E {fundamentals.get('forward_pe')}, trailing P/E {fundamentals.get('trailing_pe')}, P/S {fundamentals.get('price_to_sales')}",
+        f"- Valuation score: {cats.get('valuation')}/100 — forward P/E {fundamentals.get('forward_pe')}, trailing P/E {fundamentals.get('trailing_pe')}, P/S {fundamentals.get('price_to_sales')}{_fmt_valuation_detail(fscore.get('valuation_detail'))}",
         f"- Trend score: {cats.get('trend')}/100 — year-over-year direction across revenue, margins, leverage & dilution (Piotroski-inspired; a rising score means the business is getting healthier, not just currently healthy)",
         f"- Earnings quality score: {cats.get('earnings_quality')}/100 — net income vs. operating cash flow (Sloan accrual check; a low score means reported profit is running ahead of actual cash generation, a real warning sign even when every other score looks strong; None for banks/lenders where operating cash flow isn't comparable under GAAP — don't read a missing score here as a red flag)",
         f"- Market cap: {fundamentals.get('market_cap')}",
