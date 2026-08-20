@@ -22,6 +22,7 @@ back to a "Neutral" label. See PRODUCT.md for the full writeup.
 import json
 import re
 import time
+from datetime import datetime, timezone
 
 from llm_client import get_client, MODEL
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
@@ -264,6 +265,68 @@ def weighted_average(scored_messages: list) -> float:
     if not total_weight:
         return 0.0
     return sum(m["_score"] * m["_weight"] for m in scored_messages) / total_weight
+
+
+def _parse_created_at(value):
+    """Handles the ISO-with-Z format both stocktwits.py-shaped and
+    reddit.py/bluesky.py-shaped messages use. Returns None (not raised)
+    on anything unparseable — a data quirk in one message's timestamp
+    shouldn't crash scoring, it should just fall back to no decay for
+    that message."""
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+
+
+def score_messages(scored_messages: list, shrinkage_k: float = 3.0,
+                    decay_half_life_hours: float | None = 8.0, now=None) -> float:
+    """The real, final way to turn a list of already-classified messages
+    into one score — weighted_average() stays the plain building block
+    (still used directly wherever a bare average is genuinely what's
+    wanted), this layers two things on top of it:
+
+    1. Exponential recency decay on each message's existing tag/LLM
+       weight — a message from 5 minutes ago counts more than one from
+       23 hours ago, instead of the previous hard cutoff where anything
+       inside the sample window counted identically. Composes with (not
+       replaces) the existing weight, so a self-tagged post from an hour
+       ago still outweighs an untagged one from a minute ago.
+    2. Shrinkage toward neutral for thin samples — same Bayesian-average
+       principle IMDb uses so a handful of reviews doesn't outrank
+       thousands: `raw_avg * (n / (n + K))`, where `n` is the sample's
+       total (decay-adjusted) weight. A ticker whose messages are mostly
+       stale within the window naturally gets *both* a smaller decayed
+       average *and* more shrinkage — that's intentional, not
+       double-penalizing: staleness is one real signal that should
+       lower both the score's weight and how much it should be trusted.
+
+    Either can be disabled by passing 0/None, which recovers plain
+    weighted_average() behavior exactly."""
+    if not scored_messages:
+        return 0.0
+    now = now or datetime.now(timezone.utc)
+
+    weighted = []
+    for m in scored_messages:
+        weight = m["_weight"]
+        if decay_half_life_hours:
+            created = _parse_created_at(m.get("created_at"))
+            if created is not None:
+                age_hours = max(0.0, (now - created).total_seconds() / 3600)
+                weight = weight * (0.5 ** (age_hours / decay_half_life_hours))
+        weighted.append({**m, "_weight": weight})
+
+    total_weight = sum(m["_weight"] for m in weighted)
+    if not total_weight:
+        return 0.0
+    raw_avg = weighted_average(weighted)
+
+    if shrinkage_k:
+        raw_avg *= total_weight / (total_weight + shrinkage_k)
+    return raw_avg
 
 
 MARKET_INSIGHT_SCHEMA = {

@@ -23,7 +23,7 @@ from news_fetcher import fetch_news, fetch_ticker_news
 from news_ranker import rank_news
 from sec_filings import fetch_recent_8ks
 from sentiment import (
-    classify_and_score_messages, weighted_average, score_text, label_for_score,
+    classify_and_score_messages, weighted_average, score_messages, score_text, label_for_score,
     MAX_SCORE_MAGNITUDE, tag_of, build_market_insight, dedupe_by_author,
 )
 from reddit import extract_tickers
@@ -147,7 +147,8 @@ def _sort_key(m):
 
 def analyze(symbol_messages: dict, trending_symbols: set, watchlist: set,
             prev_snapshot: Optional[dict], sentiment_sample_size: int = 60,
-            sentiment_call_sleep_seconds: float = 3.0, max_messages_per_author: int = 3):
+            sentiment_call_sleep_seconds: float = 3.0, max_messages_per_author: int = 3,
+            shrinkage_k: float = 3.0, decay_half_life_hours: float = 8.0):
     """Aggregate mention counts, bull/bear breakdown, and sentiment per
     ticker, with day-over-day sentiment shift where history allows.
 
@@ -174,7 +175,7 @@ def analyze(symbol_messages: dict, trending_symbols: set, watchlist: set,
         sample = sorted(deduped, key=_sort_key, reverse=True)[:sentiment_sample_size]
 
         scored = classify_and_score_messages(symbol, sample)
-        avg = weighted_average(scored)
+        avg = score_messages(scored, shrinkage_k=shrinkage_k, decay_half_life_hours=decay_half_life_hours)
         if any(m.get("_weight") == 1.0 for m in scored):  # an LLM call was made for this ticker
             time.sleep(sentiment_call_sleep_seconds)
 
@@ -182,11 +183,17 @@ def analyze(symbol_messages: dict, trending_symbols: set, watchlist: set,
         # (and, downstream, a real cross-source-agreement confidence
         # measure) see whether StockTwits/Reddit/Bluesky actually agree,
         # instead of only ever seeing one blended number that could mask
-        # real disagreement between independent communities.
+        # real disagreement between independent communities. Same
+        # decay+shrinkage treatment as the pooled score, so a thin
+        # single-source read isn't shown any more confidently than the
+        # main score would be for the same sample size.
         by_source = {}
         for m in scored:
             by_source.setdefault(m.get("chatter_source", "stocktwits"), []).append(m)
-        source_scores = {src: round(weighted_average(msgs), 3) for src, msgs in by_source.items()}
+        source_scores = {
+            src: round(score_messages(msgs, shrinkage_k=shrinkage_k, decay_half_life_hours=decay_half_life_hours), 3)
+            for src, msgs in by_source.items()
+        }
 
         bullish_count = sum(1 for m in scored if m["_sentiment"] == "bullish")
         bearish_count = sum(1 for m in scored if m["_sentiment"] == "bearish")
@@ -919,6 +926,8 @@ def main():
         sentiment_sample_size=config.get("sentiment_sample_size", 60),
         sentiment_call_sleep_seconds=config.get("sentiment_call_sleep_seconds", 3.0),
         max_messages_per_author=config.get("crowd_max_messages_per_author", 3),
+        shrinkage_k=config.get("crowd_shrinkage_k", 3.0),
+        decay_half_life_hours=config.get("crowd_decay_half_life_hours", 8.0),
     )
 
     # Union with the full watchlist, not just tickers with chatter today —
