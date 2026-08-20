@@ -133,13 +133,27 @@
   .stock-asof { font-size: 10.5px; color: var(--text-faint); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
 
   /* AI score, moved here from the AI Analysis card so it reads
-     alongside price/change instead of being buried lower on the page. */
-  .stock-ai-block { text-align: left; }
+     alongside price/change instead of being buried lower on the page.
+     margin-left:auto pushes it to the true right edge of the header
+     row (identity + price stay clustered left); a bordered/tinted box
+     -- colored by the score itself, same soft/border tokens the label
+     pills already use -- gives it real visual weight instead of being
+     bare text like everything else in the row. */
+  .stock-ai-block {
+    display: none; align-items: center; gap: 16px;
+    margin-left: auto; flex-shrink: 0;
+    padding: 12px 22px; border-radius: var(--radius-lg);
+    background: var(--surface-1); border: 1.5px solid var(--border);
+  }
+  .stock-ai-block.up { background: var(--bull-soft); border-color: var(--bull-border); }
+  .stock-ai-block.down { background: var(--bear-soft); border-color: var(--bear-border); }
+  .stock-ai-block.na { background: var(--amber-soft); border-color: var(--amber-border); }
   .stock-ai-score-wrap { display: flex; align-items: baseline; gap: 4px; }
-  .stock-ai-score { font-family: 'JetBrains Mono', monospace; font-size: 34px; font-weight: 700; }
+  .stock-ai-score { font-family: 'JetBrains Mono', monospace; font-size: 40px; font-weight: 800; }
   .stock-ai-score.up { color: var(--bull); } .stock-ai-score.down { color: var(--bear); } .stock-ai-score.na { color: var(--amber); }
-  .stock-ai-score-label { font-size: 12px; color: var(--text-faint); }
-  .stock-ai-label { font-size: 10.5px; color: var(--text-faint); margin-top: 4px; font-family: 'JetBrains Mono', monospace; letter-spacing: .05em; text-transform: uppercase; }
+  .stock-ai-score-label { font-size: 13px; color: var(--text-faint); }
+  .stock-ai-label { font-size: 10.5px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; border-left: 1px solid var(--border); padding-left: 16px; line-height: 1.4; }
+  @media (max-width: 700px) { .stock-ai-block { margin-left: 0; } }
 
   .sentiment-strip { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
   .label-pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 6px; }
@@ -553,12 +567,16 @@ function renderAiSection(result) {
   }
   emptyEl.style.display = 'none';
   bodyEl.style.display = 'block';
-  headerScoreBlock.style.display = 'block';
+  headerScoreBlock.style.display = 'flex';
   // Score moved up to the page header (next to price/change) so it reads
   // as part of the ticker's headline stats, not buried in a lower card.
+  // Same score-class drives both the number's color and the box's
+  // tinted background/border, so the whole badge reads as one unit.
+  const cls = scoreClass(result.overall_score);
   const scoreEl = document.getElementById('header-ai-score');
   scoreEl.textContent = result.overall_score;
-  scoreEl.className = 'stock-ai-score ' + scoreClass(result.overall_score);
+  scoreEl.className = 'stock-ai-score ' + cls;
+  headerScoreBlock.className = 'stock-ai-block ' + cls;
   document.getElementById('cm-ai-verdict').textContent = result.verdict || '';
   document.getElementById('cm-ai-summary').textContent = result.summary || '';
   fillList('cm-ai-bullish', result.bullish_factors);
