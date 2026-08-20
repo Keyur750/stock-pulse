@@ -1276,13 +1276,21 @@ function renderFundamentalsRadar(fundamentals) {
            `<circle class="radar-hit" data-key="${key}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="16" fill="transparent"/>`;
   }).join('');
 
+  // Verified live: the old normAngle-bracket test (10-170 / 190-350)
+  // checks which side of the HORIZONTAL axis a label is on (up vs down),
+  // not which side of the VERTICAL axis it's on (left vs right) -- but
+  // text-anchor is a horizontal alignment, so it needs the label's real
+  // x-offset (cos of its angle), not that. 3 of 5 axes came out backwards:
+  // Profitability and Balance Sheet's text grew back toward the chart
+  // instead of away from it, and Growth (dead center, cos=0) got shifted
+  // left instead of staying centered.
   const labels = FUND_CATEGORY_KEYS.map((key, i) => {
     const angle = angleFor(i);
     const [x, y] = toXY(angle, maxR + 24);
-    const normAngle = ((angle % 360) + 360) % 360;
+    const cosA = Math.cos(angle * Math.PI / 180);
     let anchor = 'middle';
-    if (normAngle > 10 && normAngle < 170) anchor = 'start';
-    else if (normAngle > 190 && normAngle < 350) anchor = 'end';
+    if (cosA > 0.15) anchor = 'start';
+    else if (cosA < -0.15) anchor = 'end';
     return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}" dominant-baseline="middle" class="radar-label">${FUND_CATEGORY_META[key].label}</text>`;
   }).join('');
 
