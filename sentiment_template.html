@@ -437,30 +437,60 @@
   .detail-confidence-note { font-size: 11.5px; color: var(--text-faint); margin-top: 3px; line-height: 1.5; }
 
   /* ---------- Breadth over time — a continuation of the table, not a
-     separate floating box ---------- */
-  .breadth-panel { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-1); padding: 20px 22px; }
-  .breadth-chart-note { font-size: 11.5px; color: var(--text-faint); margin-top: 12px; }
-  .breadth-bars { display: flex; align-items: flex-end; gap: 12px; height: 140px; padding: 6px 0; }
-  .breadth-day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 7px; height: 100%; justify-content: flex-end; cursor: default; }
+     separate floating box. Bar height now encodes the real number of
+     securities observed that day (scaled against the busiest day), not
+     a fixed 100% -- coverage genuinely grew from 12 to 30 tracked names
+     over this window, and the old always-full bars threw that story
+     away. Gridlines give that height an actual scale to read against. */
+  .breadth-panel { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-1); padding: 26px 28px 24px; }
+  .breadth-chart-note { font-size: 12px; color: var(--text-faint); margin-top: 20px; line-height: 1.5; }
+  .breadth-bars { display: flex; align-items: flex-end; gap: 14px; height: 190px; padding: 4px 0 0 34px; position: relative; }
+  .breadth-grid-line { position: absolute; left: 34px; right: 0; border-top: 1px dashed var(--border); opacity: .7; }
+  .breadth-grid-label { position: absolute; left: 0; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint); transform: translateY(-50%); }
+  .breadth-day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 12px; height: 100%; justify-content: flex-end; cursor: default; position: relative; }
   .breadth-day-stack {
-    width: 100%; max-width: 44px; height: 100%; border-radius: 5px 5px 0 0; overflow: hidden; display: flex;
-    flex-direction: column-reverse; background: var(--surface-3); transition: filter .12s ease; position: relative;
+    width: 100%; max-width: 50px; border-radius: 9px 9px 3px 3px; overflow: hidden; display: flex;
+    flex-direction: column-reverse; position: relative; transform-origin: bottom center;
+    transform: scaleY(0);
+    transition: transform .9s cubic-bezier(.16,1,.3,1), filter .15s ease;
+    box-shadow: 0 8px 18px -10px rgba(0,0,0,.6);
   }
+  .breadth-day.in .breadth-day-stack { transform: scaleY(1); }
+  .breadth-day.today .breadth-day-stack { box-shadow: 0 0 0 2px var(--accent-border), 0 8px 20px -8px rgba(59,130,246,.45); }
   .breadth-day:hover .breadth-day-stack { filter: brightness(1.12); }
-  .breadth-seg.bull { background: var(--bull); }
-  .breadth-seg.neutral { background: var(--gray); }
-  .breadth-seg.bear { background: var(--bear); }
-  .breadth-day-label { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--text-faint); white-space: nowrap; }
-  .breadth-tooltip {
-    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-    background: var(--surface-3); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px;
-    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; white-space: nowrap; box-shadow: var(--shadow-md);
-    opacity: 0; pointer-events: none; transition: opacity .12s ease; z-index: 5;
+  .breadth-seg.bull { background: linear-gradient(180deg, #34D399, var(--bull)); }
+  .breadth-seg.neutral { background: linear-gradient(180deg, #8492A6, var(--gray)); }
+  .breadth-seg.bear { background: linear-gradient(180deg, #F87171, var(--bear)); }
+  .breadth-day-label { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-faint); white-space: nowrap; }
+  .breadth-day.today .breadth-day-label { color: var(--accent); font-weight: 700; }
+  .breadth-today-badge {
+    position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+    background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border);
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; padding: 3px 8px;
+    border-radius: 20px; white-space: nowrap;
   }
-  .breadth-day:hover .breadth-tooltip { opacity: 1; }
-  .breadth-legend { display: flex; gap: 16px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
-  .breadth-legend-item { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-secondary); }
-  .breadth-legend-item .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .breadth-tooltip {
+    position: absolute; bottom: calc(100% + 14px); left: 50%; transform: translateX(-50%) translateY(4px);
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px;
+    font-size: 11.5px; white-space: nowrap; box-shadow: var(--shadow-md);
+    opacity: 0; pointer-events: none; transition: opacity .15s ease, transform .15s ease; z-index: 6;
+  }
+  .breadth-tooltip::after {
+    content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: var(--surface-2);
+  }
+  .breadth-day:hover .breadth-tooltip { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .breadth-tooltip-date { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .06em; }
+  .breadth-tooltip-row { display: flex; align-items: center; gap: 8px; }
+  .breadth-tooltip-row + .breadth-tooltip-row { margin-top: 5px; }
+  .breadth-tooltip-row .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .breadth-tooltip-row .dot.bull { background: var(--bull); }
+  .breadth-tooltip-row .dot.neutral { background: var(--gray); }
+  .breadth-tooltip-row .dot.bear { background: var(--bear); }
+  .breadth-tooltip-row strong { color: var(--text-primary); font-weight: 700; margin-left: auto; padding-left: 18px; font-family: 'JetBrains Mono', monospace; }
+  .breadth-legend { display: flex; gap: 22px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); }
+  .breadth-legend-item { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-secondary); font-weight: 500; }
+  .breadth-legend-item .dot { width: 8px; height: 8px; border-radius: 50%; }
   .breadth-legend-item .dot.bull { background: var(--bull); }
   .breadth-legend-item .dot.neutral { background: var(--gray); }
   .breadth-legend-item .dot.bear { background: var(--bear); }
@@ -2370,11 +2400,19 @@ function renderDetailPane(s) {
 }
 
 // --- Breadth over time — continuous with the rest of the page, hover
-// reveals exact counts, never fabricates missing days ---
+// reveals exact counts, never fabricates missing days. Bar height is
+// scaled to the real number of securities observed that day (against
+// the busiest day on record), so the chart honestly shows coverage
+// ramping up rather than pretending every day was fully covered. ---
 function renderBreadthChart() {
   const el = document.getElementById('breadth-chart');
+  // Some observations carry a full timestamp (today's live-polled entry)
+  // rather than a bare date -- group by calendar day so "today" doesn't
+  // show up as two separate bars, and prefer the most recent reading
+  // when a security has more than one observation on the same day.
+  const dayKey = d => d.slice(0, 10);
   const dateSet = new Set();
-  securities.forEach(s => s.observations.forEach(o => dateSet.add(o.date)));
+  securities.forEach(s => s.observations.forEach(o => dateSet.add(dayKey(o.date))));
   const dates = [...dateSet].sort();
 
   document.getElementById('breadth-sub').textContent = dates.length > 0
@@ -2389,33 +2427,58 @@ function renderBreadthChart() {
   const perDay = dates.map(date => {
     const counts = { bull: 0, neutral: 0, bear: 0 };
     securities.forEach(s => {
-      const obs = s.observations.find(o => o.date === date);
+      const dayObs = s.observations.filter(o => dayKey(o.date) === date);
+      const obs = dayObs[dayObs.length - 1];
       if (obs) counts[breadthBucket(labelForScore(obs.avg_sentiment))]++;
     });
-    return { date, counts };
+    return { date, counts, total: counts.bull + counts.neutral + counts.bear };
   });
 
+  const maxTotal = Math.max(...perDay.map(d => d.total), 1);
+  const gridHalf = Math.round(maxTotal / 2);
+  const todayDate = dates[dates.length - 1];
+
   const bars = perDay.map(d => {
-    const total = d.counts.bull + d.counts.neutral + d.counts.bear;
-    const pct = k => total ? (d.counts[k] / total) * 100 : 0;
-    return `<div class="breadth-day">
-      <div class="breadth-tooltip">${d.date}: ${d.counts.bull} bullish · ${d.counts.neutral} neutral · ${d.counts.bear} bearish</div>
-      <div class="breadth-day-stack">
+    const pct = k => d.total ? (d.counts[k] / d.total) * 100 : 0;
+    const stackH = d.total ? (d.total / maxTotal) * 100 : 0;
+    const isToday = d.date === todayDate;
+    return `<div class="breadth-day${isToday ? ' today' : ''}">
+      ${isToday ? `<div class="breadth-today-badge">${d.total} today</div>` : ''}
+      <div class="breadth-tooltip">
+        <div class="breadth-tooltip-date">${d.date} · ${d.total} covered</div>
+        <div class="breadth-tooltip-row"><span class="dot bull"></span>Bullish<strong>${d.counts.bull}</strong></div>
+        <div class="breadth-tooltip-row"><span class="dot neutral"></span>Neutral<strong>${d.counts.neutral}</strong></div>
+        <div class="breadth-tooltip-row"><span class="dot bear"></span>Bearish<strong>${d.counts.bear}</strong></div>
+      </div>
+      <div class="breadth-day-stack" style="height:${stackH}%">
         <div class="breadth-seg bear" style="height:${pct('bear')}%"></div>
         <div class="breadth-seg neutral" style="height:${pct('neutral')}%"></div>
         <div class="breadth-seg bull" style="height:${pct('bull')}%"></div>
       </div>
-      <div class="breadth-day-label">${d.date.length > 10 ? d.date.slice(5, 16) : d.date.slice(5)}</div>
+      <div class="breadth-day-label">${d.date.slice(5)}</div>
     </div>`;
   }).join('');
 
-  el.innerHTML = `<div class="breadth-bars">${bars}</div>
+  el.innerHTML = `<div class="breadth-bars">
+      <div class="breadth-grid-line" style="bottom:0"><span class="breadth-grid-label">0</span></div>
+      <div class="breadth-grid-line" style="bottom:50%"><span class="breadth-grid-label">${gridHalf}</span></div>
+      <div class="breadth-grid-line" style="bottom:100%"><span class="breadth-grid-label">${maxTotal}</span></div>
+      ${bars}
+    </div>
     <div class="breadth-legend">
       <span class="breadth-legend-item"><span class="dot bull"></span>Bullish</span>
       <span class="breadth-legend-item"><span class="dot neutral"></span>Neutral</span>
       <span class="breadth-legend-item"><span class="dot bear"></span>Bearish</span>
     </div>
-    <div class="breadth-chart-note">Grows by one observation with each daily update. Short history today means this chart will become more informative over the coming days/weeks — it is not filled in artificially.</div>`;
+    <div class="breadth-chart-note">Bar height reflects how many securities were actually observed that day (out of ${maxTotal} at peak) — coverage is still ramping up, so this chart will keep filling in over the coming days/weeks. It is not filled in artificially.</div>`;
+
+  const dayEls = el.querySelectorAll('.breadth-day');
+  requestAnimationFrame(() => {
+    dayEls.forEach((dayEl, i) => setTimeout(() => dayEl.classList.add('in'), i * 60));
+  });
+  // Fallback in case rAF never fires (e.g. a backgrounded tab) -- bars
+  // must still reach their real height, just without the entrance animation.
+  setTimeout(() => dayEls.forEach(dayEl => dayEl.classList.add('in')), dayEls.length * 60 + 400);
 }
 
 renderHero();
