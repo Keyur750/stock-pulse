@@ -221,16 +221,24 @@
   .fund-empty { color: var(--text-faint); font-size: 12.5px; }
 
   /* Fundamentals radar -- a shape read (which categories pull the
-     polygon in) plus exact numbers in the legend, not either/or. */
-  .fund-radar-wrap { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
-  .fund-radar-chart { position: relative; flex-shrink: 0; width: 240px; }
+     polygon in) plus exact numbers in the legend, not either/or.
+     .fund-legend used to be flex:1, stretching to fill the entire
+     remaining ~1050px of the widened 1400px card; each row's own
+     flex:1 text then pushed the value number all the way to that far
+     edge, stranding it away from its label (caught live). Legend is
+     now width-capped so label and value stay adjacent, the radar chart
+     is bigger to use some of the reclaimed width for real content, and
+     the whole block is centered so any leftover space reads as
+     deliberate margins, not a void. */
+  .fund-radar-wrap { display: flex; align-items: center; justify-content: center; gap: 40px; flex-wrap: wrap; }
+  .fund-radar-chart { position: relative; flex-shrink: 0; width: 300px; }
   .fund-radar-svg { width: 100%; height: auto; display: block; overflow: visible; }
   .radar-label { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; fill: var(--text-secondary); }
   .radar-dot { cursor: pointer; transition: r .15s ease; }
   .radar-dot.active { r: 6.5; }
   .radar-hit { cursor: pointer; }
   .fund-tooltip { position: absolute; pointer-events: none; background: var(--surface-3); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: 700; box-shadow: var(--shadow-md); opacity: 0; transition: opacity .1s ease; white-space: nowrap; transform: translate(-50%, 0); z-index: 5; }
-  .fund-legend { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 220px; }
+  .fund-legend { display: flex; flex-direction: column; gap: 2px; width: 100%; max-width: 420px; min-width: 220px; }
   .fund-legend-row { display: flex; align-items: center; gap: 11px; padding: 8px 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background-color .12s ease; }
   .fund-legend-row:hover, .fund-legend-row.active { background: var(--surface-3); }
   .fund-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
