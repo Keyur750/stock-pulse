@@ -17,6 +17,7 @@ from typing import Optional
 
 from stocktwits import collect_all
 from reddit import collect_reddit
+from bluesky import collect_bluesky
 from apewisdom import fetch_mentions as fetch_reddit_mentions
 from news_fetcher import fetch_news, fetch_ticker_news
 from news_ranker import rank_news
@@ -875,9 +876,21 @@ def main():
     for ticker, msgs in reddit_messages.items():
         symbol_messages.setdefault(ticker, []).extend(msgs)
 
+    reddit_total = sum(len(v) for v in symbol_messages.values()) - st_messages
+
+    print("Fetching Bluesky cashtag chatter...")
+    bluesky_messages = collect_bluesky(
+        sorted(watchlist),
+        max_age_hours=config.get("bluesky_max_age_hours", 24.0),
+        limit_per_ticker=config.get("bluesky_limit_per_ticker", 100),
+    )
+    for ticker, msgs in bluesky_messages.items():
+        symbol_messages.setdefault(ticker, []).extend(msgs)
+
     total_messages = sum(len(v) for v in symbol_messages.values())
     print(f"  {total_messages} total messages across {len(symbol_messages)} tickers "
-          f"({st_messages} StockTwits, {total_messages - st_messages} Reddit)")
+          f"({st_messages} StockTwits, {reddit_total} Reddit, "
+          f"{total_messages - st_messages - reddit_total} Bluesky)")
 
     history = load_history()
     prev_snapshot = history[-1]["tickers"] if history else None

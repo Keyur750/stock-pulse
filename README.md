@@ -2,7 +2,7 @@
 
 A full site now, not just a dashboard: a marketing home page, About, Careers,
 and the live data product itself — a retail-sentiment + market analytics
-dashboard cross-checking StockTwits/Reddit/ApeWisdom chatter against real
+dashboard cross-checking StockTwits/Reddit/Bluesky/ApeWisdom chatter against real
 price action and news sentiment, with auto-generated signals. Runs as a real
 website, updated automatically once a day, with nothing to run yourself.
 
@@ -84,19 +84,27 @@ that's a small, contained change in `analyst.py`, not a rewrite.
 Skip this and everything else still works — the analyst model just won't
 run, same graceful-skip pattern as Reddit.
 
-### 6. Add your Reddit credentials as repo secrets
+### 6. Add your Reddit and Bluesky credentials as repo secrets
 
 Skip this if you skipped step 4.
 
 1. Go to your repo's **Settings** tab → **Secrets and variables** → **Actions**
-2. Click **New repository secret**, add these three (one at a time):
+2. Click **New repository secret**, add these (one at a time):
    - `REDDIT_CLIENT_ID` — the string under your app's name
    - `REDDIT_CLIENT_SECRET` — the "secret" value
    - `REDDIT_USER_AGENT` — any descriptive string, e.g. `stock-pulse-yourname/1.0`
    - `GEMINI_API_KEY` — the key from step 5, if you got one
+   - `BSKY_HANDLE` — a free Bluesky account's handle, e.g. `yourname.bsky.social`
+   - `BSKY_APP_PASSWORD` — an App Password for that account, **not** your real
+     login password (Bluesky app → Settings → Privacy and Security → App
+     Passwords → Add App Password). Revocable independently of your account
+     if you ever want to cut off access.
 
 Secrets are encrypted and never shown in logs — this is the standard,
 safe way to give a GitHub Actions job credentials.
+
+Bluesky is additive, same as Reddit — skip it and everything else still
+works, just without that source's chatter.
 
 ### 7. Let Actions write back to your repo
 
@@ -175,14 +183,16 @@ python main.py               # writes docs/dashboard.html
 Then open `docs/dashboard.html` directly in your browser (or `docs/index.html`
 for the marketing homepage — that one's static and doesn't need a run).
 
-To get Reddit data on local runs too, set the same three credentials as
-environment variables before running (PowerShell shown; use `export` on
+To get Reddit and Bluesky data on local runs too, set the same credentials
+as environment variables before running (PowerShell shown; use `export` on
 macOS/Linux):
 
 ```powershell
 $env:REDDIT_CLIENT_ID = "your-client-id"
 $env:REDDIT_CLIENT_SECRET = "your-secret"
 $env:REDDIT_USER_AGENT = "stock-pulse-yourname/1.0"
+$env:BSKY_HANDLE = "yourname.bsky.social"
+$env:BSKY_APP_PASSWORD = "your-app-password"
 $env:GEMINI_API_KEY = "your-gemini-key"
 python main.py
 ```
@@ -198,8 +208,8 @@ setx GEMINI_API_KEY "your-gemini-key"
 
 Then open a fresh terminal for it to take effect.
 
-Without them, Undertow just logs a notice and falls back to StockTwits
-only — nothing breaks.
+Without them, Undertow just logs a notice for whichever source is missing
+credentials and falls back to StockTwits only — nothing breaks.
 
 ## What's on the dashboard
 
@@ -230,7 +240,7 @@ still in `market_data.py`), not deleted — see `PRODUCT.md` for why.
 - **Bullish / Bearish Leaders** — ranked by sentiment score, each with its
   bull/bear split, price, day change, and day-over-day sentiment shift.
   Hover the mention count for a source breakdown (StockTwits / Reddit /
-  ApeWisdom).
+  Bluesky / ApeWisdom).
 - **Most Discussed** — pure volume ranking, kept separate from sentiment so
   "loud" and "bullish" aren't conflated
 - **Your Watchlist** — every tracked ticker, with filters (All / Active only
@@ -285,7 +295,7 @@ inside that chart, for anyone who wants the full real-time view.
   sentiment, which is what the media-divergence signal compares.
 - **Sentiment** (`sentiment.py`): StockTwits users' own Bullish/Bearish
   tags are ground truth and weighted 2x in each ticker's aggregate score.
-  Everything else (untagged StockTwits posts, all of Reddit) is read by
+  Everything else (untagged StockTwits posts, all of Reddit and Bluesky) is read by
   the same Gemini model used elsewhere in the pipeline, batched one call
   per ticker — an LLM reads sarcasm, negation, and financial slang in
   context, which a keyword-matching tool structurally can't. VADER
