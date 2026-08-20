@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-20 12:26 UTC",
+  "generated_at": "2026-08-20 13:26 UTC",
   "quotes": {
     "META": {
       "price": 546.03,
@@ -415,6 +415,14 @@
           "close": 51839.2617
         },
         {
+          "date": "2026-07-21",
+          "close": 52224.6406
+        },
+        {
+          "date": "2026-07-22",
+          "close": 52218.5781
+        },
+        {
           "date": "2026-07-23",
           "close": 51711.6484
         },
@@ -437,6 +445,10 @@
         {
           "date": "2026-07-30",
           "close": 52208.0586
+        },
+        {
+          "date": "2026-07-31",
+          "close": 52485.0312
         },
         {
           "date": "2026-08-03",
@@ -504,14 +516,6 @@
           "close": 2942.4299
         },
         {
-          "date": "2026-07-21",
-          "close": 2987.3999
-        },
-        {
-          "date": "2026-07-22",
-          "close": 2959.9399
-        },
-        {
           "date": "2026-07-23",
           "close": 2940.1599
         },
@@ -534,10 +538,6 @@
         {
           "date": "2026-07-30",
           "close": 2946.1001
-        },
-        {
-          "date": "2026-07-31",
-          "close": 2931.3401
         },
         {
           "date": "2026-08-03",
@@ -596,13 +596,21 @@
     "^VIX": {
       "name": "VIX",
       "category": "US",
-      "price": 15.91,
-      "change_pct": 6.85,
+      "price": 15.81,
+      "change_pct": 6.18,
       "previous_close": 14.89,
       "history": [
         {
           "date": "2026-07-20",
           "close": 18.65
+        },
+        {
+          "date": "2026-07-21",
+          "close": 17.05
+        },
+        {
+          "date": "2026-07-22",
+          "close": 16.64
         },
         {
           "date": "2026-07-23",
@@ -627,6 +635,10 @@
         {
           "date": "2026-07-30",
           "close": 17.09
+        },
+        {
+          "date": "2026-07-31",
+          "close": 15.99
         },
         {
           "date": "2026-08-03",
@@ -682,15 +694,15 @@
         },
         {
           "date": "2026-08-20",
-          "close": 15.91
+          "close": 15.81
         }
       ]
     },
     "BTC-USD": {
       "name": "Bitcoin",
       "category": "Crypto",
-      "price": 71768.05,
-      "change_pct": 3.61,
+      "price": 71897.65,
+      "change_pct": 3.8,
       "previous_close": 69266.1875,
       "history": [
         {
@@ -819,15 +831,15 @@
         },
         {
           "date": "2026-08-20",
-          "close": 71768.0469
+          "close": 71897.6484
         }
       ]
     },
     "ETH-USD": {
       "name": "Ethereum",
       "category": "Crypto",
-      "price": 2278.62,
-      "change_pct": 1.21,
+      "price": 2288.33,
+      "change_pct": 1.64,
       "previous_close": 2251.458,
       "history": [
         {
@@ -956,15 +968,15 @@
         },
         {
           "date": "2026-08-20",
-          "close": 2278.6201
+          "close": 2288.3301
         }
       ]
     },
     "GC=F": {
       "name": "Gold",
       "category": "Commodities",
-      "price": 4518.7,
-      "change_pct": 0.65,
+      "price": 4528.7,
+      "change_pct": 0.88,
       "previous_close": 4489.3999,
       "history": [
         {
@@ -1061,15 +1073,15 @@
         },
         {
           "date": "2026-08-20",
-          "close": 4518.7002
+          "close": 4528.7002
         }
       ]
     },
     "SI=F": {
       "name": "Silver",
       "category": "Commodities",
-      "price": 66.03,
-      "change_pct": 0.45,
+      "price": 66.85,
+      "change_pct": 1.69,
       "previous_close": 65.734,
       "history": [
         {
@@ -1166,15 +1178,15 @@
         },
         {
           "date": "2026-08-20",
-          "close": 66.03
+          "close": 66.845
         }
       ]
     },
     "CL=F": {
       "name": "Crude Oil",
       "category": "Commodities",
-      "price": 87.46,
-      "change_pct": 1.9,
+      "price": 86.55,
+      "change_pct": 0.84,
       "previous_close": 85.83,
       "history": [
         {
@@ -1271,7 +1283,7 @@
         },
         {
           "date": "2026-08-20",
-          "close": 87.46
+          "close": 86.55
         }
       ]
     },
