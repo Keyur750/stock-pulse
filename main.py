@@ -33,7 +33,7 @@ from supabase_sync import sync_sentiment_history, sync_signal_history, sync_tick
 from fundamentals import fetch_fundamentals, score_fundamentals, fetch_financial_history, fetch_balance_sheet_history, fetch_cashflow_history
 from market_history import build_ticker_history
 from logos import ensure_logo
-from wallstreet import fetch_analyst_data, score_wallstreet
+from wallstreet import fetch_analyst_data, score_wallstreet, fetch_eps_estimate_history, fetch_upgrades_downgrades, wallstreet_confidence, wallstreet_confidence_label
 from market import fetch_market_data, score_market
 from trends import fetch_search_interest
 from analyst import analyze_stock, MODEL as ANALYST_MODEL
@@ -707,7 +707,9 @@ def _normalize_crowd_score(sentiment):
 
 
 def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_history,
-                          quotes, sleep_seconds=7):
+                          quotes, sleep_seconds=7, momentum_half_life_days=60.0,
+                          momentum_lookback_days=270, momentum_shrinkage_k=3.0,
+                          confidence_target_analysts=25.0):
     """Runs all four pillars for a small, deliberately-scoped set of
     flagship tickers — not the whole ~50-ticker universe the rest of the
     pipeline touches, since every AI call costs quota (and eventually
@@ -745,7 +747,14 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     history_data carries every timeframe's real, pre-resolved chart data
     and performance (see market_history.py) — a ticker missing here (no
     fetchable history at all) simply has no chart system for the day,
-    never a fabricated one."""
+    never a fabricated one.
+    wallstreet_data carries the same "persist, don't discard" treatment
+    fundamentals_data got — Wall Street pillar Phase 1 (see
+    WALL_STREET_PILLAR_RESET.md): raw analyst-consensus metrics, the
+    sub-category scores, and the new EPS-estimate-history/upgrades-
+    downgrades fetches, all previously computed only to feed the AI
+    prompt and then thrown away with nothing reaching the dashboard past
+    a single blended 0-100 number."""
     by_ticker = {r["ticker"]: r for r in ticker_results}
     analyst_results = {}
     pillar_scores = {}
@@ -754,6 +763,7 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     balance_sheet_data = {}
     cashflow_data = {}
     history_data = {}
+    wallstreet_data = {}
 
     logo_results = {}
     for i, ticker in enumerate(flagship_tickers):
@@ -780,8 +790,49 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
 
         fscore = score_fundamentals(f, financial_history, balance_sheet, cashflow) if f else None
 
+        # Wall Street pillar Phase 1: fetched before scoring (not after)
+        # so score_wallstreet can compute the Phase 2 revision categories
+        # from real EPS-estimate history in the same call, same ordering
+        # discipline Business pillar Phase 2 used for financial_history.
+        eps_estimates = fetch_eps_estimate_history(ticker)
+        upgrades_downgrades = fetch_upgrades_downgrades(ticker)
+
         w = fetch_analyst_data(ticker)
-        wscore = score_wallstreet(w) if w else None
+        # Wall Street pillar Phase 2's revision_magnitude is scaled by
+        # the ticker's own current price (see wallstreet.py's breakpoint-
+        # table docstring for why) — reuse the quotes already fetched for
+        # this run rather than a second price lookup.
+        current_price = (quotes.get(ticker) or {}).get("price")
+        wscore = score_wallstreet(
+            w, eps_estimates, current_price, upgrades_downgrades,
+            momentum_half_life_days=momentum_half_life_days,
+            momentum_lookback_days=momentum_lookback_days,
+            momentum_shrinkage_k=momentum_shrinkage_k,
+        ) if w else None
+
+        if w:
+            # Wall Street pillar Phase 4: a real 0-100 trust measure for
+            # this ticker's score, same "not just whether data exists"
+            # upgrade crowd_confidence() already gave the Crowd pillar —
+            # see wallstreet_confidence()'s docstring for the three
+            # signals it combines.
+            confidence = wallstreet_confidence(
+                w, upgrades_downgrades, target_analysts=confidence_target_analysts,
+                recency_half_life_days=momentum_half_life_days,
+            )
+            wallstreet_data[ticker] = {
+                "metrics": w,
+                "categories": wscore.get("categories") if wscore else {},
+                "coverage": wscore.get("coverage") if wscore else None,
+                "overall": wscore.get("overall") if wscore else None,
+                "confidence": confidence,
+                "confidence_label": wallstreet_confidence_label(confidence),
+                "revision_agreement_detail": wscore.get("revision_agreement_detail") if wscore else None,
+                "revision_magnitude_detail": wscore.get("revision_magnitude_detail") if wscore else None,
+                "rating_momentum_detail": wscore.get("rating_momentum_detail") if wscore else None,
+                "eps_estimates": eps_estimates,
+                "upgrades_downgrades": upgrades_downgrades,
+            }
 
         hist = price_history.get(ticker, [])
         m = fetch_market_data(ticker, hist)
@@ -849,7 +900,11 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     print(f"  [financials] {len(financial_history_data)}/{len(flagship_tickers)} tickers have real quarterly/annual financial history")
     print(f"  [balance sheet] {len(balance_sheet_data)}/{len(flagship_tickers)} tickers have real quarterly/annual balance sheet history")
     print(f"  [cash flow] {len(cashflow_data)}/{len(flagship_tickers)} tickers have real quarterly/annual operating cash flow history")
-    return analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data, balance_sheet_data, cashflow_data
+    eps_est_count = sum(1 for v in wallstreet_data.values() if v.get("eps_estimates"))
+    ud_count = sum(1 for v in wallstreet_data.values() if v.get("upgrades_downgrades"))
+    print(f"  [wall street] {len(wallstreet_data)}/{len(flagship_tickers)} tickers have real analyst data "
+          f"({eps_est_count} with EPS-estimate history, {ud_count} with upgrade/downgrade history)")
+    return analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data, balance_sheet_data, cashflow_data, wallstreet_data
 
 
 def fetch_macro_history(sleep_seconds=2.0):
@@ -1050,11 +1105,16 @@ def main():
     financial_history_data = {}
     balance_sheet_data = {}
     cashflow_data = {}
+    wallstreet_data = {}
     if flagship_tickers:
         print(f"Running the 4-pillar engine + AI analyst on {len(flagship_tickers)} flagship tickers...")
-        analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data, balance_sheet_data, cashflow_data = run_analyst_pipeline(
+        analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data, balance_sheet_data, cashflow_data, wallstreet_data = run_analyst_pipeline(
             flagship_tickers, ticker_results, news_items, price_history, quotes,
             sleep_seconds=config.get("analyst_call_sleep_seconds", 7),
+            momentum_half_life_days=config.get("wallstreet_momentum_half_life_days", 60.0),
+            momentum_lookback_days=config.get("wallstreet_momentum_lookback_days", 270),
+            momentum_shrinkage_k=config.get("wallstreet_momentum_shrinkage_k", 3.0),
+            confidence_target_analysts=config.get("wallstreet_confidence_target_analysts", 25.0),
         )
 
     print("Fetching multi-timeframe chart data for macro instruments (indices, crypto, commodities, global markets)...")
@@ -1098,6 +1158,7 @@ def main():
         "analyst": analyst_results,
         "pillar_scores": pillar_scores,
         "fundamentals": fundamentals_data,
+        "wallstreet": wallstreet_data,
         "financial_history": financial_history_data,
         "balance_sheet_history": balance_sheet_data,
         "cashflow_history": cashflow_data,

@@ -178,11 +178,34 @@ def _signed_pct(v):
     return f"{v:+.1f}%" if isinstance(v, (int, float)) else "n/a"
 
 
+def _fmt_revision_detail(label, detail):
+    if not detail:
+        return f"- {label}: not available (no EPS-estimate-revision activity in the last 30 days)"
+    ratios_or_pcts = detail.get("net_ratios") or detail.get("pct_of_price") or {}
+    parts = [f"{p}={v:+.2f}" if v is not None else f"{p}=n/a" for p, v in ratios_or_pcts.items()]
+    return f"- {label}: {detail['score']}/100 ({', '.join(parts)})"
+
+
+def _fmt_rating_momentum(detail):
+    if not detail:
+        return "- Rating momentum (dated upgrade/downgrade activity, recency-weighted): not available (no rating changes in the lookback window — a real, meaningful state, not a data gap; a stale or already-fully-priced-in consensus reads as flat momentum here, not missing data)"
+    return (f"- Rating momentum (dated upgrade/downgrade activity, recency-weighted): {detail['score']}/100 "
+            f"(net signal {detail['net_momentum_shrunk']:+.2f} from {detail['included_actions']} rating "
+            f"change(s) in the lookback window, weighted toward more recent and bolder moves)")
+
+
 def _fmt_wallstreet(wallstreet, wscore):
     if not wallstreet or not wscore or not wscore.get("overall"):
         return "Not available — little or no analyst coverage."
+    # Coverage denominator derived from the categories dict itself, not
+    # hardcoded -- Wall Street pillar Phase 2 added revision_agreement/
+    # revision_magnitude and Phase 3 replaced revision_trend with
+    # rating_momentum; a fixed "/3" would silently go stale, the same
+    # bug Business pillar Phase 2 already had to fix once for
+    # _fmt_fundamentals.
+    cats = wscore.get("categories", {})
     lines = [
-        f"- Overall Wall Street score: {wscore.get('overall')}/100 (data coverage: {wscore.get('coverage')}/3 categories)",
+        f"- Overall Wall Street score: {wscore.get('overall')}/100 (data coverage: {wscore.get('coverage')}/{len(cats)} categories)",
         f"- Consensus rating: {wallstreet.get('recommendation_key', 'n/a')} "
         f"(mean {wallstreet.get('recommendation_mean')} on a 1=Strong Buy...5=Strong Sell scale), "
         f"from {wallstreet.get('num_analysts')} analysts",
@@ -190,6 +213,11 @@ def _fmt_wallstreet(wallstreet, wscore):
         f"({_signed_pct(wallstreet.get('upside_pct'))} vs current price)",
         f"- Analyst tone shift over roughly the last 3 months: "
         f"{_signed_pct(wallstreet.get('revision_delta_pct'))} change in the bullish-rated share of coverage",
+        _fmt_revision_detail("EPS-estimate revision agreement (net share of analysts revising up vs. down, last 30 days)",
+                              wscore.get("revision_agreement_detail")),
+        _fmt_revision_detail("EPS-estimate revision magnitude (size of the estimate change, scaled by price, last 30 days)",
+                              wscore.get("revision_magnitude_detail")),
+        _fmt_rating_momentum(wscore.get("rating_momentum_detail")),
     ]
     return "\n".join(lines)
 
