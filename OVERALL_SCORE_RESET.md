@@ -418,13 +418,14 @@ ticker-search results were updated for the `ai_score` rename (the rename
 had silently broken all three — `result.overall_score` no longer existed
 in the payload — until this pass caught and fixed it alongside the
 frontend surfacing work).
-**Not yet run against a live pipeline execution** — verified via
-`score_composite()` unit-style checks and a DOM-level harness exercising
-`renderAiSection()`'s four data-availability cases, not yet via an actual
-`main.py` run (that's a ~20-30 min live-API run, not done as part of this
-pass) — the first real `main.py` run after this lands is this feature's
-true first live verification, worth a spot-check per the checklist above
-when that happens.
+**Now verified live (2026-08-21)** — a full `main.py` run across all 30
+flagship tickers completed cleanly (`_phase1_run.log`, local-only)
+printing `[composite] 30/30 tickers have a real deterministic
+composite_score`; the resulting `docs/dashboard.html`/`sentiment.html`/
+`stock.html` were spot-checked (no leftover unrendered placeholders,
+composite/ai_score both present) and committed/pushed to `origin/main`.
+This closes the one remaining gap this section used to flag — Phase 1 is
+done and live-verified, not just unit-tested.
 
 ### Phase 2 — Recalibrate base weights against real outcomes — NOT
 STARTED, NOT ACTIONABLE YET
@@ -464,15 +465,15 @@ number).
 
 | Phase | What | Status |
 |---|---|---|
-| 1 | Build `overall_score.py` + `business_confidence()` + wiring + frontend | Done (2026-08-21) — not yet exercised by a live `main.py` run |
+| 1 | Build `overall_score.py` + `business_confidence()` + wiring + frontend | ✅ Done, verified live 2026-08-21 |
 | 2 | Recalibrate `BASE_WEIGHTS` against real signal_history outcomes | Not started — blocked on data volume |
 | 3 | "Why did the score change" decomposition | Not started — depends on Phase 1's `signal_history` accumulating real days |
 
-**Next step:** run the daily pipeline for real and spot-check
-`composite_score`/`ai_score` live across the watchlist (per Phase 1's
-own verification checklist above) — this hasn't happened yet, only
-isolated/unit-level verification has. Phase 2 stays blocked on data
-volume regardless.
+**Next step:** none actionable right now — Phase 1's live verification is
+done; Phase 2 is genuinely gated on `data/signal_history.json`
+accumulating enough real days to compute a meaningful Information
+Coefficient, same gate every sibling pillar RESET doc is already sitting
+behind. Revisit once that history has meaningfully grown.
 
 ## Decisions (resolved directly by the user, 2026-08-21)
 
