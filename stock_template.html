@@ -438,7 +438,7 @@ function handleLogoError(img, ticker) {
   img.replaceWith(div);
 }
 function tickerLink(sym, innerHtml) {
-  return `<a class="ticker-link" href="stock.html?t=${encodeURIComponent(sym)}">${innerHtml}</a>`;
+  return `<a class="ticker-link" href="stock-${encodeURIComponent(sym)}.html">${innerHtml}</a>`;
 }
 function labelClass(label) {
   if (!label) return 'label-neutral';
@@ -1750,7 +1750,7 @@ function renderSearchResults(query) {
       `<div class="search-result" data-ticker="${t}"><span class="search-result-sym">${t}</span></div>`
     ).join('');
     searchResultsEl.querySelectorAll('.search-result').forEach(el => {
-      el.addEventListener('click', () => { window.location.href = `stock.html?t=${el.dataset.ticker}`; });
+      el.addEventListener('click', () => { window.location.href = `stock-${el.dataset.ticker}.html`; });
     });
   }
   searchResultsEl.style.display = 'block';
@@ -1769,8 +1769,14 @@ document.addEventListener('click', (e) => {
 // initialized once execution reaches their line, so invoking initPage
 // any earlier throws a temporal-dead-zone ReferenceError.
 // ============================================================
+// Site Redesign Reset, Phase 2: per-ticker static pages
+// (docs/stock/{TICKER}.html) bake their ticker in via `page_ticker`
+// instead of relying on ?t=; the query param still wins when present so
+// docs/stock.html?t=TICKER keeps working exactly as before (kept as an
+// alias, not removed).
 const params = new URLSearchParams(window.location.search);
-const activeTicker = (params.get('t') || '').toUpperCase().trim();
+const PAGE_TICKER = "{{ page_ticker }}";
+const activeTicker = (params.get('t') || PAGE_TICKER || '').toUpperCase().trim();
 const flagshipTickers = new Set(DATA.flagship_tickers || []);
 
 if (!activeTicker || !flagshipTickers.has(activeTicker)) {

@@ -1106,18 +1106,86 @@ def render_sentiment_page(payload):
 
 
 def render_stock_page(payload):
-    """Sliced to `_STOCK_PAYLOAD_KEYS` -- one static file (docs/stock.html),
-    routed client-side by a ?t=TICKER query param rather than one file per
-    ticker. Every flagship ticker (currently the full watchlist) already
-    has everything this page needs in the sliced payload -- nothing here
-    is a new data source."""
+    """Sliced to `_STOCK_PAYLOAD_KEYS` -- the generic docs/stock.html,
+    routed client-side by a ?t=TICKER query param. Kept as an alias
+    alongside the real per-ticker pages `render_stock_ticker_pages`
+    generates (Site Redesign Reset, Phase 2) so nothing currently linking
+    to `?t=TICKER` breaks. `page_ticker=""` here (vs. a real ticker for
+    the per-ticker pages) is what keeps this file's routing behavior
+    exactly as it was before Phase 2."""
     _copy_shared_design_assets()
     sliced = _slice_payload(payload, _STOCK_PAYLOAD_KEYS)
     template = JINJA_ENV.get_template("stock_template.html")
-    html = template.render(payload_json=json.dumps(sliced, separators=(",", ":")), active_page="stock")
+    html = template.render(payload_json=json.dumps(sliced, separators=(",", ":")), active_page="stock", page_ticker="")
     os.makedirs(os.path.dirname(STOCK_PAGE_PATH), exist_ok=True)
     with open(STOCK_PAGE_PATH, "w", encoding="utf-8") as f:
         f.write(html)
+
+
+# Site Redesign Reset, Phase 2: the 9 dicts here are the ones
+# stock_template.html's JS ever indexes by ticker (confirmed by grepping
+# every `DATA.<dict>[sym]` access in the template -- none of them are
+# ever iterated over all keys, only looked up for the page's own
+# ticker), so a per-ticker page only needs its own entry in each, not
+# every flagship ticker's. The remaining `_STOCK_PAYLOAD_KEYS` fields
+# (flagship_tickers, most_discussed, top_bullish, top_bearish,
+# watchlist_grid, news, signals) are real cross-ticker lists the page
+# genuinely needs in full (search, the "which lists is this ticker in"
+# lookup) and stay shared across every per-ticker file -- without this
+# split, 30 per-ticker files would each embed the full ~5MB payload
+# (150MB total, a regression), not just this one ticker's slice.
+_PER_TICKER_STOCK_KEYS = (
+    "analyst", "company_news", "composite", "financial_history",
+    "fundamentals", "market", "material_events", "pillar_scores",
+    "timeframe_history",
+)
+
+
+def _per_ticker_stock_payload(stock_payload, ticker):
+    sliced = dict(stock_payload)
+    for k in _PER_TICKER_STOCK_KEYS:
+        full = stock_payload.get(k) or {}
+        sliced[k] = {ticker: full[ticker]} if ticker in full else {}
+    return sliced
+
+
+def render_stock_ticker_pages(payload):
+    """Site Redesign Reset, Phase 2 (see SITE_REDESIGN_RESET.md): a real,
+    bookmarkable/shareable static page per flagship ticker
+    (docs/stock-{TICKER}.html), replacing `?t=TICKER` client-side routing
+    as the primary way to reach a ticker -- query-param routing stays
+    live via render_stock_page() as an alias, not removed. Deliberately
+    flat filenames in docs/ (not a docs/stock/ subdirectory) -- the
+    template's CSS links (tokens.css/components.css) and logo images
+    (logos/{ticker}.png) are relative paths that assume the page sits
+    next to them; nesting one directory deeper would silently 404 every
+    one of them. Each file only embeds its own ticker's slice of the 9
+    per-ticker dicts (_per_ticker_stock_payload), so this doesn't
+    reintroduce the embed-everything-everywhere problem Phase 1 already
+    fixed once -- 30 files at ~150-250KB each beats 1 file at ~5MB."""
+    _copy_shared_design_assets()
+    sliced_full = _slice_payload(payload, _STOCK_PAYLOAD_KEYS)
+    template = JINJA_ENV.get_template("stock_template.html")
+    flagship_tickers = payload.get("flagship_tickers", [])
+    for ticker in flagship_tickers:
+        per_ticker = _per_ticker_stock_payload(sliced_full, ticker)
+        html = template.render(
+            payload_json=json.dumps(per_ticker, separators=(",", ":")),
+            active_page="stock", page_ticker=ticker,
+        )
+        out_path = os.path.join(ROOT, "docs", f"stock-{ticker}.html")
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(html)
+
+    # If the flagship set ever shrinks, the dropped ticker's static page
+    # would otherwise sit in docs/ forever, permanently linkable/indexable
+    # even though it's no longer generated from real data -- same
+    # never-leave-stale-output discipline as the rest of this pipeline.
+    current = {f"stock-{t}.html" for t in flagship_tickers}
+    docs_dir = os.path.join(ROOT, "docs")
+    for name in os.listdir(docs_dir):
+        if name.startswith("stock-") and name.endswith(".html") and name not in current:
+            os.remove(os.path.join(docs_dir, name))
 
 
 def render_static_pages():
@@ -1350,6 +1418,7 @@ def main():
     render_dashboard(payload)
     render_sentiment_page(payload)
     render_stock_page(payload)
+    render_stock_ticker_pages(payload)
     render_static_pages()
 
     save_history(history, {

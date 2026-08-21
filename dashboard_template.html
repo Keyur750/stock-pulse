@@ -1166,7 +1166,7 @@ function openChartModal(sym) {
   document.getElementById('cm-yahoo').href = tickerUrl(sym);
   const stockPageLink = document.getElementById('cm-stock-page');
   if (isFlagship) {
-    stockPageLink.href = `stock.html?t=${encodeURIComponent(sym)}`;
+    stockPageLink.href = `stock-${encodeURIComponent(sym)}.html`;
     stockPageLink.style.display = '';
   } else {
     stockPageLink.style.display = 'none';

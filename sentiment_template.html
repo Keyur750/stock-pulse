@@ -1676,7 +1676,7 @@ function openChartModal(sym) {
   const src = sourceTitle(info);
   document.getElementById('cm-source').textContent = src ? `Based on ${src}` : '';
   document.getElementById('cm-yahoo').href = tickerUrl(sym);
-  document.getElementById('cm-stock-page').href = `stock.html?t=${encodeURIComponent(sym)}`;
+  document.getElementById('cm-stock-page').href = `stock-${encodeURIComponent(sym)}.html`;
 
   const hasHistory = !!(DATA.timeframe_history || {})[sym];
   if (!hasHistory) {
