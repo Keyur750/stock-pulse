@@ -867,3 +867,94 @@ def score_fundamentals(f: dict, financial_history: dict | None = None,
         "valuation_detail": {"peg": peg_result, "rule_of_40": rule40_result},
         "sector_benchmark_matched": benchmark is not None,
     }
+
+
+# Overall Score Reset, Phase 1 (see OVERALL_SCORE_RESET.md) --
+# business_confidence(). Same three-independent-signals-weighted-sum
+# SHAPE as crowd_confidence()/wallstreet_confidence()/market_confidence()
+# (not a copy -- structurally different inputs), filling the exact gap
+# FULL_FUNDAMENTAL_RESET.md's own Phase 6 already flagged: Business was
+# the one pillar with no real per-ticker trust measure, only a bare
+# category-coverage count. Needed now (not deferred to Phase 6) because
+# OVERALL_SCORE_RESET.md's composite score confidence-weights every
+# pillar's contribution, and a pillar with no confidence fn would either
+# be silently excluded from that weighting or given a fabricated value --
+# neither is acceptable per this codebase's own "never fabricate" rule.
+#
+# Deliberately does NOT include a sample-size/history-depth term the way
+# crowd/wallstreet/market's own confidence functions each do -- checked
+# against FULL_FUNDAMENTAL_RESET.md's own already-verified-live finding
+# (2026-08-18, full watchlist): every ticker had at least 4 real annual
+# years of history, near the 5-year ceiling _ANNUAL_PERIODS_KEPT allows.
+# A term that sits near 100 for virtually every ticker doesn't
+# discriminate -- adding one here would dilute the two terms that
+# actually do vary across the watchlist, not add a real protective
+# signal the way market_confidence()'s volatility-sample-size term does
+# for genuinely thin cases (a recent IPO). Revisit only if a future
+# watchlist addition turns out to have real history-depth variance this
+# finding didn't anticipate.
+def business_confidence(fscore: dict | None) -> float | None:
+    """Combines three independent, already-computed signals into one
+    0-100 measure of how much to trust a ticker's Business score:
+
+    1. Category coverage (40% weight) -- fscore['coverage'] against the
+       real category count (derived from the categories dict itself, not
+       hardcoded -- same staleness-avoidance discipline _fmt_fundamentals
+       in analyst.py already established for this exact dict). Most
+       foundational of the three, so it carries the most weight, same
+       reasoning wallstreet_confidence() gives its own coverage-breadth
+       term the largest share.
+    2. Level/trend agreement (35% weight) -- how closely the "current
+       state" categories (growth, profitability, valuation -- averaged)
+       agree with `trend` (the Piotroski-style YoY-DIRECTION category).
+       Structurally the same idea as market_confidence()'s own
+       extension/trend agreement term (two different-window reads of a
+       related thing): when a company's current level and its own recent
+       trajectory point the same way, the read is coherent; a sharp
+       disagreement (e.g. strong current margins but a strongly
+       deteriorating trend, or the reverse) is real, meaningful tension
+       worth trusting less at face value, not noise to average away.
+       Uses the exact same `max(0, 100 - abs(a - b))` formula shape
+       market_confidence() already validated for this purpose. `None`
+       (either side unavailable) scores a neutral 50, same fallback every
+       sibling confidence fn uses when a term genuinely can't be assessed.
+    3. Sector-benchmark match (25% weight) -- whether growth/
+       profitability/valuation were scored sector-relative against real
+       Damodaran industry benchmarks (Business pillar Phase 4) or fell
+       back to fixed global breakpoints (`sector_benchmark_matched`).
+       Real, but the softest of the three signals -- the fallback tables
+       are still real, literature-derived breakpoints, not a guess, so
+       the penalty for missing a sector match is a discount (50), not a
+       collapse to 0.
+
+    Returns None only if `fscore` itself has no overall score at all --
+    there's nothing to be confident or unconfident about."""
+    if not fscore or fscore.get("overall") is None:
+        return None
+
+    cats = fscore.get("categories", {})
+    total_categories = len(cats) or 1
+    coverage_term = 100.0 * (fscore.get("coverage") or 0) / total_categories
+
+    level_cats = [cats.get("growth"), cats.get("profitability"), cats.get("valuation")]
+    level_present = [c for c in level_cats if c is not None]
+    level_avg = sum(level_present) / len(level_present) if level_present else None
+    trend = cats.get("trend")
+    if level_avg is not None and trend is not None:
+        agreement_term = max(0.0, 100.0 - abs(level_avg - trend))
+    else:
+        agreement_term = 50.0
+
+    benchmark_term = 100.0 if fscore.get("sector_benchmark_matched") else 50.0
+
+    return round(0.40 * coverage_term + 0.35 * agreement_term + 0.25 * benchmark_term, 1)
+
+
+def business_confidence_label(score: float | None) -> str:
+    if score is None:
+        return "Unknown"
+    if score >= 70:
+        return "High"
+    if score >= 40:
+        return "Medium"
+    return "Low"

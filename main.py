@@ -11,9 +11,12 @@ Usage: python main.py
 
 import json
 import os
+import shutil
 import time
 from datetime import datetime, timezone
 from typing import Optional
+
+import jinja2
 
 from stocktwits import collect_all
 from reddit import collect_reddit
@@ -30,13 +33,14 @@ from sentiment import (
 from reddit import extract_tickers
 from market_data import MACRO_INSTRUMENTS, fetch_quotes
 from supabase_sync import sync_sentiment_history, sync_signal_history, sync_ticker_snapshots
-from fundamentals import fetch_fundamentals, score_fundamentals, fetch_financial_history, fetch_balance_sheet_history, fetch_cashflow_history
+from fundamentals import fetch_fundamentals, score_fundamentals, fetch_financial_history, fetch_balance_sheet_history, fetch_cashflow_history, business_confidence, business_confidence_label
 from market_history import build_ticker_history
 from logos import ensure_logo
 from wallstreet import fetch_analyst_data, score_wallstreet, fetch_eps_estimate_history, fetch_upgrades_downgrades, wallstreet_confidence, wallstreet_confidence_label
 from market import fetch_market_data, score_market, market_confidence, market_confidence_label
 from trends import fetch_search_interest
 from analyst import analyze_stock, MODEL as ANALYST_MODEL
+from overall_score import score_composite
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(ROOT, "data")
@@ -51,6 +55,19 @@ SENTIMENT_PAGE_PATH = os.path.join(ROOT, "docs", "sentiment.html")
 SENTIMENT_TEMPLATE_PATH = os.path.join(ROOT, "sentiment_template.html")
 STOCK_PAGE_PATH = os.path.join(ROOT, "docs", "stock.html")
 STOCK_TEMPLATE_PATH = os.path.join(ROOT, "stock_template.html")
+# Site Redesign Reset, Phase 1: shared nav/auth/CSS partials, no longer
+# hand-copied into each of the three app templates -- see
+# design/COMPONENT_INVENTORY.md for what was duplicated before this and
+# SITE_REDESIGN_RESET.md for the plan. FileSystemLoader searches ROOT
+# first (so `env.get_template("dashboard_template.html")` resolves
+# directly by filename, unchanged from before) then TEMPLATES_DIR (so
+# `{% include "partials/nav.html.j2" %}` resolves inside templates/).
+TEMPLATES_DIR = os.path.join(ROOT, "templates")
+DESIGN_DIR = os.path.join(ROOT, "design")
+JINJA_ENV = jinja2.Environment(
+    loader=jinja2.FileSystemLoader([ROOT, TEMPLATES_DIR]),
+    autoescape=False,  # these are JS/JSON-in-<script> substitutions, not HTML form fields
+)
 
 
 def load_config():
@@ -645,7 +662,7 @@ def build_sentiment_history(history, ticker_results, watchlist):
     return {t: v for t, v in series.items() if len(v) >= 2}
 
 
-def build_signal_snapshot(pillar_scores, signals, quotes):
+def build_signal_snapshot(pillar_scores, signals, quotes, composite_scores=None):
     """One record per flagship ticker: all four pillar scores, today's
     Divergence Engine classification if any, a data-coverage confidence
     measure, and today's price. This is the raw material Phase 4's
@@ -655,13 +672,23 @@ def build_signal_snapshot(pillar_scores, signals, quotes):
     warning in PRODUCT.md against unexplained numbers. `market_regime`
     is intentionally omitted for now rather than faked — it needs a
     real market-wide (not per-ticker) volatility classification that
-    doesn't exist yet."""
+    doesn't exist yet.
+
+    composite_scores (Overall Score Reset, Phase 1 — see
+    OVERALL_SCORE_RESET.md) is optional so this function's original
+    3-arg callers keep working unchanged — when given, `composite_score`
+    and `composite_confidence` are recorded here from day one, same
+    "start recording before the feature exists" discipline PRODUCT.md's
+    Phase 4 already committed to: Phase 2's weight recalibration needs
+    this history accumulating starting now, not once that phase begins."""
     by_ticker_pattern = {s["ticker"]: s["type"] for s in signals if s["type"] in DIVERGENCE_PATTERNS}
+    composite_scores = composite_scores or {}
 
     snapshot = {}
     for ticker, pillars in pillar_scores.items():
         present = [v for v in pillars.values() if v is not None]
         confidence = round(len(present) / 4 * 100) if pillars else 0
+        composite = composite_scores.get(ticker)
         snapshot[ticker] = {
             "crowd": pillars.get("crowd"),
             "wall_street": pillars.get("wall_street"),
@@ -670,6 +697,8 @@ def build_signal_snapshot(pillar_scores, signals, quotes):
             "divergence": by_ticker_pattern.get(ticker),
             "confidence": confidence,
             "price": (quotes.get(ticker) or {}).get("price"),
+            "composite_score": composite.get("composite_score") if composite else None,
+            "composite_confidence": composite.get("composite_confidence") if composite else None,
         }
     return snapshot
 
@@ -716,10 +745,17 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     pipeline touches, since every AI call costs quota (and eventually
     money). Feeds the AI analyst real fundamentals, sentiment, Wall
     Street data, market context, and matched news — never empty
-    placeholders. Returns (analyst_results, pillar_scores, fundamentals_data):
-    pillar_scores is computed independently of whether the AI call itself
-    succeeds, so the Divergence Engine always has real pillar numbers to
-    compare even on a day the LLM call fails for a ticker.
+    placeholders. Returns (analyst_results, pillar_scores, composite_scores,
+    fundamentals_data, ...): pillar_scores is computed independently of
+    whether the AI call itself succeeds, so the Divergence Engine always
+    has real pillar numbers to compare even on a day the LLM call fails
+    for a ticker. composite_scores (Overall Score Reset, Phase 1 — see
+    OVERALL_SCORE_RESET.md) is the deterministic composite built from
+    those same pillar numbers plus each pillar's own confidence and the
+    Divergence Engine's classification, computed the same LLM-independent
+    way and for the same reason: a number meant to be backtested against
+    real forward returns can't depend on whether a temperature-sampled
+    call happened to land that day.
     fundamentals_data carries the raw metrics + per-category coverage
     that fundamentals.py already computes — previously this was fed to
     the AI prompt and then discarded, leaving only a single blended
@@ -765,6 +801,7 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     by_ticker = {r["ticker"]: r for r in ticker_results}
     analyst_results = {}
     pillar_scores = {}
+    composite_scores = {}
     fundamentals_data = {}
     financial_history_data = {}
     balance_sheet_data = {}
@@ -797,6 +834,12 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
             cashflow_data[ticker] = cashflow
 
         fscore = score_fundamentals(f, financial_history, balance_sheet, cashflow) if f else None
+
+        # Overall Score Reset, Phase 1: fills the one pillar-confidence
+        # gap FULL_FUNDAMENTAL_RESET.md's own Phase 6 already flagged --
+        # see business_confidence()'s docstring in fundamentals.py for
+        # why this couldn't wait for that later phase.
+        b_confidence = business_confidence(fscore) if fscore else None
 
         # Wall Street pillar Phase 1: fetched before scoring (not after)
         # so score_wallstreet can compute the Phase 2 revision categories
@@ -869,6 +912,30 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
             "market": mscore.get("overall") if mscore else None,
         }
 
+        # Overall Score Reset, Phase 1 (see OVERALL_SCORE_RESET.md): the
+        # deterministic composite lives here, computed independently of
+        # whether analyze_stock()'s LLM call below succeeds or fails --
+        # that independence is the entire point (a backtestable score
+        # can't depend on a temperature-sampled call landing). Needs the
+        # divergence pattern computed per-ticker now, not only inside
+        # compute_signals()'s later signal-list pass over all tickers --
+        # classify_divergence() is a plain module-level function in this
+        # file, safe to call again here (Python resolves it at call time,
+        # not definition-order time), so this is the "small reordering,
+        # not a redesign" OVERALL_SCORE_RESET.md's code-change plan
+        # already anticipated, not new infrastructure.
+        divergence_pattern, _ = classify_divergence(pillar_scores[ticker])
+        composite_scores[ticker] = score_composite(
+            pillar_scores[ticker],
+            confidences={
+                "crowd": (sentiment or {}).get("crowd_confidence"),
+                "wall_street": wallstreet_data.get(ticker, {}).get("confidence") if w else None,
+                "business": b_confidence,
+                "market": market_data.get(ticker, {}).get("confidence") if m else None,
+            },
+            divergence_pattern=divergence_pattern,
+        )
+
         if f:
             fundamentals_data[ticker] = {
                 "name": f.get("name"),
@@ -884,6 +951,8 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
                 "valuation_detail": fscore.get("valuation_detail") if fscore else None,
                 "sector_benchmark_matched": fscore.get("sector_benchmark_matched") if fscore else False,
                 "overall": fscore.get("overall") if fscore else None,
+                "confidence": b_confidence,
+                "confidence_label": business_confidence_label(b_confidence),
             }
 
         q = quotes.get(ticker, {})
@@ -927,7 +996,11 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     ud_count = sum(1 for v in wallstreet_data.values() if v.get("upgrades_downgrades"))
     print(f"  [wall street] {len(wallstreet_data)}/{len(flagship_tickers)} tickers have real analyst data "
           f"({eps_est_count} with EPS-estimate history, {ud_count} with upgrade/downgrade history)")
-    return analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data, balance_sheet_data, cashflow_data, wallstreet_data, market_data
+    composite_count = sum(1 for v in composite_scores.values() if v is not None)
+    print(f"  [composite] {composite_count}/{len(flagship_tickers)} tickers have a real deterministic "
+          f"composite_score (fewer than 2 of 4 pillars present is the only reason one would be missing)")
+    return (analyst_results, pillar_scores, composite_scores, fundamentals_data, history_data,
+            financial_history_data, balance_sheet_data, cashflow_data, wallstreet_data, market_data)
 
 
 def fetch_macro_history(sleep_seconds=2.0):
@@ -955,6 +1028,17 @@ def fetch_macro_history(sleep_seconds=2.0):
     return history_data
 
 
+def _copy_shared_design_assets():
+    """Site Redesign Reset, Phase 1: design/tokens.css and
+    design/components.css are the single source for what used to be a
+    :root token block + nav/auth CSS hand-copied into three separate
+    <style> blocks — copied into docs/ once per run so every page can
+    <link> to the same file instead of embedding it three times."""
+    os.makedirs(os.path.join(ROOT, "docs"), exist_ok=True)
+    for name in ("tokens.css", "components.css"):
+        shutil.copyfile(os.path.join(DESIGN_DIR, name), os.path.join(ROOT, "docs", name))
+
+
 def render_dashboard(payload):
     # Dashboard now shows the same full multi-timeframe chart for every
     # ticker (flagship stocks + macro instruments) that the Sentiment page
@@ -962,9 +1046,9 @@ def render_dashboard(payload):
     # Compact serialization for the same reason render_sentiment_page uses
     # it: this payload is now large enough that pretty-printing it is pure
     # waste.
-    with open(TEMPLATE_PATH, encoding="utf-8") as f:
-        template = f.read()
-    html = template.replace("/*__DATA__*/", json.dumps(payload, separators=(",", ":")))
+    _copy_shared_design_assets()
+    template = JINJA_ENV.get_template("dashboard_template.html")
+    html = template.render(payload_json=json.dumps(payload, separators=(",", ":")), active_page="dashboard")
     os.makedirs(os.path.dirname(DASHBOARD_PATH), exist_ok=True)
     with open(DASHBOARD_PATH, "w", encoding="utf-8") as f:
         f.write(html)
@@ -978,9 +1062,9 @@ def render_sentiment_page(payload):
     JSON by eye in the shipped page, and at this page's real data volume
     (9 timeframes of real OHLCV per ticker) indent=2's whitespace alone
     roughly doubles the file for no benefit."""
-    with open(SENTIMENT_TEMPLATE_PATH, encoding="utf-8") as f:
-        template = f.read()
-    html = template.replace("/*__DATA__*/", json.dumps(payload, separators=(",", ":")))
+    _copy_shared_design_assets()
+    template = JINJA_ENV.get_template("sentiment_template.html")
+    html = template.render(payload_json=json.dumps(payload, separators=(",", ":")), active_page="sentiment")
     os.makedirs(os.path.dirname(SENTIMENT_PAGE_PATH), exist_ok=True)
     with open(SENTIMENT_PAGE_PATH, "w", encoding="utf-8") as f:
         f.write(html)
@@ -993,9 +1077,9 @@ def render_stock_page(payload):
     ticker. Every flagship ticker (currently the full watchlist) already
     has everything this page needs in `payload` -- nothing here is a new
     data source."""
-    with open(STOCK_TEMPLATE_PATH, encoding="utf-8") as f:
-        template = f.read()
-    html = template.replace("/*__DATA__*/", json.dumps(payload, separators=(",", ":")))
+    _copy_shared_design_assets()
+    template = JINJA_ENV.get_template("stock_template.html")
+    html = template.render(payload_json=json.dumps(payload, separators=(",", ":")), active_page="stock")
     os.makedirs(os.path.dirname(STOCK_PAGE_PATH), exist_ok=True)
     with open(STOCK_PAGE_PATH, "w", encoding="utf-8") as f:
         f.write(html)
@@ -1132,6 +1216,7 @@ def main():
 
     analyst_results = {}
     pillar_scores = {}
+    composite_scores = {}
     fundamentals_data = {}
     history_data = {}
     financial_history_data = {}
@@ -1141,7 +1226,8 @@ def main():
     market_data = {}
     if flagship_tickers:
         print(f"Running the 4-pillar engine + AI analyst on {len(flagship_tickers)} flagship tickers...")
-        analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data, balance_sheet_data, cashflow_data, wallstreet_data, market_data = run_analyst_pipeline(
+        (analyst_results, pillar_scores, composite_scores, fundamentals_data, history_data,
+         financial_history_data, balance_sheet_data, cashflow_data, wallstreet_data, market_data) = run_analyst_pipeline(
             flagship_tickers, ticker_results, news_items, price_history, quotes,
             sleep_seconds=config.get("analyst_call_sleep_seconds", 7),
             momentum_half_life_days=config.get("wallstreet_momentum_half_life_days", 60.0),
@@ -1192,6 +1278,7 @@ def main():
         "sentiment_history": sentiment_history,
         "analyst": analyst_results,
         "pillar_scores": pillar_scores,
+        "composite": composite_scores,
         "fundamentals": fundamentals_data,
         "market": market_data,
         "wallstreet": wallstreet_data,
@@ -1225,7 +1312,7 @@ def main():
         }, config.get("analyst_history_days_to_keep", 90))
 
     if pillar_scores:
-        signal_snapshot = build_signal_snapshot(pillar_scores, signals, quotes)
+        signal_snapshot = build_signal_snapshot(pillar_scores, signals, quotes, composite_scores)
         signal_history = load_signal_history()
         save_signal_history(signal_history, {
             "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),

@@ -33,6 +33,18 @@ to maintain.
 4. `COMPETITIVE_INTELLIGENCE.md` — deep per-competitor research (Phase 1
    of the roadmap), useful context for "why doesn't Undertow just do X
    like TipRanks/Simply Wall St."
+5. Any `*_RESET.md` file in repo root (`FULL_FUNDAMENTAL_RESET.md`,
+   `MARKET_PILLAR_RESET.md`, `WALL_STREET_PILLAR_RESET.md`,
+   `OVERALL_SCORE_RESET.md`, `SITE_REDESIGN_RESET.md` as of this
+   writing) — these are the project's living, phased-plan scratchpads
+   for any major initiative (a pillar rebuild, a scoring-methodology
+   change, a site redesign), each with its own gap analysis, research
+   foundations, phased plan, status-snapshot table, and an explicit
+   "Next step:" line at the very bottom. **Check `ls -la *_RESET.md` for
+   recent mtimes before trusting the "Where things stand" section
+   below** — a RESET doc's own status table is far more likely to be
+   current than this file's summary of it, the same way `PRODUCT.md`
+   already outranks this file for *why* a decision was made.
 
 ## Architecture map
 
@@ -172,37 +184,71 @@ files' own comments before touching this.
   (see git log). Confirm with the user before pushing regardless; this
   describes the existing pattern, not blanket standing authorization.
 
-## Where things stand right now (last updated 2026-08-20)
+## Where things stand right now (last updated 2026-08-21)
 
-Actively in progress: **Phase 4 of the crowd-score engine** (Phases 1-3
-— author-capping, shrinkage/decay, `crowd_confidence` — shipped
-2026-08-20, see git log for those commit messages, they're detailed).
-Phase 4 was originally verbally scoped as "add FinBERT for better
-confidence" but never written down before a prior session's history was
-lost — this file, and a round of fresh 2026 research (FinBERT reads
-tone not meaning, scored 16.8% accuracy on genuine positive catalysts in
-a real study, and its confidence score doesn't track its own accuracy —
-see chat history / commit messages once Phase 4 actually lands for
-sources) reframed the plan around **validating FinBERT against
-Undertow's own real self-tagged ground truth before wiring it into
-production**, rather than assuming it would help.
+This section is a snapshot, not the source of truth — see item 5 of the
+reading order above. As of 2026-08-21, three RESET docs are finished and
+shipped (`FULL_FUNDAMENTAL_RESET.md`, `MARKET_PILLAR_RESET.md`,
+`WALL_STREET_PILLAR_RESET.md` — see git log's "Market pillar Phases 1-6"
+and "Wall Street pillar Phases 1-4" commits), and two are active:
 
-`validate_finbert.py` (repo root, not part of the daily pipeline) does
-exactly that: pulls live self-tagged StockTwits messages, strips the
-tag, and asks FinBERT / Gemini (production's current path) / VADER to
-guess it back, reporting per-class accuracy and whether FinBERT's own
-confidence tracks correctness. A 5-ticker smoke test found Gemini at
-~63% accuracy vs. FinBERT at ~13% (FinBERT defaulted ~78% of tagged
-messages to "neutral") — a full 30-ticker run was kicked off to confirm
-this isn't a quirk of those 5 tickers before drawing a real conclusion.
-**Check `finbert_full_run.log` (repo root) for that result** before
-continuing this work — if it confirms the smoke test, the honest
-conclusion per the user's own instruction ("don't put FinBERT out of
-scope if it's helpful, but let's see") is likely that FinBERT doesn't
-help *as a blanket confidence signal* the way originally imagined, and
-Phase 4 needs a different shape (or a different validated use for
-FinBERT) — the user was clear they still want FinBERT kept in scope if
-some real use for it turns up, not dropped by default.
+- **`OVERALL_SCORE_RESET.md`** — Phase 1 done and live-verified: a real,
+  deterministic `composite_score` (built from the four pillar scores +
+  confidence-weighting + a bounded divergence adjustment) now ships
+  alongside the AI analyst's own independent `ai_score`. Phase 2
+  (recalibrating the base weights against real forward-return data) is
+  blocked on `signal_history` accumulating enough real days — not
+  actionable yet, by design.
+- **`SITE_REDESIGN_RESET.md`** — **actively in progress, the live focus
+  as of this writing.** Phase 0 (design tokens + component inventory)
+  done. Phase 1 (Jinja2 templating to kill the 3x hand-copied CSS/nav/
+  auth) partially done: nav/auth/CSS consolidation across the three app
+  pages shipped and live-verified (one `sbClient`/`SUPABASE_URL` per
+  page, shared `nav.html.j2`/`auth_modal.html.j2` partials, shared
+  `design/tokens.css`+`design/components.css`). Still open within Phase
+  1: slicing the ~25-field payload per page instead of embedding it
+  whole three times, and folding `index.html`/`about.html`/
+  `careers.html` onto the same Jinja2 generation model (exact-copy
+  template sources `index_template.html`/`about_template.html`/
+  `careers_template.html` exist at repo root as of 2026-08-21, not yet
+  wired into `main.py`). Read the doc's own "Status snapshot" table and
+  "Next step:" line for the exact current point.
+
+**A crash-recovery note worth keeping current:** a Claude Code session
+died mid-work on 2026-08-21 while `SITE_REDESIGN_RESET.md` was being
+built; the two RESET docs above are what let a fresh session pick this
+up cold. Separately, local and `origin/main` diverged by 24 commits
+during that downtime (CI's quote-refresh/dashboard workflows kept
+running against the old pre-Jinja2 `main.py`) — resolved by stashing
+local changes, fast-forward pulling, and reapplying. **If you're
+orienting after another lost session, check `git log HEAD..origin/main`
+before trusting either side's `data/*.json`/`docs/*.html` as current.**
+
+**Separately, and lower-priority right now — not touched during the
+2026-08-21 pillar/RESET-doc work above:** Phase 4 of the crowd-score
+engine (FinBERT validation) is still genuinely open. Phases 1-3
+(author-capping, shrinkage/decay, `crowd_confidence`) shipped
+2026-08-20. Phase 4 was originally verbally scoped as "add FinBERT for
+better confidence" but never written down before an earlier lost
+session; a round of research (FinBERT reads tone not meaning, scored
+16.8% accuracy on genuine positive catalysts in a real study, and its
+confidence score doesn't track its own accuracy) reframed the plan
+around **validating FinBERT against Undertow's own real self-tagged
+ground truth before wiring it into production**, rather than assuming
+it would help. `validate_finbert.py` (repo root, not part of the daily
+pipeline) does exactly that: pulls live self-tagged StockTwits messages,
+strips the tag, and asks FinBERT / Gemini (production's current path) /
+VADER to guess it back. A 5-ticker smoke test found Gemini at ~63%
+accuracy vs. FinBERT at ~13% (FinBERT defaulted ~78% of tagged messages
+to "neutral") — a full 30-ticker run was kicked off to confirm this
+isn't a quirk of those 5 tickers. **Check `finbert_full_run.log` (repo
+root) for that result** before continuing this thread — if it confirms
+the smoke test, the honest conclusion per the user's own instruction
+("don't put FinBERT out of scope if it's helpful, but let's see") is
+likely that FinBERT doesn't help *as a blanket confidence signal* the
+way originally imagined, and Phase 4 needs a different shape — the user
+was clear they still want FinBERT kept in scope if some real use for it
+turns up, not dropped by default.
 
 ## Quick facts worth not re-deriving
 

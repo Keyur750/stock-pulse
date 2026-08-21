@@ -8,39 +8,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- Site Redesign Reset, Phase 1: tokens + nav/auth CSS now live in one
+     place (design/tokens.css, design/components.css), copied into docs/
+     at generation time -- see design/COMPONENT_INVENTORY.md. -->
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
 <style>
-  :root {
-    --bg-primary: #0B1626;
-    --bg-secondary: #0F1C2E;
-    --surface-1: #101C2D;
-    --surface-2: #142238;
-    --surface-3: #17263D;
-    --text-primary: #F5F7FA;
-    --text-secondary: #94A3B8;
-    --text-faint: #5B6B84;
-    --border: #22324A;
-    --border-hover: #314764;
-    --accent: #3B82F6;
-    --accent-dim: rgba(59,130,246,0.10);
-    --accent-soft: rgba(59,130,246,0.16);
-    --accent-border: rgba(59,130,246,0.30);
-    --bull: #10B981;
-    --bull-soft: rgba(16,185,129,0.12);
-    --bull-border: rgba(16,185,129,0.30);
-    --bear: #EF4444;
-    --bear-soft: rgba(239,68,68,0.12);
-    --bear-border: rgba(239,68,68,0.30);
-    --amber: #F59E0B;
-    --amber-soft: rgba(245,158,11,0.12);
-    --amber-border: rgba(245,158,11,0.32);
-    --gray: #64748B;
-    --gray-soft: rgba(100,116,139,0.14);
-    --radius-sm: 8px;
-    --radius-md: 10px;
-    --radius-lg: 12px;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.24);
-    --shadow-md: 0 8px 24px -8px rgba(0,0,0,0.45);
-  }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
@@ -68,36 +41,6 @@
   .tape-item .down { color: var(--bear); }
   .ticker-link { text-decoration: none; cursor: pointer; }
   .ticker-link:hover { color: var(--accent); }
-
-  /* Site nav */
-  .site-nav-wrap { position: sticky; top: 0; z-index: 30; background: rgba(11,22,38,0.92); backdrop-filter: blur(14px) saturate(140%); border-bottom: 1px solid var(--border); }
-  .site-nav { max-width: 1520px; margin: 0 auto; padding: 12px 28px; display: flex; align-items: center; gap: 28px; }
-  .site-brand { display: flex; align-items: center; gap: 9px; text-decoration: none; flex-shrink: 0; }
-  .site-brand-mark { width: 28px; height: 28px; border-radius: 7px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .site-brand-word { font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em; color: var(--text-primary); }
-  .site-nav-links { display: flex; align-items: center; gap: 2px; flex: 1; overflow-x: auto; }
-  .site-nav-links a { font-size: 13px; font-weight: 500; color: var(--text-secondary); text-decoration: none; padding: 7px 12px; border-radius: var(--radius-sm); white-space: nowrap; transition: color .15s ease, background-color .15s ease; }
-  .site-nav-links a:hover { color: var(--text-primary); background: var(--surface-2); }
-  .site-nav-links a.active { color: var(--accent); background: var(--accent-dim); }
-  .site-nav-links a.has-signal::after { content: ''; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--amber); margin-left: 6px; vertical-align: middle; }
-  .nav-search { position: relative; width: 240px; flex-shrink: 0; }
-  .nav-search input {
-    width: 100%; background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-sm);
-    color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 13px; padding: 7px 12px 7px 30px;
-    outline: none; transition: border-color .15s ease, background-color .15s ease;
-  }
-  .nav-search input::placeholder { color: var(--text-faint); }
-  .nav-search input:focus { border-color: var(--accent-border); background: var(--surface-2); }
-  .nav-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-faint); font-size: 13px; pointer-events: none; }
-  .nav-search-results { position: absolute; top: calc(100% + 6px); right: 0; width: 320px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-md); display: none; overflow: hidden; z-index: 40; }
-  .search-result { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background-color .12s ease; }
-  .search-result:last-child { border-bottom: none; }
-  .search-result:hover { background: var(--surface-3); }
-  .search-result-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
-  .search-result-meta { display: flex; align-items: center; gap: 10px; }
-  .search-result-score { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; }
-  .search-empty { padding: 14px; font-size: 12.5px; color: var(--text-faint); text-align: center; }
-  @media (max-width: 900px) { .nav-search { width: 160px; } .site-nav-links a:not(.active) { display: none; } }
 
   main { max-width: 1520px; margin: 0 auto; padding: 24px 28px 56px; }
 
@@ -298,55 +241,10 @@
   .cm-ai-disclaimer { font-size: 10.5px; color: var(--text-faint); margin-top: 4px; }
   .cm-ai-empty { font-size: 12px; color: var(--text-faint); margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
 
-  /* Auth — contextual, never blocking. A guest sees the exact same
-     dashboard as before; this only changes what the nav and the new
-     "My Watchlist" section show. */
-  .nav-auth { flex-shrink: 0; }
-  .nav-auth-btn {
-    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; padding: 7px 15px; border-radius: var(--radius-sm);
-    border: 1px solid var(--accent-border); background: var(--accent-dim); color: var(--accent); cursor: pointer;
-    transition: background-color .15s ease;
-  }
-  .nav-auth-btn:hover { background: var(--accent-soft); }
-  .nav-user { display: flex; align-items: center; gap: 10px; }
-  .nav-user-email { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .nav-logout-btn { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: var(--text-faint); background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 11px; cursor: pointer; }
-  .nav-logout-btn:hover { color: var(--text-primary); border-color: var(--border-hover); }
-
-  .auth-modal-backdrop { position: fixed; inset: 0; background: rgba(4,8,16,0.7); backdrop-filter: blur(6px); z-index: 110; display: none; align-items: center; justify-content: center; padding: 20px; }
-  .auth-modal-card { position: relative; width: 100%; max-width: 380px; border-radius: var(--radius-lg); padding: 28px 26px; background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-md); }
-  .auth-modal-close { position: absolute; top: 14px; right: 14px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-secondary); font-size: 16px; cursor: pointer; line-height: 1; }
-  .auth-modal-close:hover { color: var(--text-primary); background: var(--surface-3); }
-  .auth-modal-title { font-size: 17px; font-weight: 800; margin: 0 0 4px; }
-  .auth-modal-sub { font-size: 12px; color: var(--text-faint); margin: 0 0 20px; }
-  .auth-tabs { display: flex; gap: 6px; margin-bottom: 18px; background: var(--surface-2); padding: 4px; border-radius: var(--radius-md); }
-  .auth-tab-btn { flex: 1; background: transparent; border: none; color: var(--text-secondary); font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; padding: 7px; border-radius: 7px; cursor: pointer; }
-  .auth-tab-btn.active { background: var(--accent); color: #fff; }
-  .google-oauth-btn {
-    width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px;
-    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: var(--text-primary);
-    background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md);
-    padding: 9px; cursor: pointer; transition: border-color .15s ease, background-color .15s ease;
-  }
-  .google-oauth-btn:hover { border-color: var(--border-hover); background: var(--surface-3); }
-  .auth-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--text-faint); font-size: 11px; }
-  .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-  .auth-form { display: none; flex-direction: column; gap: 11px; }
-  .auth-form.active { display: flex; }
-  .auth-field { display: flex; flex-direction: column; gap: 5px; }
-  .auth-field label { font-size: 11.5px; color: var(--text-secondary); font-weight: 600; }
-  .auth-field input {
-    width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md);
-    color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 13.5px; padding: 9px 11px; outline: none;
-  }
-  .auth-field input:focus { border-color: var(--accent-border); }
-  .auth-submit-btn { margin-top: 4px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-md); font-size: 13.5px; font-weight: 700; padding: 10px; cursor: pointer; }
-  .auth-submit-btn:hover { filter: brightness(1.1); }
-  .auth-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-  .auth-message { font-size: 12px; padding: 9px 11px; border-radius: var(--radius-sm); margin-top: 12px; line-height: 1.5; display: none; }
-  .auth-message.show { display: block; }
-  .auth-message.success, .auth-message.info { background: var(--accent-dim); color: var(--accent); }
-  .auth-message.error { background: var(--bear-soft); color: var(--bear); }
+  /* Auth CSS (.nav-auth*, .auth-modal*, .auth-form* etc.) now lives in
+     design/components.css -- contextual, never blocking: a guest sees
+     the exact same dashboard as before, this only changes what the nav
+     and the "My Watchlist" section below show. */
 
   /* My Watchlist — a personal pick from the 15 flagship tickers,
      distinct from "Flagship Coverage" below it (everything Undertow
@@ -405,28 +303,7 @@
 <div class="tape-wrap"><div class="tape" id="tape"></div></div>
 
 <div class="site-nav-wrap">
-  <nav class="site-nav">
-    <a class="site-brand" href="index.html">
-      <div class="site-brand-mark">
-        <svg width="15" height="15" viewBox="0 0 32 32" fill="none">
-          <path d="M4,20 C8,11 12,11 16,17.5 C20,24 24,24 28,13" stroke="#3B82F6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <span class="site-brand-word">UNDERTOW</span>
-    </a>
-    <div class="site-nav-links" id="quicknav">
-      <a href="#markets-strip">Markets</a>
-      <a href="#news-condensed">News</a>
-      <a href="#signals-block" id="nav-signals">Signals</a>
-      <a href="sentiment.html">Sentiment Intelligence</a>
-    </div>
-    <div class="nav-search">
-      <span class="nav-search-icon">⌕</span>
-      <input type="text" id="nav-search-input" placeholder="Search ticker or company..." autocomplete="off">
-      <div class="nav-search-results" id="nav-search-results"></div>
-    </div>
-    <div class="nav-auth" id="nav-auth"></div>
-  </nav>
+  {% include "partials/nav.html.j2" %}
 </div>
 
 <main>
@@ -546,38 +423,7 @@
   </div>
 </div>
 
-<div class="auth-modal-backdrop" id="auth-modal">
-  <div class="auth-modal-card">
-    <button class="auth-modal-close" id="auth-modal-close" aria-label="Close">&times;</button>
-    <div class="auth-modal-title" id="auth-modal-title">Welcome back</div>
-    <p class="auth-modal-sub">Log in to save a personal watchlist across sessions.</p>
-
-    <div class="auth-tabs">
-      <button class="auth-tab-btn active" id="auth-tab-login" type="button">Log in</button>
-      <button class="auth-tab-btn" id="auth-tab-signup" type="button">Sign up</button>
-    </div>
-
-    <button class="google-oauth-btn" id="auth-google-btn" type="button">
-      <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 019.5 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.94 23.94 0 000 24c0 3.87.92 7.53 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.9l-7.97 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-      Continue with Google
-    </button>
-    <div class="auth-divider"><span>or</span></div>
-
-    <form class="auth-form active" id="auth-form-login">
-      <div class="auth-field"><label for="auth-login-email">Email</label><input type="email" id="auth-login-email" required autocomplete="email"></div>
-      <div class="auth-field"><label for="auth-login-password">Password</label><input type="password" id="auth-login-password" required autocomplete="current-password"></div>
-      <button class="auth-submit-btn" type="submit">Log in</button>
-    </form>
-
-    <form class="auth-form" id="auth-form-signup">
-      <div class="auth-field"><label for="auth-signup-email">Email</label><input type="email" id="auth-signup-email" required autocomplete="email"></div>
-      <div class="auth-field"><label for="auth-signup-password">Password</label><input type="password" id="auth-signup-password" required autocomplete="new-password" minlength="6"></div>
-      <button class="auth-submit-btn" type="submit">Create account</button>
-    </form>
-
-    <div class="auth-message" id="auth-message"></div>
-  </div>
-</div>
+{% include "partials/auth_modal.html.j2" %}
 
 <footer>
   <div class="footer-links">
@@ -589,7 +435,7 @@
 </footer>
 
 <script>
-const DATA = /*__DATA__*/;
+const DATA = {{ payload_json }};
 
 document.getElementById('timestamp').textContent = 'Updated ' + DATA.generated_at;
 
@@ -1284,8 +1130,8 @@ function renderAiSection(result) {
   aiEl.style.display = 'block';
 
   const scoreEl = document.getElementById('cm-ai-score');
-  scoreEl.textContent = result.overall_score;
-  scoreEl.className = 'cm-ai-score ' + scoreClass(result.overall_score);
+  scoreEl.textContent = result.ai_score;
+  scoreEl.className = 'cm-ai-score ' + scoreClass(result.ai_score);
   document.getElementById('cm-ai-verdict').textContent = result.verdict || '';
   document.getElementById('cm-ai-summary').textContent = result.summary || '';
   fillList('cm-ai-bullish', result.bullish_factors);
@@ -1635,8 +1481,11 @@ renderTape();
 
 // Universal search — real, works client-side against data already in
 // this page. Matches ticker symbol substrings, shows the Undertow score
-// (AI overall_score) when available so a result is useful at a glance,
-// not just a navigation shortcut.
+// when available so a result is useful at a glance, not just a
+// navigation shortcut. Prefers composite_score (Overall Score Reset,
+// Phase 1 — the deterministic, backtestable score) and falls back to
+// the AI analyst's own ai_score only when a composite isn't available
+// (e.g. fewer than 2 of 4 pillars present for that ticker).
 const searchInput = document.getElementById('nav-search-input');
 const searchResultsEl = document.getElementById('nav-search-results');
 const allTickers = [...new Set(DATA.watchlist_grid.map(t => t.ticker))].sort();
@@ -1649,8 +1498,11 @@ function renderSearchResults(query) {
     searchResultsEl.innerHTML = '<div class="search-empty">No matches in the flagship set</div>';
   } else {
     searchResultsEl.innerHTML = matches.map(sym => {
+      const composite = (DATA.composite || {})[sym];
       const ai = (DATA.analyst || {})[sym];
-      const score = ai ? ai.overall_score : null;
+      const score = (composite && composite.composite_score !== null && composite.composite_score !== undefined)
+        ? composite.composite_score
+        : (ai ? ai.ai_score : null);
       return `<div class="search-result" data-ticker="${sym}">
         <span class="search-result-sym">${sym}</span>
         <span class="search-result-meta">
@@ -1681,73 +1533,12 @@ document.addEventListener('keydown', (e) => {
 // Market intelligence data above is all static/embedded; this is the one
 // part of the page that talks to a live backend, and only for the
 // logged-in user's own watchlist rows (enforced by RLS, not app code).
-const SUPABASE_URL = 'https://kxgfwqteiosancwozcgo.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_13iV4lUM5MD5FaRxhvcWvA_Cv5gtAfI';
-const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-const authModal = document.getElementById('auth-modal');
-function openAuthModal() {
-  const msg = document.getElementById('auth-message');
-  msg.classList.remove('show');
-  authModal.style.display = 'flex';
-}
-function closeAuthModal() { authModal.style.display = 'none'; }
-document.getElementById('auth-modal-close').addEventListener('click', closeAuthModal);
-authModal.addEventListener('click', (e) => { if (e.target === authModal) closeAuthModal(); });
+// Client setup, modal wiring, and form handlers below are shared with
+// sentiment.html and stock.html (partials/auth_base.js.j2); this page's
+// own extended renderAuthState() (further down) is what's genuinely
+// different here, since it also drives the "My Watchlist" sidebar.
+{% include "partials/auth_base.js.j2" %}
 document.getElementById('watchlist-login-btn').addEventListener('click', openAuthModal);
-
-const authTabLogin = document.getElementById('auth-tab-login');
-const authTabSignup = document.getElementById('auth-tab-signup');
-const authFormLogin = document.getElementById('auth-form-login');
-const authFormSignup = document.getElementById('auth-form-signup');
-const authModalTitle = document.getElementById('auth-modal-title');
-authTabLogin.addEventListener('click', () => {
-  authTabLogin.classList.add('active'); authTabSignup.classList.remove('active');
-  authFormLogin.classList.add('active'); authFormSignup.classList.remove('active');
-  authModalTitle.textContent = 'Welcome back';
-});
-authTabSignup.addEventListener('click', () => {
-  authTabSignup.classList.add('active'); authTabLogin.classList.remove('active');
-  authFormSignup.classList.add('active'); authFormLogin.classList.remove('active');
-  authModalTitle.textContent = 'Create your account';
-});
-
-function showAuthMessage(text, type) {
-  const el = document.getElementById('auth-message');
-  el.textContent = text;
-  el.className = 'auth-message show ' + type;
-}
-
-authFormLogin.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('auth-login-email').value;
-  const password = document.getElementById('auth-login-password').value;
-  const { error } = await sbClient.auth.signInWithPassword({ email, password });
-  if (error) showAuthMessage(error.message, 'error');
-  else closeAuthModal();
-});
-
-authFormSignup.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('auth-signup-email').value;
-  const password = document.getElementById('auth-signup-password').value;
-  const { data, error } = await sbClient.auth.signUp({ email, password });
-  if (error) {
-    showAuthMessage(error.message, 'error');
-  } else if (!data.session) {
-    showAuthMessage('Check your email to confirm your account.', 'info');
-  } else {
-    closeAuthModal();
-  }
-});
-
-document.getElementById('auth-google-btn').addEventListener('click', async () => {
-  const { error } = await sbClient.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.href },
-  });
-  if (error) showAuthMessage(error.message, 'error');
-});
 
 // My Watchlist — pick-cards for the 15 flagship tickers we cover, backed
 // by a real watchlists/watchlist_items row pair created automatically on

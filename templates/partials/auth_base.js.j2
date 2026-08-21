@@ -1,0 +1,78 @@
+{#
+  Shared auth client + modal wiring — Site Redesign Reset, Phase 1.
+  Everything about the login/signup flow that was byte-identical across
+  dashboard_template.html and sentiment_template.html before this
+  extraction: Supabase client setup, modal open/close, tab switching,
+  form submit handlers, Google OAuth. Deliberately does NOT include
+  renderAuthState() or the initial onAuthStateChange/renderAuthState()
+  call -- dashboard needs an extended version (drives the personal
+  watchlist sidebar too, real additional behavior, not duplication);
+  sentiment/stock want the minimal nav-only version
+  (partials/auth_nav_state.js.j2). Each page supplies its own after
+  including this partial.
+#}
+const SUPABASE_URL = 'https://kxgfwqteiosancwozcgo.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_13iV4lUM5MD5FaRxhvcWvA_Cv5gtAfI';
+const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const authModal = document.getElementById('auth-modal');
+function openAuthModal() {
+  document.getElementById('auth-message').classList.remove('show');
+  authModal.style.display = 'flex';
+}
+function closeAuthModal() { authModal.style.display = 'none'; }
+document.getElementById('auth-modal-close').addEventListener('click', closeAuthModal);
+authModal.addEventListener('click', (e) => { if (e.target === authModal) closeAuthModal(); });
+
+const authTabLogin = document.getElementById('auth-tab-login');
+const authTabSignup = document.getElementById('auth-tab-signup');
+const authFormLogin = document.getElementById('auth-form-login');
+const authFormSignup = document.getElementById('auth-form-signup');
+const authModalTitle = document.getElementById('auth-modal-title');
+authTabLogin.addEventListener('click', () => {
+  authTabLogin.classList.add('active'); authTabSignup.classList.remove('active');
+  authFormLogin.classList.add('active'); authFormSignup.classList.remove('active');
+  authModalTitle.textContent = 'Welcome back';
+});
+authTabSignup.addEventListener('click', () => {
+  authTabSignup.classList.add('active'); authTabLogin.classList.remove('active');
+  authFormSignup.classList.add('active'); authFormLogin.classList.remove('active');
+  authModalTitle.textContent = 'Create your account';
+});
+
+function showAuthMessage(text, type) {
+  const el = document.getElementById('auth-message');
+  el.textContent = text;
+  el.className = 'auth-message show ' + type;
+}
+
+authFormLogin.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('auth-login-email').value;
+  const password = document.getElementById('auth-login-password').value;
+  const { error } = await sbClient.auth.signInWithPassword({ email, password });
+  if (error) showAuthMessage(error.message, 'error');
+  else closeAuthModal();
+});
+
+authFormSignup.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('auth-signup-email').value;
+  const password = document.getElementById('auth-signup-password').value;
+  const { data, error } = await sbClient.auth.signUp({ email, password });
+  if (error) {
+    showAuthMessage(error.message, 'error');
+  } else if (!data.session) {
+    showAuthMessage('Check your email to confirm your account.', 'info');
+  } else {
+    closeAuthModal();
+  }
+});
+
+document.getElementById('auth-google-btn').addEventListener('click', async () => {
+  const { error } = await sbClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href },
+  });
+  if (error) showAuthMessage(error.message, 'error');
+});

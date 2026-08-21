@@ -1,0 +1,29 @@
+{#
+  Minimal nav-only auth-state renderer — Site Redesign Reset, Phase 1.
+  For pages with no personal-watchlist sidebar (sentiment, and now stock,
+  closing the gap where stock_template.html had no auth UI at all).
+  Include after partials/auth_base.js.j2. dashboard_template.html does
+  NOT include this -- it defines its own extended renderAuthState() that
+  also drives the watchlist sidebar, real additional behavior for that
+  one page, not something this shared version should carry.
+#}
+let authRenderSeq = 0;
+async function renderAuthState() {
+  const seq = ++authRenderSeq;
+  const { data: { session } } = await sbClient.auth.getSession();
+  if (seq !== authRenderSeq) return; // a newer call has already started
+
+  const navAuth = document.getElementById('nav-auth');
+  if (session && session.user) {
+    navAuth.innerHTML = `<div class="nav-user">
+      <span class="nav-user-email">${session.user.email}</span>
+      <button class="nav-logout-btn" id="nav-logout-btn" type="button">Log out</button>
+    </div>`;
+    document.getElementById('nav-logout-btn').addEventListener('click', () => sbClient.auth.signOut());
+  } else {
+    navAuth.innerHTML = `<button class="nav-auth-btn" id="nav-login-btn" type="button">Log in</button>`;
+    document.getElementById('nav-login-btn').addEventListener('click', openAuthModal);
+  }
+}
+sbClient.auth.onAuthStateChange(() => renderAuthState());
+renderAuthState();

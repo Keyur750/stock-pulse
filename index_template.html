@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Undertow — Market Intelligence for the Modern Investor</title>
+<meta name="description" content="Undertow cross-checks retail sentiment, Wall Street expectations, business fundamentals, and market behavior to reveal where the market agrees — and where it doesn't.">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B1626'/%3E%3Cpath d='M4,20 C8,11 12,11 16,17.5 C20,24 24,24 28,13' fill='none' stroke='%233B82F6' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root {
+    --bg-primary: #0B1626; --bg-secondary: #0F1C2E;
+    --surface-1: #101C2D; --surface-2: #142238; --surface-3: #17263D;
+    --text-primary: #F5F7FA; --text-secondary: #94A3B8; --text-faint: #5B6B84;
+    --border: #22324A; --border-hover: #314764;
+    --accent: #3B82F6; --accent-dim: rgba(59,130,246,0.10); --accent-soft: rgba(59,130,246,0.16); --accent-border: rgba(59,130,246,0.30);
+    --bull: #10B981; --bull-soft: rgba(16,185,129,0.12); --bull-border: rgba(16,185,129,0.30);
+    --bear: #EF4444; --bear-soft: rgba(239,68,68,0.12); --bear-border: rgba(239,68,68,0.30);
+    --amber: #F59E0B; --amber-soft: rgba(245,158,11,0.12); --amber-border: rgba(245,158,11,0.32);
+    --gray: #64748B; --gray-soft: rgba(100,116,139,0.14);
+    --radius-sm: 8px; --radius-md: 10px; --radius-lg: 12px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.24); --shadow-md: 0 8px 24px -8px rgba(0,0,0,0.45); --shadow-lg: 0 20px 60px -16px rgba(0,0,0,0.6);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; color: var(--text-primary); font-family: 'Inter', sans-serif;
+    background:
+      radial-gradient(1200px 600px at 12% -10%, rgba(59,130,246,0.08), transparent 60%),
+      radial-gradient(900px 500px at 100% 4%, rgba(59,130,246,0.04), transparent 55%),
+      var(--bg-primary);
+    background-attachment: fixed; -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums; overflow-x: hidden;
+  }
+  a { color: inherit; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+  /* Wide canvas for the hero and its immediate surroundings -- the rest
+     of the page stays on the narrower .wrap grid until later phases of
+     this redesign bring it along. Fluid side padding (clamp) so a
+     4K display doesn't just stretch the same 28px gutter absurdly thin
+     relative to the content. */
+  .wrap-wide { max-width: 1560px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 56px); }
+
+  /* Ticker tape — same live pattern already proven on Dashboard/Sentiment/
+     Stock Intelligence, missing here before now. This is the single
+     biggest reason those pages feel "alive" and this one didn't: they
+     always have something moving; this had nothing. */
+  .tape-wrap { background: var(--bg-secondary); border-bottom: 1px solid var(--border); overflow: hidden; white-space: nowrap; padding: 8px 0; }
+  .tape { display: inline-block; padding-left: 100%; animation: scroll-left 55s linear infinite; }
+  .tape-wrap:hover .tape { animation-play-state: paused; }
+  @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+  .tape-item { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-right: 32px; letter-spacing: 0.2px; color: var(--text-secondary); }
+  .tape-item .sym { color: var(--text-primary); font-weight: 600; }
+  .tape-item .up { color: var(--bull); }
+  .tape-item .down { color: var(--bear); }
+
+  /* Live signal ticker -- a second, distinct scrolling band (not a
+     repeat of the top tape, which lists individual stock movers). This
+     one reads the four pillars themselves in motion: live score + delta
+     per pillar, overall, breadth, and today's real divergences -- a
+     combination not shown anywhere else on the page, mid-page so the
+     "this is monitoring the market continuously" feeling isn't only at
+     the very top. */
+  .live-ticker-wrap { background: var(--bg-secondary); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); overflow: hidden; white-space: nowrap; padding: 16px 0; }
+  .live-ticker { display: inline-block; padding-left: 100%; animation: scroll-left 42s linear infinite; }
+  .live-ticker-wrap:hover .live-ticker { animation-play-state: paused; }
+  .lt-item { display: inline-flex; align-items: baseline; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; margin-right: 16px; }
+  .lt-label { color: var(--text-faint); font-weight: 700; letter-spacing: .04em; font-size: 10.5px; text-transform: uppercase; }
+  .lt-val { font-weight: 800; color: var(--text-primary); }
+  .lt-sep { color: var(--text-faint); margin-right: 16px; opacity: .5; }
+
+  /* Live badge + flash-on-change -- a brief, tasteful pulse when a
+     polled number actually changes, not a decorative loop. Real trading
+     UIs (Bloomberg, Robinhood) use exactly this to telegraph "this just
+     moved" without shouting about it. */
+  .live-badge { display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; color: var(--bull); background: var(--bull-soft); border: 1px solid var(--bull-border); padding: 4px 10px; border-radius: 20px; }
+  .live-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--bull); animation: livePulse 2s ease-in-out infinite; }
+  @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  @keyframes flashUpdate { 0% { background-color: var(--accent-soft); } 100% { background-color: transparent; } }
+  .flash-update { animation: flashUpdate 1.1s ease-out; border-radius: 6px; }
+
+  /* Nav */
+  /* Solid, not translucent -- a blurred-glass sticky nav let scrolled
+     content show through behind it, which read as duplicated/ghosted
+     text as the hero's CTAs passed underneath. A serious finance tool
+     doesn't need the glassmorphism effect. */
+  .nav-wrap { position: sticky; top: 0; z-index: 30; background: var(--bg-secondary); border-bottom: 1px solid var(--border); transition: background-color .2s ease, box-shadow .2s ease; }
+  /* On scroll: slightly translucent + a hint of shadow for depth, but
+     deliberately NO backdrop-filter blur -- that's what caused the old
+     "ghosted double button" bug where scrolled hero content visibly
+     showed through behind the nav. A flat rgba tint gets the "more
+     premium once you've moved past the hero" feel with none of the risk. */
+  .nav-wrap.scrolled { background: rgba(15,28,46,0.97); box-shadow: 0 8px 24px -12px rgba(0,0,0,0.5); }
+  nav.topnav { max-width: 1560px; margin: 0 auto; padding: 14px clamp(20px, 4vw, 56px); display: flex; align-items: center; justify-content: space-between; transition: padding .2s ease; }
+  .nav-wrap.scrolled nav.topnav { padding-top: 10px; padding-bottom: 10px; }
+  .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+  .brand-mark { width: 30px; height: 30px; border-radius: 7px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .brand-word { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+  .nav-links { display: flex; align-items: center; gap: 4px; }
+  .nav-links a { font-size: 13.5px; font-weight: 500; color: var(--text-secondary); text-decoration: none; padding: 8px 14px; border-radius: var(--radius-sm); transition: color .15s ease, background-color .15s ease; }
+  .nav-links a:hover { color: var(--text-primary); background: var(--surface-2); }
+  .nav-links a.active { color: var(--accent); background: var(--accent-dim); }
+  .nav-cta { background: var(--accent) !important; color: #fff !important; font-weight: 700 !important; }
+  .nav-cta:hover { filter: brightness(1.1); background: var(--accent) !important; }
+  @media (max-width: 780px) { .nav-links a:not(.nav-cta) { display: none; } }
+
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal-1 { transition-delay: .05s; } .reveal-2 { transition-delay: .12s; }
+  .reveal-3 { transition-delay: .19s; } .reveal-4 { transition-delay: .26s; }
+
+  /* Hero -- asymmetric split: ~40% messaging, ~60% the live intelligence
+     visualization, instead of everything stacked in a centered column.
+     This is the single biggest fix for "too much unused horizontal
+     space on desktop": the previous layout put a 780px-wide hero inside
+     a page that can be 2500px+ wide and left the rest empty. */
+  .hero { padding: 56px 0 32px; }
+  /* align-items: start, not center -- centering the shorter text column
+     against the much-taller diagram panel left a huge dead gap ABOVE the
+     headline (and another below the CTAs), which looked like a layout
+     bug on load, not "generous whitespace". Anchoring both to the top
+     keeps the headline right under the nav where the eye expects it. */
+  .hero-grid { display: grid; grid-template-columns: minmax(340px, 42%) 1fr; gap: 56px; align-items: start; }
+  .hero-left { text-align: left; padding-top: 6px; }
+  .hero-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); background: var(--accent-dim); border: 1px solid var(--accent-border); display: inline-flex; padding: 6px 15px; border-radius: 20px; }
+  .hero h1 { font-size: clamp(36px, 3.6vw, 56px); line-height: 1.08; font-weight: 800; letter-spacing: -0.02em; margin: 22px 0 0; }
+  .hero h1 .accent { color: var(--accent); }
+  .hero-sub { font-size: 16.5px; color: var(--text-secondary); max-width: 480px; margin: 20px 0 0; line-height: 1.6; }
+  .hero-ctas { display: flex; gap: 12px; justify-content: flex-start; margin-top: 30px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; padding: 13px 24px; border-radius: var(--radius-md); text-decoration: none; transition: transform .15s ease, filter .15s ease, background-color .15s ease; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-ghost { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--border-hover); background: var(--surface-2); }
+  .hero-trust { margin-top: 34px; }
+  /* Real indices/commodities strip -- fills what was dead space below the
+     CTAs with genuinely live data (same quotes.json macro feed the
+     dashboard's Markets strip already reads), not decoration. */
+  .hero-macro { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--border); max-width: 480px; }
+  .hero-macro-head { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); font-weight: 700; margin-bottom: 16px; }
+  .hero-macro-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 16px; }
+  .hero-macro-item { display: flex; flex-direction: column; gap: 4px; }
+  .hero-macro-name { font-size: 11.5px; color: var(--text-secondary); font-weight: 600; }
+  .hero-macro-val { font-family: 'JetBrains Mono', monospace; font-size: 14.5px; font-weight: 700; color: var(--text-faint); }
+  .hero-macro-val.up { color: var(--bull); }
+  .hero-macro-val.down { color: var(--bear); }
+  @media (max-width: 1080px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+    .hero-left { text-align: center; }
+    .hero-sub { margin-left: auto; margin-right: auto; }
+    .hero-ctas, .hero-trust { justify-content: center; }
+    .hero-macro { margin-left: auto; margin-right: auto; }
+    .hero-macro-item { align-items: center; }
+  }
+
+  /* Hero visualization panel — a terminal-like frame around the
+     Company Intelligence Map: faint grid, faint radial glow, thin
+     border, small corner labels. Gives the diagram somewhere to live
+     other than bare page background, and is most of what makes it read
+     as "an intelligence screen" rather than "a floating decoration."
+     Kept deliberately quiet (see rule: background must never compete
+     with the data) -- the grid lines are ~5% white, the glow is a
+     single soft radial well behind the center node. */
+  .hero-viz-panel {
+    position: relative; border: 1px solid var(--border); border-radius: var(--radius-lg);
+    background:
+      radial-gradient(560px 420px at 50% 34%, rgba(59,130,246,0.08), transparent 68%),
+      repeating-linear-gradient(rgba(148,163,184,0.045) 0 1px, transparent 1px 44px),
+      repeating-linear-gradient(90deg, rgba(148,163,184,0.045) 0 1px, transparent 1px 44px),
+      var(--surface-1);
+    padding: 22px clamp(18px, 3vw, 40px) 26px;
+    box-shadow: var(--shadow-md);
+  }
+  .hero-viz-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .hero-viz-tag { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); font-weight: 700; }
+  .hero-viz-updated { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
+  .hero-viz-updated .live-badge-dot { background: var(--bull); }
+  @media (max-width: 1080px) { .hero-viz-panel { padding: 24px 20px 28px; } }
+
+  /* Company Intelligence Map — the actual product mechanism (four
+     independent signals cross-checked against one company) drawn as a
+     living radial system instead of a static box grid. Every number in
+     it is real: queried live from the same database the product pages
+     read, including real day-over-day pillar movement now that
+     signal_history has accumulated multiple real days. */
+  .imap { max-width: 100%; margin: 6px auto 0; }
+  .imap-canvas { position: relative; width: 100%; max-width: 520px; aspect-ratio: 1 / 1; margin: 0 auto; }
+  .imap-stats { display: flex; justify-content: center; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+  .imap-stat { text-align: center; padding: 12px 22px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface-1); min-width: 140px; }
+  .imap-stat-val { font-family: 'JetBrains Mono', monospace; font-size: 21px; font-weight: 800; }
+  .imap-stat-label { font-size: 11px; color: var(--text-faint); margin-top: 3px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+  .imap-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .imap-line {
+    stroke: var(--text-faint); stroke-width: 0.7; fill: none; opacity: 0.55;
+    stroke-dasharray: 60; stroke-dashoffset: 60;
+    transition: stroke .25s ease, stroke-width .25s ease;
+  }
+  .imap-line.drawn { stroke-dashoffset: 0; transition: stroke-dashoffset 1s cubic-bezier(.16,.8,.24,1), stroke .6s ease, opacity .6s ease; }
+  .imap-line.active { stroke: var(--accent) !important; stroke-width: 1.1; opacity: 1 !important; }
+  /* Radar rings -- pure background texture, no data attached, just gives
+     the empty corners of the canvas something to sit against instead of
+     bare grid. Stays inside the node radius (r<=42 in a 0-100 viewBox)
+     so it never visually collides with a node or corner badge. */
+  .imap-radar-ring { fill: none; stroke: rgba(148, 163, 184, 0.07); stroke-width: 0.35; }
+  .imap-center {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 182px; height: 182px; border-radius: 50%;
+    background: linear-gradient(160deg, var(--surface-2), var(--surface-1));
+    border: 1px solid var(--accent-border); box-shadow: 0 0 0 1px var(--accent-dim), var(--shadow-lg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+    z-index: 2; text-align: center;
+  }
+  /* Ring gauges -- score-as-arc, not just a number. r=46 in a 0-100
+     viewBox gives circumference 2*pi*46 = 289.0; JS sets stroke-dashoffset
+     to (1 - score/100) * 289 and rotates -90deg so 0% starts at 12
+     o'clock, like a real gauge. */
+  .imap-center-ring { position: absolute; inset: -1px; width: calc(100% + 2px); height: calc(100% + 2px); transform: rotate(-90deg); pointer-events: none; }
+  .imap-center-ring .ring-track { fill: none; stroke: var(--border); stroke-width: 2.2; }
+  .imap-center-ring .ring-fill { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 289.03; stroke-dashoffset: 289.03; transition: stroke-dashoffset 1.1s cubic-bezier(.16,.8,.24,1), stroke .4s ease; }
+  .imap-center-avatar { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; margin-bottom: 3px; background: var(--surface-3); }
+  .imap-center-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .imap-center-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13.5px; letter-spacing: .02em; color: var(--text-secondary); }
+  .imap-center-price { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px; margin-top: 1px; }
+  .imap-center-score { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 33px; margin-top: 4px; line-height: 1; }
+  .imap-center-score span { font-size: 11.5px; font-weight: 600; color: var(--text-faint); }
+  .imap-center-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
+  .imap-center-align { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--text-faint); margin-top: 5px; letter-spacing: .04em; }
+  .imap-node {
+    position: absolute; width: 122px; height: 122px; border-radius: 50%;
+    background: var(--surface-1); border: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    cursor: pointer; transform: translate(-50%, -50%) scale(0.6); opacity: 0;
+    transition: transform .35s cubic-bezier(.2,.8,.2,1), border-color .2s ease, box-shadow .2s ease, opacity .35s ease;
+    z-index: 1;
+  }
+  .imap-node-ring { position: absolute; inset: -1px; width: calc(100% + 2px); height: calc(100% + 2px); transform: rotate(-90deg); pointer-events: none; }
+  .imap-node-ring .ring-track { fill: none; stroke: var(--border); stroke-width: 2.6; }
+  .imap-node-ring .ring-fill { fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 282.74; stroke-dashoffset: 282.74; transition: stroke-dashoffset 1.1s cubic-bezier(.16,.8,.24,1), stroke .4s ease; }
+  .imap-node.in { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .imap-node:hover, .imap-node.focused { border-color: var(--accent-border); box-shadow: 0 0 0 1px var(--accent-dim), var(--shadow-md); transform: translate(-50%, -50%) scale(1.08); }
+  .imap.hovering .imap-node:not(.focused) { opacity: 0.5; }
+  .imap-node[data-key="crowd"] { top: 7%; left: 50%; }
+  .imap-node[data-key="wall_street"] { top: 50%; left: 93%; }
+  .imap-node[data-key="business"] { top: 93%; left: 50%; }
+  .imap-node[data-key="market"] { top: 50%; left: 7%; }
+  .imap-node-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); font-weight: 700; }
+  .imap-node-val { font-family: 'JetBrains Mono', monospace; font-size: 25px; font-weight: 800; line-height: 1; }
+  .imap-node-delta { display: flex; align-items: center; gap: 3px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; }
+  .imap-node-delta svg { width: 11px; height: 11px; }
+  .imap-detail {
+    max-width: 560px; margin: 24px auto 0; min-height: 40px; text-align: center;
+    font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; padding: 0 12px;
+  }
+  .imap-detail strong { color: var(--text-primary); }
+  /* Corner readouts -- the two real numbers that were sitting unused
+     (pillar spread, the day's biggest single-pillar move) now fill the
+     empty diagonal corners of the canvas instead of leaving them bare.
+     Positioned at 13%/87% so they clear both the diamond nodes (radius
+     ~12% from their own centers) and the radar rings (r<=42 of 50). */
+  .imap-badge {
+    position: absolute; transform: translate(-50%, -50%) scale(0.85); opacity: 0;
+    background: rgba(16, 26, 42, 0.78); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 10px 16px; text-align: center; min-width: 112px;
+    transition: opacity .5s ease, transform .5s cubic-bezier(.2,.8,.2,1);
+    z-index: 1; backdrop-filter: blur(2px);
+  }
+  .imap-badge.in { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .imap-badge-spread { top: 13%; left: 13%; }
+  .imap-badge-shift { top: 87%; left: 87%; }
+  .imap-badge-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-faint); font-weight: 700; white-space: nowrap; }
+  .imap-badge-val { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 800; margin-top: 5px; white-space: nowrap; }
+  @media (max-width: 560px) {
+    .imap-canvas { max-width: 320px; }
+    .imap-center { width: 112px; height: 112px; }
+    .imap-node { width: 80px; height: 80px; }
+    .imap-node-val { font-size: 17px; }
+    .imap-stats { gap: 8px; }
+    .imap-stat { min-width: 96px; padding: 10px 14px; }
+    .imap-badge { display: none; }
+  }
+
+  section.section { padding: 76px 0; position: relative; }
+  .section-kicker { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); text-align: center; display: block; }
+  .section-title { font-size: clamp(24px, 3.2vw, 34px); font-weight: 800; letter-spacing: -0.02em; text-align: center; margin: 10px auto 0; max-width: 680px; line-height: 1.2; }
+  .section-sub { text-align: center; color: var(--text-secondary); font-size: 15px; max-width: 560px; margin: 14px auto 0; line-height: 1.6; }
+
+  .surface { background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-sm); border-radius: var(--radius-lg); }
+  .surface-hover { transition: border-color .18s ease, background-color .18s ease; }
+  .surface-hover:hover { border-color: var(--border-hover); background: var(--surface-2); }
+
+  /* Four signals -- a 2x2 bento grid that EXPLAINS each pillar rather than
+     re-displaying its score: the number is already the centerpiece of the
+     hero diagram above, so here it's a small reference chip in the
+     header, not a second giant number. The description is the actual
+     content of the card. */
+  .signal-bento-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 44px; }
+  @media (max-width: 780px) { .signal-bento-grid { grid-template-columns: 1fr; } }
+  .signal-bento { border-radius: var(--radius-lg); padding: 28px 32px; background: var(--surface-1); border: 1px solid var(--border); transition: border-color .18s ease, background-color .18s ease; }
+  .signal-bento:hover { border-color: var(--border-hover); background: var(--surface-2); }
+  .signal-bento-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .signal-bento-head-left { display: flex; align-items: center; gap: 12px; }
+  .signal-bento-icon { width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 14px; flex-shrink: 0; }
+  .signal-bento-name { font-size: 16px; font-weight: 700; }
+  .signal-bento-ref { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 700; color: var(--text-faint); background: var(--surface-2); border: 1px solid var(--border); padding: 4px 10px; border-radius: 20px; flex-shrink: 0; }
+  .signal-bento-desc { font-size: 14.5px; color: var(--text-secondary); line-height: 1.7; margin: 20px 0 0; }
+
+  /* Divergence-styled ticker header/badge -- reused by the Interactive
+     Stock Explorer for its ticker header and pattern badge. */
+  .divergence-card { max-width: 640px; margin: 32px auto 0; border-radius: var(--radius-lg); padding: 28px 30px; position: relative; overflow: hidden; }
+  .divergence-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 0; flex-wrap: wrap; }
+  .divergence-ticker { display: flex; align-items: center; gap: 12px; }
+  .divergence-ticker-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-3); overflow: hidden; flex-shrink: 0; }
+  .divergence-ticker-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .divergence-ticker-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 17px; }
+  .divergence-ticker-price { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--text-secondary); margin-top: 1px; }
+  .divergence-pattern-badge { display: inline-flex; align-items: center; gap: 7px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: .02em; padding: 7px 13px; border-radius: 20px; }
+  .divergence-pattern-badge svg { width: 14px; height: 14px; }
+  .divergence-pattern-badge.up { background: var(--bull-soft); color: var(--bull); border: 1px solid var(--bull-border); }
+  .divergence-pattern-badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-border); }
+  .divergence-pattern-badge.down { background: var(--bear-soft); color: var(--bear); border: 1px solid var(--bear-border); }
+  .divergence-pattern-badge.info { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
+  .divergence-callout { display: flex; align-items: flex-start; gap: 11px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .divergence-callout-icon { color: var(--amber); flex-shrink: 0; margin-top: 2px; }
+  .divergence-callout-icon svg { width: 16px; height: 16px; }
+  .divergence-callout-text { font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; }
+  .divergence-callout-text strong { color: var(--text-primary); }
+  .divergence-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; flex-wrap: wrap; gap: 8px; }
+  .divergence-footer a { font-size: 12px; font-weight: 600; color: var(--accent); text-decoration: none; }
+  .divergence-footer a:hover { text-decoration: underline; }
+
+  /* Signal History Timeline -- real daily cross-portfolio averages per
+     pillar, however many real days actually exist (never a hardcoded
+     "30 days" claim). Fixed 0-100 y-axis on purpose, same reasoning as
+     every other real-value chart on the product: an auto-scaled tight
+     range would render a genuinely flat week as a dramatic swing. */
+  .tl-legend { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin-top: 28px; }
+  .tl-legend-item { display: flex; align-items: center; gap: 7px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-secondary); font-weight: 600; }
+  .tl-legend-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+  .tl-card { max-width: 900px; margin: 20px auto 0; border-radius: var(--radius-lg); padding: 28px 30px 22px; }
+  .tl-hit { cursor: crosshair; }
+  .tl-detail { text-align: center; font-size: 13px; color: var(--text-secondary); margin: 18px 0 0; min-height: 18px; }
+  .tl-detail strong { color: var(--text-primary); }
+  .chart-axis-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; fill: var(--text-faint); }
+  .chart-date-label { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; fill: var(--text-faint); }
+
+  /* Interactive Stock Explorer -- every tracked ticker is real (built
+     from the same real todayRows the signal-history poll already
+     fetched), so every pill genuinely has data behind it. Reuses
+     divergence-ticker* classes for the header and DIVERGENCE_COPY for
+     the read. */
+  .explorer-picker { display: flex; gap: 8px; overflow-x: auto; padding: 6px 2px 14px; margin-top: 40px; }
+  .explorer-pill { flex-shrink: 0; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 700; padding: 9px 16px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-secondary); cursor: pointer; transition: border-color .15s ease, color .15s ease, background-color .15s ease; white-space: nowrap; }
+  .explorer-pill:hover { border-color: var(--border-hover); color: var(--text-primary); }
+  .explorer-pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .explorer-card { max-width: 1000px; margin: 6px auto 0; border-radius: var(--radius-lg); padding: 32px 36px; }
+  .explorer-price { font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 800; margin-top: 6px; line-height: 1; }
+  .explorer-chg { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; margin-top: 6px; }
+  .explorer-spark-wrap { margin-top: 22px; height: 100px; }
+  .explorer-body { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; margin-top: 26px; padding-top: 24px; border-top: 1px solid var(--border); }
+  @media (max-width: 700px) { .explorer-body { grid-template-columns: 1fr; } }
+  .explorer-pillars { display: flex; flex-direction: column; gap: 14px; }
+  .explorer-pillar-row { display: flex; align-items: center; justify-content: space-between; }
+  .explorer-pillar-name { font-size: 13.5px; color: var(--text-secondary); font-weight: 600; }
+  .explorer-pillar-num { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 15px; }
+  .explorer-read-label { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: .08em; color: var(--text-faint); font-weight: 700; text-transform: uppercase; margin-bottom: 10px; }
+  .explorer-read-text { font-size: 14px; color: var(--text-secondary); line-height: 1.65; }
+  .explorer-read-text strong { color: var(--text-primary); }
+  .explorer-cta { display: inline-block; margin-top: 18px; font-size: 12.5px; font-weight: 700; color: var(--accent); text-decoration: none; }
+  .explorer-cta:hover { text-decoration: underline; }
+  @media (max-width: 640px) { .explorer-card { padding: 24px 22px; } }
+
+  /* Why Undertow */
+  .why-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 44px; }
+  @media (max-width: 900px) { .why-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .why-grid { grid-template-columns: 1fr; } }
+  .why-tile { border-radius: var(--radius-md); padding: 18px; }
+  .why-tile h4 { font-size: 13.5px; font-weight: 700; margin: 0 0 6px; }
+  .why-tile p { font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.55; }
+
+  /* Track record */
+  .track-record-card { max-width: 700px; margin: 40px auto 0; border-radius: var(--radius-lg); padding: 28px; text-align: center; }
+  .track-record-steps { display: flex; justify-content: space-between; margin-top: 24px; gap: 8px; flex-wrap: wrap; }
+  .track-step { flex: 1; min-width: 130px; text-align: center; }
+  .track-step-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); font-weight: 700; }
+  .track-step-label { font-size: 12.5px; color: var(--text-secondary); margin-top: 6px; line-height: 1.4; }
+
+  /* CTA band */
+  .cta-band { border-radius: var(--radius-lg); padding: 56px 40px; text-align: center; position: relative; background: linear-gradient(160deg, var(--surface-2), var(--surface-1)); border: 1px solid var(--accent-border); box-shadow: 0 0 0 1px var(--accent-dim); }
+  .cta-band h2 { font-size: clamp(22px, 3vw, 30px); margin: 0; font-weight: 800; letter-spacing: -0.02em; }
+  .cta-band p { color: var(--text-secondary); margin: 12px 0 0; font-size: 14.5px; }
+  .cta-band .hero-ctas { margin-top: 26px; }
+
+  footer { border-top: 1px solid var(--border); margin-top: 30px; }
+  .footer-grid { max-width: 1180px; margin: 0 auto; padding: 48px 28px 24px; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 28px; }
+  @media (max-width: 780px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
+  .footer-brand p { color: var(--text-faint); font-size: 12.5px; line-height: 1.6; max-width: 260px; margin-top: 12px; }
+  .footer-col h5 { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-faint); margin: 0 0 12px; }
+  .footer-col a { display: block; font-size: 13px; color: var(--text-secondary); text-decoration: none; margin-bottom: 9px; }
+  .footer-col a:hover { color: var(--accent); }
+  .footer-bottom { max-width: 1180px; margin: 0 auto; padding: 18px 28px 30px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
+</style>
+</head>
+<body>
+
+<div class="tape-wrap"><div class="tape" id="tape"></div></div>
+<div class="nav-wrap">
+  <nav class="topnav">
+    <a class="brand" href="index.html">
+      <div class="brand-mark">
+        <svg width="15" height="15" viewBox="0 0 32 32" fill="none"><path d="M4,20 C8,11 12,11 16,17.5 C20,24 24,24 28,13" stroke="#3B82F6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <span class="brand-word">UNDERTOW</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="active">Home</a>
+      <a href="about.html">About</a>
+      <a href="careers.html">Careers</a>
+      <a href="dashboard.html" class="nav-cta">Explore the Intelligence →</a>
+    </div>
+  </nav>
+</div>
+
+<header class="hero">
+  <div class="wrap-wide hero-grid">
+    <div class="hero-left">
+      <span class="hero-kicker reveal visible">FOUR SIGNALS · CROSS-CHECKED, LIVE</span>
+      <h1 class="reveal visible">Every stock has four opinions.<br><span class="accent">We show you when they clash.</span></h1>
+      <p class="hero-sub reveal visible reveal-1">Retail sentiment, Wall Street consensus, business fundamentals, and price action — four independent reads on the same company, checked against each other in real time. When they agree, that's confirmation. When they don't, that's usually the story worth reading.</p>
+      <div class="hero-ctas reveal visible reveal-2">
+        <a class="btn btn-primary" href="dashboard.html">Explore the Intelligence</a>
+        <a class="btn btn-ghost" href="#how-it-works">See how Undertow works</a>
+      </div>
+      <div class="hero-trust reveal visible reveal-2">
+        <div class="live-badge" id="hero-live-badge" style="display: inline-flex;"><span class="live-badge-dot"></span>Live across <span id="hero-ticker-name">…</span> tracked companies</div>
+      </div>
+      <div class="hero-macro reveal visible reveal-3">
+        <div class="hero-macro-head">KEY INDICES &amp; COMMODITIES</div>
+        <div class="hero-macro-grid" id="hero-macro-grid">
+          <div class="hero-macro-item"><span class="hero-macro-name">S&amp;P 500</span><span class="hero-macro-val na">—</span></div>
+          <div class="hero-macro-item"><span class="hero-macro-name">Nasdaq</span><span class="hero-macro-val na">—</span></div>
+          <div class="hero-macro-item"><span class="hero-macro-name">Dow Jones</span><span class="hero-macro-val na">—</span></div>
+          <div class="hero-macro-item"><span class="hero-macro-name">VIX</span><span class="hero-macro-val na">—</span></div>
+          <div class="hero-macro-item"><span class="hero-macro-name">Gold</span><span class="hero-macro-val na">—</span></div>
+          <div class="hero-macro-item"><span class="hero-macro-name">Crude Oil</span><span class="hero-macro-val na">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-viz-panel reveal visible reveal-3">
+      <div class="hero-viz-head">
+        <span class="hero-viz-tag">MARKET INTELLIGENCE MAP</span>
+        <span class="hero-viz-updated"><span class="live-badge-dot"></span>UPDATED <span id="hero-updated">JUST NOW</span></span>
+      </div>
+      <div class="imap" id="imap">
+        <div class="imap-canvas" id="imap-canvas">
+          <svg class="imap-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <circle class="imap-radar-ring" cx="50" cy="50" r="18"/>
+            <circle class="imap-radar-ring" cx="50" cy="50" r="30"/>
+            <circle class="imap-radar-ring" cx="50" cy="50" r="42"/>
+            <path class="imap-line" data-key="crowd" d="M50,50 L50,8"/>
+            <path class="imap-line" data-key="wall_street" d="M50,50 L91,50"/>
+            <path class="imap-line" data-key="business" d="M50,50 L50,92"/>
+            <path class="imap-line" data-key="market" d="M50,50 L9,50"/>
+          </svg>
+          <div class="imap-badge imap-badge-spread" id="imap-badge-spread">
+            <div class="imap-badge-label">Spread</div>
+            <div class="imap-badge-val" id="imap-spread-val">—</div>
+          </div>
+          <div class="imap-badge imap-badge-shift" id="imap-badge-shift">
+            <div class="imap-badge-label">Biggest Shift</div>
+            <div class="imap-badge-val" id="imap-shift-val">—</div>
+          </div>
+          <div class="imap-center">
+            <svg class="imap-center-ring" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="46"/><circle class="ring-fill" id="ring-overall" cx="50" cy="50" r="46"/></svg>
+            <div class="imap-center-sym" id="imap-sym">MARKET</div>
+            <div class="imap-center-score"><span id="imap-overall">—</span><span>/100</span></div>
+            <div class="imap-center-tag" id="imap-tag">—</div>
+            <div class="imap-center-align" id="imap-align"></div>
+          </div>
+          <div class="imap-node" data-key="crowd">
+            <svg class="imap-node-ring" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="45"/><circle class="ring-fill" id="ring-crowd" cx="50" cy="50" r="45"/></svg>
+            <div class="imap-node-label">Crowd</div>
+            <div class="imap-node-val" id="node-crowd">—</div>
+            <div class="imap-node-delta" id="delta-crowd"></div>
+          </div>
+          <div class="imap-node" data-key="wall_street">
+            <svg class="imap-node-ring" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="45"/><circle class="ring-fill" id="ring-wall_street" cx="50" cy="50" r="45"/></svg>
+            <div class="imap-node-label">Wall Street</div>
+            <div class="imap-node-val" id="node-wall_street">—</div>
+            <div class="imap-node-delta" id="delta-wall_street"></div>
+          </div>
+          <div class="imap-node" data-key="business">
+            <svg class="imap-node-ring" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="45"/><circle class="ring-fill" id="ring-business" cx="50" cy="50" r="45"/></svg>
+            <div class="imap-node-label">Business</div>
+            <div class="imap-node-val" id="node-business">—</div>
+            <div class="imap-node-delta" id="delta-business"></div>
+          </div>
+          <div class="imap-node" data-key="market">
+            <svg class="imap-node-ring" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="45"/><circle class="ring-fill" id="ring-market" cx="50" cy="50" r="45"/></svg>
+            <div class="imap-node-label">Market</div>
+            <div class="imap-node-val" id="node-market">—</div>
+            <div class="imap-node-delta" id="delta-market"></div>
+          </div>
+        </div>
+        <div class="imap-detail" id="imap-detail">Hover a signal to see what changed since yesterday, averaged across every company we track.</div>
+        <div class="imap-stats" id="imap-stats">
+          <div class="imap-stat"><div class="imap-stat-val" id="stat-tracked">—</div><div class="imap-stat-label">Companies Tracked</div></div>
+          <div class="imap-stat"><div class="imap-stat-val" id="stat-breadth">—</div><div class="imap-stat-label">Up Today</div></div>
+          <div class="imap-stat"><div class="imap-stat-val" id="stat-diverging">—</div><div class="imap-stat-label">Diverging Right Now</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="section" id="how-it-works" style="padding-top:36px;">
+  <div class="wrap-wide">
+    <span class="section-kicker reveal">THE FOUR SIGNALS</span>
+    <h2 class="section-title reveal reveal-1">Four independent reads. One cross-checked score.</h2>
+    <p class="section-sub reveal reveal-2">Most tools measure one of these. Undertow measures all four, then tells you where they agree — and where they don't.</p>
+
+    <div class="signal-bento-grid">
+      <div class="signal-bento reveal reveal-1" data-key="crowd">
+        <div class="signal-bento-head">
+          <div class="signal-bento-head-left">
+            <div class="signal-bento-icon" style="background:var(--bull-soft);color:var(--bull);">C</div>
+            <div class="signal-bento-name">Crowd</div>
+          </div>
+          <div class="signal-bento-ref" id="sig-crowd-val">—/100</div>
+        </div>
+        <p class="signal-bento-desc">Retail sentiment is loud but often wrong on its own. We cross-check StockTwits, Reddit, and Google search interest against each other — three independent crowds instead of one — before calling anything a real signal.</p>
+      </div>
+      <div class="signal-bento reveal reveal-2" data-key="wall_street">
+        <div class="signal-bento-head">
+          <div class="signal-bento-head-left">
+            <div class="signal-bento-icon" style="background:var(--amber-soft);color:var(--amber);">W</div>
+            <div class="signal-bento-name">Wall Street</div>
+          </div>
+          <div class="signal-bento-ref" id="sig-wall_street-val">—/100</div>
+        </div>
+        <p class="signal-bento-desc">Analyst ratings move slowly, which makes the direction more useful than the number itself. We track whether professional sentiment is getting more or less bullish over time, not just where it happens to sit today.</p>
+      </div>
+      <div class="signal-bento reveal reveal-3" data-key="business">
+        <div class="signal-bento-head">
+          <div class="signal-bento-head-left">
+            <div class="signal-bento-icon" style="background:var(--bull-soft);color:var(--bull);">B</div>
+            <div class="signal-bento-name">Business</div>
+          </div>
+          <div class="signal-bento-ref" id="sig-business-val">—/100</div>
+        </div>
+        <p class="signal-bento-desc">Revenue, margins, cash flow, balance sheet health, and valuation — the company underneath the ticker. It's the slowest-moving of the four signals, and usually the most durable one.</p>
+      </div>
+      <div class="signal-bento reveal reveal-4" data-key="market">
+        <div class="signal-bento-head">
+          <div class="signal-bento-head-left">
+            <div class="signal-bento-icon" style="background:var(--accent-dim);color:var(--accent);">M</div>
+            <div class="signal-bento-name">Market</div>
+          </div>
+          <div class="signal-bento-ref" id="sig-market-val">—/100</div>
+        </div>
+        <p class="signal-bento-desc">Price already knows things the other three signals haven't caught up to yet. This measures momentum and extension relative to the stock's own range — whether the move looks fresh, or already stretched.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="live-ticker-wrap"><div class="live-ticker" id="live-ticker"></div></div>
+
+<section class="section" id="timeline">
+  <div class="wrap-wide">
+    <span class="section-kicker reveal">SIGNAL HISTORY</span>
+    <h2 class="section-title reveal reveal-1" id="tl-title">How the four signals have moved</h2>
+    <p class="section-sub reveal reveal-2">Every score, recorded daily since the engine started — nothing back-filled or cherry-picked.</p>
+    <div class="tl-legend reveal reveal-2" id="tl-legend"></div>
+    <div class="tl-card surface reveal reveal-3">
+      <div class="tl-chart-wrap" id="tl-chart-wrap"><div style="text-align:center;padding:60px 0;color:var(--text-faint);font-size:13px;">Loading signal history…</div></div>
+      <p class="tl-detail" id="tl-detail">Hover a point to see that day's real reading.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="explorer">
+  <div class="wrap-wide">
+    <span class="section-kicker reveal">SEE THE INTELLIGENCE FOR YOURSELF</span>
+    <h2 class="section-title reveal reveal-1">Pick any company we track.</h2>
+    <p class="section-sub reveal reveal-2">Same real data as the map above, for whichever one you want to look at.</p>
+
+    <div class="explorer-picker reveal reveal-2" id="explorer-picker"></div>
+
+    <div class="explorer-card surface reveal reveal-3" id="explorer-card">
+      <div style="text-align:center;padding:60px 0;color:var(--text-faint);font-size:13px;">Loading tracked companies…</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <span class="section-kicker reveal">WHY UNDERTOW</span>
+    <h2 class="section-title reveal reveal-1">Six things reconciled into one honest read</h2>
+    <div class="why-grid">
+      <div class="why-tile surface surface-hover reveal reveal-1"><h4>Retail sentiment</h4><p>StockTwits and Reddit, self-tagged bullish/bearish, cross-checked against Google Trends attention.</p></div>
+      <div class="why-tile surface surface-hover reveal reveal-2"><h4>Emerging narratives</h4><p>What's actually being said, filtered and ranked — not just headline volume.</p></div>
+      <div class="why-tile surface surface-hover reveal reveal-3"><h4>Analyst expectations</h4><p>Consensus ratings, price targets, and whether the tone is shifting.</p></div>
+      <div class="why-tile surface surface-hover reveal reveal-4"><h4>Business fundamentals</h4><p>Growth, profitability, cash flow, balance sheet, and valuation — scored transparently.</p></div>
+      <div class="why-tile surface surface-hover reveal reveal-1"><h4>Market behavior</h4><p>Momentum, extension, and volatility — what's already priced in.</p></div>
+      <div class="why-tile surface surface-hover reveal reveal-2"><h4>AI synthesis</h4><p>Reasoned, not formulaic — explains why the pillars agree or conflict, in plain language.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <span class="section-kicker reveal">HISTORICAL TRACK RECORD</span>
+    <h2 class="section-title reveal reveal-1">Every signal, timestamped — so it can be checked, not just trusted</h2>
+    <p class="section-sub reveal reveal-2">A competitor can copy the interface in a weekend. They can't copy years of recorded signals and what actually happened afterward.</p>
+    <div class="track-record-card surface reveal reveal-3">
+      <div class="track-record-steps">
+        <div class="track-step"><div class="track-step-num">01</div><div class="track-step-label">Every pillar score and divergence recorded daily, starting the day it's computed</div></div>
+        <div class="track-step"><div class="track-step-num">02</div><div class="track-step-label">Nothing back-filled or cherry-picked — the record starts when the engine does</div></div>
+        <div class="track-step"><div class="track-step-num">03</div><div class="track-step-label">Outcomes shown as they mature — 7 and 30 days first, 90 and 180 as they become real</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="padding-top:0;">
+  <div class="wrap">
+    <div class="cta-band reveal">
+      <h2>See what's moving now.</h2>
+      <p>Fresh every day — where the crowd, Wall Street, the business, and the market agree, and where they don't.</p>
+      <div class="hero-ctas"><a class="btn btn-primary" href="dashboard.html">Open the live dashboard →</a></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <a class="brand" href="index.html">
+        <div class="brand-mark"><svg width="15" height="15" viewBox="0 0 32 32" fill="none"><path d="M4,20 C8,11 12,11 16,17.5 C20,24 24,24 28,13" stroke="#3B82F6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <span class="brand-word">UNDERTOW</span>
+      </a>
+      <p>Market intelligence for the modern investor. An independent project, built in the open.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Product</h5>
+      <a href="dashboard.html">Live Dashboard</a>
+      <a href="dashboard.html#signals-block">Signals</a>
+      <a href="dashboard.html#watchlist">Watchlist</a>
+    </div>
+    <div class="footer-col">
+      <h5>Company</h5>
+      <a href="about.html">About</a>
+      <a href="careers.html">Careers</a>
+    </div>
+    <div class="footer-col">
+      <h5>Notes</h5>
+      <a href="about.html#disclaimer">Disclaimer</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© Undertow — personal, non-commercial project</span>
+    <span>Sentiment reflects retail chatter, not financial advice</span>
+  </div>
+</footer>
+
+<script>
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal:not(.visible)').forEach(el => obs.observe(el));
+
+// Nav: compact + faintly tinted once you've scrolled past the hero --
+// no blur (see the .nav-wrap.scrolled comment in <style> for why).
+const navWrapEl = document.querySelector('.nav-wrap');
+window.addEventListener('scroll', () => {
+  navWrapEl.classList.toggle('scrolled', window.scrollY > 24);
+}, { passive: true });
+
+// ============================================================
+// Live data — same Supabase tables/pattern already proven on
+// Dashboard/Sentiment/Stock Intelligence, wired here for the first time.
+// This is a public read via the anon key (already embedded client-side
+// on every other page); no auth, no write access.
+// ============================================================
+const SUPABASE_URL = 'https://kxgfwqteiosancwozcgo.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_13iV4lUM5MD5FaRxhvcWvA_Cv5gtAfI';
+const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function chgClass(chg) { return (chg === null || chg === undefined) ? 'na' : (chg >= 0 ? 'up' : 'down'); }
+function fmtChg(chg) {
+  if (chg === null || chg === undefined) return '—';
+  return `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`;
+}
+function flash(el) {
+  el.classList.remove('flash-update');
+  void el.offsetWidth; // restart the animation on repeated updates
+  el.classList.add('flash-update');
+}
+
+async function pollTape() {
+  try {
+    const { data, error } = await sbClient.from('ticker_snapshots').select('*');
+    if (error || !data) return;
+    const movers = data
+      .filter(t => t.change_pct !== null && t.change_pct !== undefined)
+      .sort((a, b) => Math.abs(b.change_pct) - Math.abs(a.change_pct))
+      .slice(0, 15);
+    const tapeEl = document.getElementById('tape');
+    const html = movers.map(t => {
+      const cls = chgClass(t.change_pct);
+      const arrow = cls === 'up' ? '▲' : '▼';
+      return `<span class="tape-item"><span class="sym">${t.ticker}</span> <span class="${cls}">${arrow} ${fmtChg(t.change_pct)}</span></span>`;
+    }).join('');
+    tapeEl.innerHTML = html + html;
+  } catch (e) {}
+}
+pollTape();
+setInterval(pollTape, 60000);
+
+// Key indices & commodities -- same quotes.json macro feed the dashboard's
+// Markets strip already reads (written by refresh_quotes.py every ~15min),
+// just not previously surfaced on the homepage. Real prices, not filler.
+const HERO_MACRO_SYMBOLS = [
+  ['^GSPC', 'S&P 500'], ['^IXIC', 'Nasdaq'], ['^DJI', 'Dow Jones'],
+  ['^VIX', 'VIX'], ['GC=F', 'Gold'], ['CL=F', 'Crude Oil'],
+];
+async function pollMacro() {
+  try {
+    const res = await fetch('quotes.json', { cache: 'no-store' });
+    if (!res.ok) return;
+    const payload = await res.json();
+    const macro = payload.macro || {};
+    const html = HERO_MACRO_SYMBOLS.map(([sym, label]) => {
+      const m = macro[sym];
+      const cls = m ? chgClass(m.change_pct) : 'na';
+      const val = m ? fmtChg(m.change_pct) : '—';
+      return `<div class="hero-macro-item"><span class="hero-macro-name">${label}</span><span class="hero-macro-val ${cls}">${val}</span></div>`;
+    }).join('');
+    document.getElementById('hero-macro-grid').innerHTML = html;
+  } catch (e) {}
+}
+pollMacro();
+setInterval(pollMacro, 60000);
+
+// Company Intelligence Map -- real 4-pillar scores AVERAGED across every
+// tracked company, not one arbitrary ticker. A single company's numbers
+// don't represent "the market"; this does. Real day-over-day movement
+// now that signal_history has accumulated multiple real days. Nothing
+// here is illustrative.
+const PILLAR_KEYS = ['crowd', 'wall_street', 'business', 'market'];
+const PILLAR_LABELS = { crowd: 'Crowd', wall_street: 'Wall Street', business: 'Business', market: 'Market' };
+const PILLAR_DESC = {
+  crowd: 'retail chatter across StockTwits, Reddit, and search interest',
+  wall_street: 'analyst consensus ratings and price targets',
+  business: 'revenue, margins, cash flow, balance sheet, and valuation',
+  market: 'momentum and extension relative to each company\'s own trading range',
+};
+
+// Lucide icons (ISC license), inlined -- trending-up / trending-down / minus
+const ICON_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></svg>';
+const ICON_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 17h6v-6"/><path d="m22 17-8.5-8.5-5 5L2 7"/></svg>';
+const ICON_FLAT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>';
+
+function scoreColor(v) {
+  if (v === null || v === undefined) return 'var(--text-faint)';
+  if (v >= 65) return 'var(--bull)';
+  if (v <= 40) return 'var(--bear)';
+  return 'var(--amber)';
+}
+// Same three buckets as scoreColor, named -- used to decide whether a
+// pillar actually agrees with the overall read (real, derived from the
+// same averages, not a separate metric).
+function bucket(v) {
+  if (v === null || v === undefined) return null;
+  if (v >= 65) return 'bull';
+  if (v <= 40) return 'bear';
+  return 'mixed';
+}
+const NODE_RING_CIRC = 282.74;
+const CENTER_RING_CIRC = 289.03;
+function setRing(el, val, circ) {
+  if (!el) return;
+  const pct = val === null || val === undefined ? 0 : Math.max(0, Math.min(100, val)) / 100;
+  el.style.strokeDashoffset = (circ * (1 - pct)).toFixed(2);
+  el.style.stroke = scoreColor(val);
+}
+function deltaIcon(d) {
+  if (d === null || Math.abs(d) < 0.5) return ICON_FLAT;
+  return d > 0 ? ICON_UP : ICON_DOWN;
+}
+function deltaColor(d) {
+  if (d === null || Math.abs(d) < 0.5) return 'var(--text-faint)';
+  return d > 0 ? 'var(--bull)' : 'var(--bear)';
+}
+
+let imapAnimated = false;
+let pillarDeltas = {};
+let heroLastUpdated = null;
+
+// "UPDATED 12S AGO" -- a real, ticking readout of how stale the hero
+// visualization actually is, not a decorative label. Set once pollHero()
+// genuinely succeeds below; this interval just re-renders the elapsed time.
+function tickHeroUpdated() {
+  const el = document.getElementById('hero-updated');
+  if (!el || heroLastUpdated === null) return;
+  const secs = Math.round((Date.now() - heroLastUpdated) / 1000);
+  el.textContent = secs < 5 ? 'JUST NOW' : secs < 60 ? `${secs}S AGO` : `${Math.round(secs / 60)}M AGO`;
+}
+setInterval(tickHeroUpdated, 1000);
+
+function average(nums) {
+  const present = nums.filter(v => v !== null && v !== undefined);
+  return present.length ? present.reduce((a, b) => a + b, 0) / present.length : null;
+}
+
+// Live signal ticker -- built from the exact same pillarDeltas/overall
+// pollHero() already computed for the hero diagram this same cycle, not
+// a second fetch. Duplicated once (html+html) for a seamless scroll loop,
+// same technique as the top movers tape.
+function renderLiveTicker({ overall, tag, breadth, divergingTickers }) {
+  const el = document.getElementById('live-ticker');
+  if (!el) return;
+  const items = [];
+  PILLAR_KEYS.forEach(key => {
+    const d = pillarDeltas[key];
+    if (!d || d.val === null || d.val === undefined) return;
+    const flat = d.delta === null || Math.abs(d.delta) < 0.5;
+    const deltaText = d.delta === null ? '' : flat ? ' FLAT' : ` ${d.delta > 0 ? '▲' : '▼'}${Math.abs(d.delta).toFixed(1)}`;
+    const deltaColorVal = d.delta === null ? 'var(--text-faint)' : flat ? 'var(--text-faint)' : deltaColor(d.delta);
+    items.push(`<span class="lt-item"><span class="lt-label">${PILLAR_LABELS[key]}</span><span class="lt-val" style="color:${scoreColor(d.val)}">${Math.round(d.val)}</span><span style="color:${deltaColorVal};font-weight:700;">${deltaText}</span></span>`);
+  });
+  items.push(`<span class="lt-item"><span class="lt-label">Overall</span><span class="lt-val" style="color:${scoreColor(overall)}">${overall === null ? '—' : Math.round(overall)}/100</span><span style="color:var(--text-faint);">${tag ? tag.toUpperCase() : ''}</span></span>`);
+  items.push(`<span class="lt-item"><span class="lt-val">${breadth || '—'}</span><span class="lt-label">Up Today</span></span>`);
+  items.push(divergingTickers.length
+    ? `<span class="lt-item"><span class="lt-val" style="color:var(--accent);">${divergingTickers.length}</span><span class="lt-label">Diverging · ${divergingTickers.join(', ')}</span></span>`
+    : `<span class="lt-item"><span class="lt-label">No divergences flagged today</span></span>`);
+  const html = items.join('<span class="lt-sep">·</span>');
+  el.innerHTML = html + '<span class="lt-sep">·</span>' + html;
+}
+
+async function pollHero() {
+  try {
+    // Real cross-portfolio aggregates -- every tracked company's pillar
+    // scores for today and the most recent prior day, averaged. This is
+    // "the market" as our data actually sees it, not one company's read.
+    // 60 rows is comfortably 2 full days for a 30-company watchlist.
+    const [{ data: recentSignals }, { data: snaps }] = await Promise.all([
+      sbClient.from('signal_history').select('*').order('date', { ascending: false }).limit(60),
+      sbClient.from('ticker_snapshots').select('*'),
+    ]);
+
+    if (!recentSignals || !recentSignals.length) return;
+    const latestDate = recentSignals[0].date;
+    const priorDates = [...new Set(recentSignals.map(r => r.date))].filter(d => d !== latestDate).sort().reverse();
+    const priorDate = priorDates[0] || null;
+    const todayRows = recentSignals.filter(r => r.date === latestDate);
+    const priorRows = priorDate ? recentSignals.filter(r => r.date === priorDate) : [];
+
+    PILLAR_KEYS.forEach(key => {
+      const val = average(todayRows.map(r => r[key]));
+      const prev = priorRows.length ? average(priorRows.map(r => r[key])) : null;
+      const delta = (val !== null && prev !== null) ? (val - prev) : null;
+      pillarDeltas[key] = { val, delta };
+
+      const valEl = document.getElementById(`node-${key}`);
+      const text = (val === null) ? '—' : Math.round(val);
+      valEl.textContent = text;
+      valEl.style.color = scoreColor(val);
+      setRing(document.getElementById(`ring-${key}`), val, NODE_RING_CIRC);
+
+      const deltaEl = document.getElementById(`delta-${key}`);
+      const deltaHtml = delta === null ? '' : deltaIcon(delta) + `<span>${Math.abs(delta) < 0.5 ? 'Flat' : (delta > 0 ? '+' : '') + delta.toFixed(1)}</span>`;
+      if (delta === null) {
+        deltaEl.innerHTML = '';
+      } else {
+        deltaEl.innerHTML = deltaHtml;
+        deltaEl.style.color = deltaColor(delta);
+      }
+
+      // Four Signals section below -- a small reference chip only (the
+      // score's real home is the hero diagram above); this section's job
+      // is the explanation, not a second display of the number.
+      const bentoRefEl = document.getElementById(`sig-${key}-val`);
+      if (bentoRefEl) { bentoRefEl.textContent = `${text}/100`; }
+    });
+
+    const overall = average(PILLAR_KEYS.map(k => pillarDeltas[k].val));
+    document.getElementById('imap-overall').textContent = overall === null ? '—' : Math.round(overall);
+    const tagEl = document.getElementById('imap-tag');
+    tagEl.textContent = overall === null ? 'No data' : (overall >= 65 ? 'Bullish' : overall <= 40 ? 'Bearish' : 'Mixed');
+    tagEl.style.color = scoreColor(overall);
+    setRing(document.getElementById('ring-overall'), overall, CENTER_RING_CIRC);
+
+    // Alignment count only -- NOT reflected in line color anymore. It
+    // was, briefly: a pillar's line lit up in its own scoreColor when
+    // its bucket matched the overall, muted gray otherwise. That put two
+    // conflicting color meanings on the same diagram (ring color = this
+    // pillar's own score; line color = agreement with the group), so a
+    // bullish-green ring could sit on a muted-gray line, which reads as
+    // a bug, not a signal (caught live). Lines are now a single neutral
+    // connector style; the "which pillar disagrees" story is told by the
+    // X/4 ALIGNED text below and the hover detail, not by a second color
+    // channel fighting the first.
+    const overallBucket = bucket(overall);
+    let alignedCount = 0;
+    PILLAR_KEYS.forEach(key => {
+      const val = pillarDeltas[key].val;
+      if (overallBucket !== null && bucket(val) === overallBucket) alignedCount++;
+    });
+    const alignEl = document.getElementById('imap-align');
+    if (alignEl) {
+      alignEl.textContent = overall === null ? '' : `${alignedCount}/4 SIGNALS ALIGNED`;
+    }
+
+    // Spread -- the gap between the strongest and weakest pillar today.
+    // Directly quantifies "how much do the signals disagree", the same
+    // real numbers already on the page, just differenced.
+    const presentVals = PILLAR_KEYS.map(k => pillarDeltas[k].val).filter(v => v !== null && v !== undefined);
+    const spreadEl = document.getElementById('imap-spread-val');
+    if (spreadEl) {
+      if (presentVals.length >= 2) {
+        const spread = Math.max(...presentVals) - Math.min(...presentVals);
+        spreadEl.textContent = `${Math.round(spread)} PTS`;
+        spreadEl.style.color = spread >= 20 ? 'var(--amber)' : 'var(--text-primary)';
+      } else {
+        spreadEl.textContent = '—';
+        spreadEl.style.color = 'var(--text-faint)';
+      }
+    }
+
+    // Biggest shift -- whichever pillar moved most since yesterday, real
+    // delta already computed above, just picking the max by magnitude.
+    const shiftEl = document.getElementById('imap-shift-val');
+    if (shiftEl) {
+      const withDelta = PILLAR_KEYS.filter(k => pillarDeltas[k].delta !== null && pillarDeltas[k].delta !== undefined);
+      if (withDelta.length) {
+        const biggestKey = withDelta.reduce((a, b) => Math.abs(pillarDeltas[b].delta) > Math.abs(pillarDeltas[a].delta) ? b : a);
+        const d = pillarDeltas[biggestKey].delta;
+        const sign = d >= 0 ? '+' : '';
+        shiftEl.innerHTML = `<span style="color:var(--text-secondary);font-weight:700;">${PILLAR_LABELS[biggestKey]}</span> <span style="color:${deltaColor(d)}">${sign}${d.toFixed(1)}</span>`;
+      } else {
+        shiftEl.textContent = '—';
+      }
+    }
+
+    const trackedCount = todayRows.length;
+    document.getElementById('hero-ticker-name').textContent = trackedCount;
+    document.getElementById('stat-tracked').textContent = trackedCount;
+
+    if (snaps && snaps.length) {
+      const withChange = snaps.filter(s => s.change_pct !== null && s.change_pct !== undefined);
+      const upCount = withChange.filter(s => s.change_pct > 0).length;
+      document.getElementById('stat-breadth').textContent = withChange.length ? `${upCount}/${withChange.length}` : '—';
+    }
+    const divergingTickers = todayRows.filter(r => r.divergence).map(r => r.ticker);
+    document.getElementById('stat-diverging').textContent = divergingTickers.length;
+
+    renderLiveTicker({
+      overall,
+      tag: tagEl.textContent,
+      breadth: document.getElementById('stat-breadth').textContent,
+      divergingTickers,
+    });
+
+    if (!imapAnimated) {
+      imapAnimated = true;
+      document.querySelectorAll('.imap-line').forEach((el, i) => setTimeout(() => el.classList.add('drawn'), i * 90));
+      document.querySelectorAll('.imap-node').forEach((el, i) => setTimeout(() => el.classList.add('in'), 260 + i * 110));
+      document.querySelectorAll('.imap-badge').forEach((el, i) => setTimeout(() => el.classList.add('in'), 700 + i * 140));
+    }
+    heroLastUpdated = Date.now();
+    tickHeroUpdated();
+  } catch (e) {}
+}
+pollHero();
+setInterval(pollHero, 60000);
+
+// Hover a signal -> focus it, dim the rest, explain what it measures and
+// what really changed since yesterday's real snapshot.
+const imapEl = document.getElementById('imap');
+const imapDetailEl = document.getElementById('imap-detail');
+document.querySelectorAll('.imap-node').forEach(node => {
+  const key = node.dataset.key;
+  node.addEventListener('mouseenter', () => {
+    imapEl.classList.add('hovering');
+    node.classList.add('focused');
+    document.querySelector(`.imap-line[data-key="${key}"]`).classList.add('active');
+    const d = pillarDeltas[key];
+    const label = PILLAR_LABELS[key];
+    if (d && d.val !== null && d.val !== undefined) {
+      const deltaText = d.delta === null ? 'no prior-day comparison yet'
+        : Math.abs(d.delta) < 0.5 ? 'unchanged since yesterday, on average'
+        : `${d.delta > 0 ? 'up' : 'down'} ${Math.abs(d.delta).toFixed(1)} points since yesterday, on average`;
+      imapDetailEl.innerHTML = `<strong>${label}: ${Math.round(d.val)}/100 average</strong> — ${deltaText}. Measures ${PILLAR_DESC[key]}.`;
+    }
+  });
+  node.addEventListener('mouseleave', () => {
+    imapEl.classList.remove('hovering');
+    node.classList.remove('focused');
+    document.querySelector(`.imap-line[data-key="${key}"]`).classList.remove('active');
+    imapDetailEl.textContent = 'Hover a signal to see what changed since yesterday.';
+  });
+});
+
+// ============================================================
+// Real per-ticker divergence classification (signal_history.divergence,
+// written by the same classify_divergence() logic the daily pipeline
+// runs) -- shared by the Interactive Stock Explorer below.
+// ============================================================
+const ICON_FLAME = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/></svg>';
+const ICON_WARN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+const ICON_GEM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 3 8 9l4 13 4-13-2.5-6"/><path d="M17 3a2 2 0 0 1 1.6.8l3 4a2 2 0 0 1 .013 2.382l-7.99 10.986a2 2 0 0 1-3.247 0l-7.99-10.986A2 2 0 0 1 2.4 7.8l2.998-3.997A2 2 0 0 1 7 3z"/><path d="M2 9h20"/></svg>';
+
+const DIVERGENCE_COPY = {
+  emerging_consensus: {
+    label: 'Emerging Consensus', cls: 'up', icon: ICON_FLAME,
+    headline: 'All four signals point the same way.',
+    detail: p => `Crowd, Wall Street, the business, and the market are aligned — a rare full consensus across independent sources worth paying attention to.`,
+  },
+  retail_euphoria: {
+    label: 'Retail Euphoria', cls: 'warn', icon: ICON_WARN,
+    headline: 'Retail conviction is running ahead of the rest.',
+    detail: p => `The crowd is bullish, but Wall Street and the business fundamentals haven't confirmed it yet — worth understanding before following the crowd alone.`,
+  },
+  fundamental_deterioration: {
+    label: 'Fundamental Deterioration', cls: 'down', icon: ICON_DOWN,
+    headline: 'Price and chatter are up, but the business is weakening.',
+    detail: p => `Sentiment and momentum are strong while the underlying business metrics are not — a gap worth watching before it closes.`,
+  },
+  under_the_radar: {
+    label: 'Under-the-Radar', cls: 'info', icon: ICON_GEM,
+    headline: 'Professionals like this more than retail has noticed.',
+    detail: p => `Wall Street and the fundamentals are both strong, but retail attention hasn't caught up yet.`,
+  },
+};
+
+// Fetches real signal_history, feeds the Timeline chart and the
+// Explorer's ticker list/default selection. Both live on this one poll
+// so there's a single fetch behind two sections, not two.
+async function loadSignalHistory() {
+  try {
+    const { data: rows } = await sbClient.from('signal_history').select('*').order('date', { ascending: false }).limit(900);
+    if (!rows || !rows.length) return;
+
+    const latestDate = rows[0].date;
+    const todayRows = rows.filter(r => r.date === latestDate);
+    if (!todayRows.length) return;
+
+    renderSignalTimeline(rows);
+
+    // Explorer's default selection -- today's widest real pillar spread
+    // among genuinely flagged tickers, so it opens on the most
+    // interesting real story rather than an arbitrary first ticker.
+    const flaggedRows = todayRows.filter(r => r.divergence);
+    let featuredTicker = null;
+    if (flaggedRows.length) {
+      const spreadOf = r => {
+        const vals = PILLAR_KEYS.map(k => r[k]).filter(v => v !== null && v !== undefined);
+        return vals.length ? Math.max(...vals) - Math.min(...vals) : 0;
+      };
+      featuredTicker = flaggedRows.sort((a, b) => spreadOf(b) - spreadOf(a))[0].ticker;
+    }
+
+    initStockExplorer(todayRows, featuredTicker);
+  } catch (e) {}
+}
+loadSignalHistory();
+setInterval(loadSignalHistory, 60000);
+
+// ============================================================
+// Signal History Timeline -- real daily cross-portfolio averages, built
+// from the same `rows` loadSignalHistory() already fetched (no second
+// query). Honest about however many real days actually exist.
+// ============================================================
+const TIMELINE_SERIES = [
+  { key: 'crowd', color: 'var(--accent)' },
+  { key: 'wall_street', color: 'var(--amber)' },
+  { key: 'business', color: 'var(--bull)' },
+  { key: 'market', color: 'var(--gray)' },
+];
+
+function buildTimelineChart(dailyAverages) {
+  const width = 720, height = 260;
+  const padL = 34, padR = 20, padT = 20, padB = 32;
+  const plotW = width - padL - padR, plotH = height - padT - padB;
+  const n = dailyAverages.length;
+  const stepX = n > 1 ? plotW / (n - 1) : 0;
+  const xAt = i => padL + i * stepX;
+  const yAt = v => padT + plotH - (Math.max(0, Math.min(100, v)) / 100) * plotH;
+
+  const gridSvg = [0, 25, 50, 75, 100].map(v => {
+    const y = yAt(v);
+    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + plotW}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"/><text x="${padL - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end" class="chart-axis-label">${v}</text>`;
+  }).join('');
+
+  let linesSvg = '', dotsSvg = '';
+  TIMELINE_SERIES.forEach(s => {
+    const pts = dailyAverages.map((d, i) => (d[s.key] === null || d[s.key] === undefined) ? null : `${xAt(i).toFixed(1)},${yAt(d[s.key]).toFixed(1)}`).filter(Boolean).join(' ');
+    linesSvg += `<polyline class="tl-line" points="${pts}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke-dasharray:1400;stroke-dashoffset:1400;"/>`;
+    dailyAverages.forEach((d, i) => {
+      if (d[s.key] === null || d[s.key] === undefined) return;
+      dotsSvg += `<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(d[s.key]).toFixed(1)}" r="3" fill="${s.color}"/>`;
+    });
+  });
+
+  const dateSvg = dailyAverages.map((d, i) => `<text x="${xAt(i).toFixed(1)}" y="${height - 8}" text-anchor="middle" class="chart-date-label">${d.date.slice(5).replace('-', '/')}</text>`).join('');
+  const hitAreas = dailyAverages.map((d, i) => `<rect class="tl-hit" data-i="${i}" x="${(xAt(i) - (stepX || plotW) / 2).toFixed(1)}" y="${padT}" width="${(stepX || plotW).toFixed(1)}" height="${plotH}" fill="transparent"/>`).join('');
+
+  const svg = `<svg id="tl-svg" width="100%" viewBox="0 0 ${width} ${height}" style="display:block;overflow:visible;">
+      ${gridSvg}${linesSvg}${dotsSvg}${dateSvg}${hitAreas}
+      <line id="tl-crosshair" x1="0" y1="${padT}" x2="0" y2="${padT + plotH}" stroke="var(--text-faint)" stroke-width="1" stroke-dasharray="3 3" style="display:none;"/>
+    </svg>`;
+  return svg;
+}
+
+function attachTimelineHover(dailyAverages) {
+  const svg = document.getElementById('tl-svg');
+  const crosshair = document.getElementById('tl-crosshair');
+  const detailEl = document.getElementById('tl-detail');
+  if (!svg) return;
+  svg.querySelectorAll('.tl-hit').forEach(rect => {
+    const i = +rect.dataset.i;
+    const d = dailyAverages[i];
+    rect.addEventListener('mouseenter', () => {
+      const x = rect.x.baseVal.value + rect.width.baseVal.value / 2;
+      crosshair.setAttribute('x1', x); crosshair.setAttribute('x2', x);
+      crosshair.style.display = 'block';
+      const parts = PILLAR_KEYS.map(k => `${PILLAR_LABELS[k]} ${(d[k] === null || d[k] === undefined) ? '—' : Math.round(d[k])}`).join(' · ');
+      detailEl.innerHTML = `<strong>${d.date}</strong> — ${parts}`;
+    });
+  });
+  svg.addEventListener('mouseleave', () => {
+    crosshair.style.display = 'none';
+    detailEl.textContent = "Hover a point to see that day's real reading.";
+  });
+}
+
+function renderSignalTimeline(rows) {
+  const wrapEl = document.getElementById('tl-chart-wrap');
+  const titleEl = document.getElementById('tl-title');
+  const legendEl = document.getElementById('tl-legend');
+  if (!wrapEl) return;
+  const chronoDates = [...new Set(rows.map(r => r.date))].sort();
+  if (chronoDates.length < 2) {
+    wrapEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--text-faint);font-size:13px;">Signal history is still accumulating — check back after a few more days.</div>`;
+    if (legendEl) legendEl.innerHTML = '';
+    return;
+  }
+  if (titleEl) titleEl.textContent = `${chronoDates.length} real days of signal history, and counting`;
+  if (legendEl) {
+    legendEl.innerHTML = TIMELINE_SERIES.map(s => `<span class="tl-legend-item"><span class="tl-legend-dot" style="background:${s.color}"></span>${PILLAR_LABELS[s.key]}</span>`).join('');
+  }
+
+  const dailyAverages = chronoDates.map(d => {
+    const dayRows = rows.filter(r => r.date === d);
+    const avg = { date: d };
+    PILLAR_KEYS.forEach(k => { avg[k] = average(dayRows.map(r => r[k])); });
+    return avg;
+  });
+
+  wrapEl.innerHTML = buildTimelineChart(dailyAverages);
+  wrapEl.querySelectorAll('.tl-line').forEach((el, i) => {
+    setTimeout(() => {
+      el.style.transition = 'stroke-dashoffset 1.2s cubic-bezier(.16,.8,.24,1)';
+      el.style.strokeDashoffset = '0';
+    }, i * 150);
+  });
+  attachTimelineHover(dailyAverages);
+}
+
+// ============================================================
+// Interactive Stock Explorer -- picker built from the same real
+// todayRows loadSignalHistory() already fetched, so every pill has real
+// data behind it (never a guessed/hardcoded ticker list). Snapshots and
+// quotes.json are each fetched once and cached; only the currently
+// selected ticker re-renders on each poll cycle.
+// ============================================================
+let explorerInitialized = false;
+let explorerCurrentTicker = null;
+const EXPLORER_ROWS = {};
+let EXPLORER_SNAPSHOTS = {};
+let EXPLORER_QUOTES = {};
+
+async function initStockExplorer(todayRows, featuredTicker) {
+  const pickerEl = document.getElementById('explorer-picker');
+  const cardEl = document.getElementById('explorer-card');
+  if (!pickerEl || !cardEl || !todayRows.length) return;
+
+  todayRows.forEach(r => { EXPLORER_ROWS[r.ticker] = r; });
+
+  if (explorerInitialized) {
+    if (explorerCurrentTicker) selectExplorerTicker(explorerCurrentTicker);
+    return;
+  }
+  explorerInitialized = true;
+
+  try {
+    const [{ data: snaps }, quotesPayload] = await Promise.all([
+      sbClient.from('ticker_snapshots').select('*'),
+      fetch('quotes.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]);
+    if (snaps) snaps.forEach(s => { EXPLORER_SNAPSHOTS[s.ticker] = s; });
+    if (quotesPayload && quotesPayload.quotes) EXPLORER_QUOTES = quotesPayload.quotes;
+  } catch (e) {}
+
+  const tickers = Object.keys(EXPLORER_ROWS).sort();
+  pickerEl.innerHTML = tickers.map(t => `<button type="button" class="explorer-pill" data-t="${t}">${t}</button>`).join('');
+  pickerEl.querySelectorAll('.explorer-pill').forEach(btn => {
+    btn.addEventListener('click', () => selectExplorerTicker(btn.dataset.t));
+  });
+
+  const initial = (featuredTicker && EXPLORER_ROWS[featuredTicker]) ? featuredTicker : tickers[0];
+  if (initial) selectExplorerTicker(initial);
+}
+
+function buildSparkline(points) {
+  const width = 400, height = 100;
+  const vals = points.map(p => p.close);
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const range = (max - min) || 1;
+  const stepX = width / (points.length - 1);
+  const yAt = v => height - ((v - min) / range) * (height - 10) - 5;
+  const pts = points.map((p, i) => `${(i * stepX).toFixed(1)},${yAt(p.close).toFixed(1)}`).join(' ');
+  const areaPts = `0,${height} ${pts} ${width},${height}`;
+  const up = vals[vals.length - 1] >= vals[0];
+  const color = up ? 'var(--bull)' : 'var(--bear)';
+  return `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="width:100%;height:100%;display:block;">
+    <polygon points="${areaPts}" fill="${color}" opacity="0.08"/>
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+function selectExplorerTicker(ticker) {
+  explorerCurrentTicker = ticker;
+  document.querySelectorAll('.explorer-pill').forEach(b => b.classList.toggle('active', b.dataset.t === ticker));
+
+  const cardEl = document.getElementById('explorer-card');
+  const row = EXPLORER_ROWS[ticker];
+  if (!cardEl || !row) return;
+
+  const snap = EXPLORER_SNAPSHOTS[ticker];
+  const price = snap ? snap.price : row.price;
+  const chg = (snap && snap.change_pct !== null && snap.change_pct !== undefined) ? snap.change_pct : null;
+  const q = EXPLORER_QUOTES[ticker];
+  const sparkHtml = (q && q.intraday && q.intraday.length >= 2)
+    ? buildSparkline(q.intraday)
+    : `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-faint);font-size:12px;">Chart unavailable right now</div>`;
+
+  const pillarsHtml = PILLAR_KEYS.map(k => {
+    const v = row[k];
+    const text = (v === null || v === undefined) ? '—' : Math.round(v);
+    return `<div class="explorer-pillar-row"><span class="explorer-pillar-name">${PILLAR_LABELS[k]}</span><span class="explorer-pillar-num" style="color:${scoreColor(v)}">${text}</span></div>`;
+  }).join('');
+
+  let readHtml;
+  if (row.divergence && DIVERGENCE_COPY[row.divergence]) {
+    const copy = DIVERGENCE_COPY[row.divergence];
+    readHtml = `<span class="divergence-pattern-badge ${copy.cls}" style="margin-bottom:12px;">${copy.icon}${copy.label}</span><div class="explorer-read-text"><strong>${copy.headline}</strong> ${copy.detail(row)}</div>`;
+  } else {
+    const vals = PILLAR_KEYS.map(k => row[k]).filter(v => v !== null && v !== undefined);
+    const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    const b = bucket(avg);
+    const readText = b === 'bull' ? 'a bullish read' : b === 'bear' ? 'a bearish read' : 'a mixed read';
+    readHtml = `<div class="explorer-read-text"><strong>Crowd, Wall Street, Business, and Market are broadly aligned</strong> around ${readText} today — no real divergence flagged.</div>`;
+  }
+
+  cardEl.innerHTML = `
+    <div class="divergence-ticker">
+      <div class="divergence-ticker-avatar" style="width:48px;height:48px;"><img src="logos/${ticker}.png" alt="" onerror="this.style.display='none'"></div>
+      <div>
+        <div class="divergence-ticker-sym" style="font-size:18px;">${ticker}</div>
+        <div class="explorer-price">${price ? '$' + Number(price).toFixed(2) : '—'}</div>
+        ${chg !== null ? `<div class="explorer-chg ${chgClass(chg)}">${fmtChg(chg)}</div>` : ''}
+      </div>
+    </div>
+    <div class="explorer-spark-wrap">${sparkHtml}</div>
+    <div class="explorer-body">
+      <div class="explorer-pillars">${pillarsHtml}</div>
+      <div>
+        <div class="explorer-read-label">Intelligence</div>
+        ${readHtml}
+        <a class="explorer-cta" href="stock.html?t=${ticker}">Full breakdown on ${ticker} →</a>
+      </div>
+    </div>`;
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,47 @@
+{#
+  Shared app-page nav — Site Redesign Reset, Phase 1.
+  Replaces three hand-copied <nav class="site-nav"> blocks (dashboard/
+  sentiment/stock templates) with one source. Deliberately preserves each
+  page's real, pre-existing differences (dashboard's in-page anchors,
+  sentiment's lack of a search box) rather than silently redesigning nav
+  content -- that's Phase 2's job. Two genuine bugs/gaps ARE fixed here,
+  both already decided rather than assumed: the brand link on
+  stock_template.html pointed at dashboard.html instead of index.html
+  (every other page points home; no reason found for stock to differ,
+  treated as a bug) and stock_template.html had no nav-auth element at
+  all (Phase 3's "finish accounts everywhere" decision requires it).
+
+  Params:
+    active_page: 'dashboard' | 'sentiment' | 'stock'
+#}
+<nav class="site-nav">
+  <a class="site-brand" href="index.html">
+    <div class="site-brand-mark">
+      <svg width="15" height="15" viewBox="0 0 32 32" fill="none">
+        <path d="M4,20 C8,11 12,11 16,17.5 C20,24 24,24 28,13" stroke="#3B82F6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="site-brand-word">UNDERTOW</span>
+  </a>
+  {% if active_page == 'dashboard' %}
+  <div class="site-nav-links" id="quicknav">
+    <a href="#markets-strip">Markets</a>
+    <a href="#news-condensed">News</a>
+    <a href="#signals-block" id="nav-signals">Signals</a>
+    <a href="sentiment.html">Sentiment Intelligence</a>
+  </div>
+  {% else %}
+  <div class="site-nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="sentiment.html"{% if active_page == 'sentiment' %} class="active" aria-current="page"{% endif %}>Sentiment Intelligence</a>
+  </div>
+  {% endif %}
+  {% if active_page != 'sentiment' %}
+  <div class="nav-search">
+    <span class="nav-search-icon">⌕</span>
+    <input type="text" id="nav-search-input" placeholder="Search ticker or company..." autocomplete="off">
+    <div class="nav-search-results" id="nav-search-results"></div>
+  </div>
+  {% endif %}
+  <div class="nav-auth" id="nav-auth"></div>
+</nav>

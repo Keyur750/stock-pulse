@@ -31,7 +31,7 @@ RESPONSE_SCHEMA = {
                             "below should be the *conclusions* of this reasoning, not a "
                             "restatement of the input numbers.",
         },
-        "overall_score": {"type": "integer", "description": "0-100, overall investment-worthiness read"},
+        "ai_score": {"type": "integer", "description": "0-100, your own independent overall investment-worthiness read. This is a separate, complementary number from the site's systematic composite_score (a deterministic weighted blend of the four pillar scores, computed outside this call) -- give your own genuine judgment here, not a guess at what the composite would say."},
         "verdict": {"type": "string", "description": "One sharp, specific phrase — not generic. Bad: 'Strong company with some risk.' Good: 'Ad-driven cash machine funding a capex bet the market hasn't fully priced.'"},
         "summary": {"type": "string", "description": "3-5 sentences, written for a retail investor. Must include at least one specific named thing (a product, a competitor, a lawsuit, a segment) — not just growth/margin percentages restated in prose."},
         "bullish_factors": {"type": "array", "items": {"type": "string"}, "description": "4-6 reasons to be optimistic. Each must be a full sentence explaining WHY it matters, not a restated stat. Bad: '28% revenue growth.' Good: '28% revenue growth is unusually strong for a company already this large, suggesting the core ad business isn't maturing yet.'"},
@@ -50,7 +50,7 @@ RESPONSE_SCHEMA = {
             "required": ["crowd", "wall_street", "business", "market"],
         },
     },
-    "required": ["reasoning", "overall_score", "verdict", "summary", "bullish_factors", "bearish_factors", "key_risks", "key_catalysts", "pillar_reads"],
+    "required": ["reasoning", "ai_score", "verdict", "summary", "bullish_factors", "bearish_factors", "key_risks", "key_catalysts", "pillar_reads"],
 }
 
 PROMPT_TEMPLATE = """You are a senior equity research analyst — the kind whose notes \

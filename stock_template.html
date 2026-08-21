@@ -8,39 +8,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- Site Redesign Reset, Phase 1: tokens + nav/auth CSS now live in one
+     place (design/tokens.css, design/components.css), copied into docs/
+     at generation time -- see design/COMPONENT_INVENTORY.md. -->
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
 <style>
-  :root {
-    --bg-primary: #0B1626;
-    --bg-secondary: #0F1C2E;
-    --surface-1: #101C2D;
-    --surface-2: #142238;
-    --surface-3: #17263D;
-    --text-primary: #F5F7FA;
-    --text-secondary: #94A3B8;
-    --text-faint: #5B6B84;
-    --border: #22324A;
-    --border-hover: #314764;
-    --accent: #3B82F6;
-    --accent-dim: rgba(59,130,246,0.10);
-    --accent-soft: rgba(59,130,246,0.16);
-    --accent-border: rgba(59,130,246,0.30);
-    --bull: #10B981;
-    --bull-soft: rgba(16,185,129,0.12);
-    --bull-border: rgba(16,185,129,0.30);
-    --bear: #EF4444;
-    --bear-soft: rgba(239,68,68,0.12);
-    --bear-border: rgba(239,68,68,0.30);
-    --amber: #F59E0B;
-    --amber-soft: rgba(245,158,11,0.12);
-    --amber-border: rgba(245,158,11,0.32);
-    --gray: #64748B;
-    --gray-soft: rgba(100,116,139,0.14);
-    --radius-sm: 8px;
-    --radius-md: 10px;
-    --radius-lg: 12px;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.24);
-    --shadow-md: 0 8px 24px -8px rgba(0,0,0,0.45);
-  }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
@@ -69,31 +42,10 @@
   .ticker-link { text-decoration: none; cursor: pointer; }
   .ticker-link:hover { color: var(--accent); }
 
-  /* Site nav */
-  .site-nav-wrap { position: sticky; top: 0; z-index: 30; background: rgba(11,22,38,0.92); backdrop-filter: blur(14px) saturate(140%); border-bottom: 1px solid var(--border); }
-  .site-nav { max-width: 1520px; margin: 0 auto; padding: 12px clamp(20px, 3vw, 40px); display: flex; align-items: center; gap: 28px; }
-  .site-brand { display: flex; align-items: center; gap: 9px; text-decoration: none; flex-shrink: 0; }
-  .site-brand-mark { width: 28px; height: 28px; border-radius: 7px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .site-brand-word { font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em; color: var(--text-primary); }
-  .site-nav-links { display: flex; align-items: center; gap: 2px; flex: 1; overflow-x: auto; }
-  .site-nav-links a { font-size: 13px; font-weight: 500; color: var(--text-secondary); text-decoration: none; padding: 7px 12px; border-radius: var(--radius-sm); white-space: nowrap; transition: color .15s ease, background-color .15s ease; }
-  .site-nav-links a:hover { color: var(--text-primary); background: var(--surface-2); }
-  .site-nav-links a.active { color: var(--accent); background: var(--accent-dim); }
-  .nav-search { position: relative; width: 220px; flex-shrink: 0; }
-  .nav-search input {
-    width: 100%; background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-sm);
-    color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 13px; padding: 7px 12px 7px 30px;
-    outline: none; transition: border-color .15s ease, background-color .15s ease;
-  }
-  .nav-search input::placeholder { color: var(--text-faint); }
-  .nav-search input:focus { border-color: var(--accent-border); background: var(--surface-2); }
-  .nav-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-faint); font-size: 13px; pointer-events: none; }
-  .nav-search-results { position: absolute; top: calc(100% + 6px); right: 0; width: 300px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-md); display: none; overflow: hidden; z-index: 40; }
-  .search-result { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border); }
-  .search-result:last-child { border-bottom: none; }
-  .search-result:hover { background: var(--surface-3); }
-  .search-result-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
-  .search-empty { padding: 14px; font-size: 12.5px; color: var(--text-faint); text-align: center; }
+  /* Site nav + auth CSS now in design/components.css. Phase 1 also adds
+     the auth modal (login/signup) to this page for the first time --
+     it had none before, the one real gap Phase 3 ("finish accounts
+     everywhere") required closing. */
   @media (max-width: 700px) { .nav-search { display: none; } }
 
   main { max-width: 1400px; margin: 0 auto; padding: 18px clamp(20px, 3vw, 40px) 60px; }
@@ -153,6 +105,11 @@
   .stock-ai-score.up { color: var(--bull); } .stock-ai-score.down { color: var(--bear); } .stock-ai-score.na { color: var(--amber); }
   .stock-ai-score-label { font-size: 13px; color: var(--text-faint); }
   .stock-ai-label { font-size: 10.5px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; border-left: 1px solid var(--border); padding-left: 16px; line-height: 1.4; }
+  /* AI's own independent score, secondary to the systematic composite
+     above it (Overall Score Reset, Phase 1, Decision 1) -- same
+     border-left column as .stock-ai-label, quieter styling since it's
+     the supplementary read, not the primary number. */
+  .stock-ai-secondary { font-size: 11px; color: var(--text-faint); border-left: 1px solid var(--border); padding-left: 16px; margin-top: 4px; }
   @media (max-width: 700px) { .stock-ai-block { margin-left: 0; } }
 
   .sentiment-strip { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -344,26 +301,9 @@
 
 <div class="tape-wrap"><div class="tape" id="tape"></div></div>
 <div class="site-nav-wrap">
-  <nav class="site-nav">
-    <a class="site-brand" href="dashboard.html">
-      <div class="site-brand-mark">
-        <svg width="15" height="15" viewBox="0 0 32 32" fill="none">
-          <path d="M4,20 C8,11 12,11 16,17.5 C20,24 24,24 28,13" stroke="#3B82F6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <span class="site-brand-word">UNDERTOW</span>
-    </a>
-    <div class="site-nav-links">
-      <a href="dashboard.html">Dashboard</a>
-      <a href="sentiment.html">Sentiment Intelligence</a>
-    </div>
-    <div class="nav-search">
-      <span class="nav-search-icon">⌕</span>
-      <input type="text" id="nav-search-input" placeholder="Search ticker..." autocomplete="off">
-      <div class="nav-search-results" id="nav-search-results"></div>
-    </div>
-  </nav>
+  {% include "partials/nav.html.j2" %}
 </div>
+{% include "partials/auth_modal.html.j2" %}
 
 <main id="page-main">
   <div id="not-found" class="not-found" style="display:none;">
@@ -390,7 +330,10 @@
       </div>
       <div class="stock-ai-block" id="stock-ai-block" style="display:none;">
         <div class="stock-ai-score-wrap"><span class="stock-ai-score" id="header-ai-score"></span><span class="stock-ai-score-label">/ 100</span></div>
-        <div class="stock-ai-label">Overall Score</div>
+        <div>
+          <div class="stock-ai-label" id="header-ai-label">Undertow Score</div>
+          <div class="stock-ai-secondary" id="header-ai-secondary"></div>
+        </div>
       </div>
     </div>
 
@@ -466,7 +409,7 @@
 </footer>
 
 <script>
-const DATA = /*__DATA__*/;
+const DATA = {{ payload_json }};
 </script>
 <script>
 // ============================================================
@@ -562,13 +505,41 @@ const DIVERGENCE_META = {
   fundamental_deterioration: { icon: '▼', label: 'Fundamental Deterioration', cls: 'down' },
   under_the_radar: { icon: '◆', label: 'Under-the-Radar', cls: 'info' },
 };
-function renderAiSection(result) {
+function renderAiSection(result, composite) {
   const bodyEl = document.getElementById('cm-ai-body');
   const emptyEl = document.getElementById('cm-ai-empty');
   const headerScoreBlock = document.getElementById('stock-ai-block');
+  const headerLabel = document.getElementById('header-ai-label');
+  const headerSecondary = document.getElementById('header-ai-secondary');
+
+  // Header badge: composite_score (Overall Score Reset, Phase 1 —
+  // deterministic, backtestable, built from the four pillars) is the
+  // primary number per Decision 1 in OVERALL_SCORE_RESET.md; ai_score
+  // (the AI analyst's own free-form read) shows secondary, alongside it,
+  // never instead of it. Falls back to ai_score alone as the primary
+  // badge only when a composite genuinely isn't available (fewer than 2
+  // of 4 pillars present for this ticker) -- same "never hide a real
+  // number just because the preferred one is missing" principle as
+  // every other pillar's confidence-based fallback in this codebase.
+  const hasComposite = composite && composite.composite_score !== null && composite.composite_score !== undefined;
+  const hasAi = !!(result && result.ai_score !== null && result.ai_score !== undefined);
+  const primaryScore = hasComposite ? composite.composite_score : (hasAi ? result.ai_score : null);
+
+  if (primaryScore === null) {
+    headerScoreBlock.style.display = 'none';
+  } else {
+    const cls = scoreClass(primaryScore);
+    const scoreEl = document.getElementById('header-ai-score');
+    scoreEl.textContent = primaryScore;
+    scoreEl.className = 'stock-ai-score ' + cls;
+    headerScoreBlock.className = 'stock-ai-block ' + cls;
+    headerScoreBlock.style.display = 'flex';
+    headerLabel.textContent = hasComposite ? 'Undertow Score' : 'AI Score';
+    headerSecondary.textContent = (hasComposite && hasAi) ? `AI read: ${result.ai_score}` : '';
+  }
+
   if (!result) {
     bodyEl.style.display = 'none';
-    headerScoreBlock.style.display = 'none';
     document.getElementById('cm-ai-verdict').textContent = '';
     document.getElementById('cm-ai-summary').textContent = '';
     emptyEl.style.display = 'block';
@@ -576,16 +547,6 @@ function renderAiSection(result) {
   }
   emptyEl.style.display = 'none';
   bodyEl.style.display = 'block';
-  headerScoreBlock.style.display = 'flex';
-  // Score moved up to the page header (next to price/change) so it reads
-  // as part of the ticker's headline stats, not buried in a lower card.
-  // Same score-class drives both the number's color and the box's
-  // tinted background/border, so the whole badge reads as one unit.
-  const cls = scoreClass(result.overall_score);
-  const scoreEl = document.getElementById('header-ai-score');
-  scoreEl.textContent = result.overall_score;
-  scoreEl.className = 'stock-ai-score ' + cls;
-  headerScoreBlock.className = 'stock-ai-block ' + cls;
   document.getElementById('cm-ai-verdict').textContent = result.verdict || '';
   document.getElementById('cm-ai-summary').textContent = result.summary || '';
   fillList('cm-ai-bullish', result.bullish_factors);
@@ -1161,6 +1122,7 @@ function initPage(sym) {
   const fundamentals = (DATA.fundamentals || {})[sym] || {};
   const metrics = fundamentals.metrics || {};
   const analyst = (DATA.analyst || {})[sym];
+  const composite = (DATA.composite || {})[sym];
   const finHistory = (DATA.financial_history || {})[sym];
   const pillars = (DATA.pillar_scores || {})[sym];
   const market = (DATA.market || {})[sym] || {};
@@ -1218,7 +1180,7 @@ function initPage(sym) {
   }
 
   // AI section
-  renderAiSection(analyst);
+  renderAiSection(analyst, composite);
 
   // Business Fundamentals: at-a-glance (real FY-over-FY from
   // financial_history, both sides the same period type -- no TTM/FY
@@ -1709,14 +1671,16 @@ function renderNews(sym) {
 }
 
 // ============================================================
-// Live polling — same Supabase pattern already proven on the
+// Auth (Site Redesign Reset, Phase 1 — this page had none before;
+// closes the gap Phase 3 "finish accounts everywhere" required) +
+// live polling. Both use the same sbClient the auth partial below
+// declares — same Supabase pattern already proven on the
 // Dashboard/Sentiment pages (ticker_snapshots for sentiment/mentions/
 // label, quotes.json for price/change_pct).
 // ============================================================
 
-const SUPABASE_URL = 'https://kxgfwqteiosancwozcgo.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_13iV4lUM5MD5FaRxhvcWvA_Cv5gtAfI';
-const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+{% include "partials/auth_base.js.j2" %}
+{% include "partials/auth_nav_state.js.j2" %}
 
 async function pollQuotes() {
   try {

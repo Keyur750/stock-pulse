@@ -1,0 +1,116 @@
+/* Undertow design tokens — Site Redesign Reset, Phase 0.
+
+   Canonical, single-source token set replacing six independently
+   duplicated :root blocks (dashboard_template.html, sentiment_template.html,
+   stock_template.html, docs/index.html, docs/about.html, docs/careers.html).
+   Verified live before writing this file, not assumed:
+
+   - dashboard_template.html / sentiment_template.html / stock_template.html
+     had byte-identical color/radius/shadow token blocks already -- zero
+     drift to reconcile there.
+   - docs/index.html / about.html / careers.html had only a SUBSET of that
+     same block (missing every -soft/-border/-dim variant, missing
+     surface-2/3, missing text-secondary/text-faint, missing radius-md/lg,
+     missing shadow-md) -- meaning marketing pages structurally can't do
+     things the app pages can (a tinted score badge, muted secondary
+     copy) without those tokens existing there too. This file gives every
+     page the full set.
+   - font-size across the six pages had 32 distinct values before this
+     file, many 0.5px apart from a neighbor (8, 8.5, 9, 9.5, 10, 10.5, 11,
+     11.5, 12, 12.5...) -- not a designed scale, organic per-component
+     accretion. Collapsed below to 9 deliberate steps, each mapped to the
+     real cluster it's replacing (see comments per step) so wiring this in
+     during Phase 1 doesn't cause a visible relayout, just removes the
+     hair-splitting.
+   - Spacing had a similar problem: 22 distinct px values in
+     dashboard_template.html alone (1 through 44, not evenly spaced).
+     Collapsed to a standard 4px-based scale below, the same base unit
+     already implicit in most of the existing values (8, 12, 16, 20, 24,
+     28... already multiples of 4; the ones that weren't -- 9, 10, 11, 14,
+     18, 22, 30, 44 -- were the actual drift, not a different real system).
+
+   Not wired into any page yet -- that's Phase 1 (shared partials via
+   Jinja2, included at generation time). This file is the foundation
+   Phase 1 includes, not a replacement for any page's <style> block on
+   its own. */
+
+:root {
+  /* ---- Color: brand / accent ---- */
+  --accent: #3B82F6;
+  --accent-dim: rgba(59, 130, 246, 0.10);
+  --accent-soft: rgba(59, 130, 246, 0.16);
+  --accent-border: rgba(59, 130, 246, 0.30);
+
+  /* ---- Color: semantic (score direction) ---- */
+  --bull: #10B981;
+  --bull-soft: rgba(16, 185, 129, 0.12);
+  --bull-border: rgba(16, 185, 129, 0.30);
+
+  --bear: #EF4444;
+  --bear-soft: rgba(239, 68, 68, 0.12);
+  --bear-border: rgba(239, 68, 68, 0.30);
+
+  --amber: #F59E0B;
+  --amber-soft: rgba(245, 158, 11, 0.12);
+  --amber-border: rgba(245, 158, 11, 0.32);
+
+  --gray: #64748B;
+  --gray-soft: rgba(100, 116, 139, 0.14);
+
+  /* ---- Color: surfaces ---- */
+  --bg-primary: #0B1626;
+  --bg-secondary: #0F1C2E;
+  --surface-1: #101C2D;
+  --surface-2: #142238;
+  --surface-3: #17263D;
+
+  /* ---- Color: borders ---- */
+  --border: #22324A;
+  --border-hover: #314764;
+
+  /* ---- Color: text ---- */
+  --text-primary: #F5F7FA;
+  --text-secondary: #94A3B8;
+  --text-faint: #5B6B84;
+
+  /* ---- Elevation ---- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-md: 0 8px 24px -8px rgba(0, 0, 0, 0.45);
+
+  /* ---- Radius ---- */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+
+  /* ---- Typography: families ---- */
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* ---- Typography: scale ----
+     Each step replaces a real cluster of prior ad hoc values (noted),
+     not an arbitrary new number. */
+  --text-2xs: 10px;   /* replaces the 9.5-10px cluster: nav meta, timestamps, chip labels */
+  --text-xs: 11px;    /* replaces 10.5-11.5px: secondary labels, table cells, pillar labels */
+  --text-sm: 12.5px;  /* replaces 12-13px: body copy in cards, buttons, form fields */
+  --text-base: 14px;  /* replaces 13.5-14.5px: default paragraph text */
+  --text-md: 15.5px;  /* replaces 15-16px: card titles, verdict lines */
+  --text-lg: 18px;    /* replaces 17-18px: section subheads, modal titles */
+  --text-xl: 22px;    /* replaces 20-23px: h3 / mobile h2 */
+  --text-2xl: 30px;   /* replaces 25-30px: h2 desktop, cta-band headings */
+  --text-3xl: 42px;   /* replaces 33-42px: hero h1, header score numbers */
+
+  /* ---- Spacing: 4px base scale ----
+     Replaces 22 distinct ad hoc px values (1-44, unevenly spaced) with
+     a standard multiple-of-4 scale -- already the implicit base unit
+     behind most existing values; the ones that weren't multiples of 4
+     (9, 10, 11, 14, 18, 22, 30, 44) were the actual drift to fix. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+}
