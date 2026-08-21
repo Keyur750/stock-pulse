@@ -436,6 +436,12 @@
     </div>
 
     <div class="card">
+      <div class="card-title">Market Positioning</div>
+      <div class="glance-strip" id="market-glance-strip"></div>
+      <div id="market-visual"></div>
+    </div>
+
+    <div class="card">
       <div class="fin-toolbar">
         <div class="card-title" style="margin-bottom:0;">Financials</div>
         <div class="fin-toggle" id="fin-toggle">
@@ -1157,6 +1163,7 @@ function initPage(sym) {
   const analyst = (DATA.analyst || {})[sym];
   const finHistory = (DATA.financial_history || {})[sym];
   const pillars = (DATA.pillar_scores || {})[sym];
+  const market = (DATA.market || {})[sym] || {};
 
   document.getElementById('crumb-sym').textContent = sym;
   document.getElementById('stock-sym').textContent = sym;
@@ -1219,6 +1226,14 @@ function initPage(sym) {
   // main.py instead of computed-and-discarded).
   renderGlanceStrip(finHistory);
   renderFundamentalsRadar(fundamentals);
+
+  // Market Positioning: Market pillar Phase 6 -- the raw metrics + 5
+  // category scores were already being computed and persisted (Phases
+  // 1-5), just never surfaced past a single dial. Same radar+legend
+  // pattern as Business Fundamentals, own container/tooltip ids so both
+  // charts coexist on the same page without colliding.
+  renderMarketGlanceStrip(market);
+  renderMarketRadar(market);
 
   // Financials: bar/line charts + stat tiles
   renderFinancials(finHistory, metrics);
@@ -1394,6 +1409,163 @@ function renderFundamentalsRadar(fundamentals) {
     hit.addEventListener('mouseleave', () => highlight(null));
   });
   el.querySelectorAll('.fund-legend-row').forEach(row => {
+    row.addEventListener('mouseenter', () => highlight(row.dataset.key));
+    row.addEventListener('mouseleave', () => highlight(null));
+  });
+}
+
+// Market pillar Phase 6 -- each description is a plain-language read of
+// exactly what score_market() computes for that category (see
+// market.py), same factual-not-marketing-copy discipline
+// FUND_CATEGORY_META already established.
+const MARKET_CATEGORY_META = {
+  extension: { label: 'Extension', desc: 'Distance from 52-week high' },
+  trend: { label: 'Trend', desc: 'Position vs. 50-day & 200-day averages' },
+  stability: { label: 'Stability', desc: 'Idiosyncratic (market-adjusted) volatility' },
+  short_interest: { label: 'Short Interest', desc: 'Share of float sold short' },
+  beta_tilt: { label: 'Beta', desc: 'Volatility vs. the broad market (low-beta tilt)' },
+};
+const MARKET_CATEGORY_KEYS = Object.keys(MARKET_CATEGORY_META);
+
+function renderMarketGlanceStrip(market) {
+  const el = document.getElementById('market-glance-strip');
+  const m = market.metrics || {};
+  if (!m.price) {
+    el.innerHTML = '<div class="fund-empty">Market data unavailable for this ticker.</div>';
+    return;
+  }
+  const parts = [];
+  if (m.pct_from_52w_high !== undefined && m.pct_from_52w_high !== null) {
+    parts.push(`<div class="glance-item"><div class="glance-label">vs. 52-Week High</div><div><span class="glance-val">${fmtChg(m.pct_from_52w_high)}</span></div></div>`);
+  }
+  if (m.pct_from_200d_avg !== undefined && m.pct_from_200d_avg !== null) {
+    parts.push(`<div class="glance-item"><div class="glance-label">vs. 200-Day Avg</div><div><span class="glance-val">${fmtChg(m.pct_from_200d_avg)}</span></div></div>`);
+  }
+  if (m.beta !== undefined && m.beta !== null) {
+    parts.push(`<div class="glance-item"><div class="glance-label">Beta</div><div><span class="glance-val">${m.beta.toFixed(2)}</span></div></div>`);
+  }
+  if (m.short_percent_of_float !== undefined && m.short_percent_of_float !== null) {
+    parts.push(`<div class="glance-item"><div class="glance-label">Short % of Float</div><div><span class="glance-val">${(m.short_percent_of_float * 100).toFixed(1)}%</span></div></div>`);
+  }
+  el.innerHTML = parts.join('') || '<div class="fund-empty">Market data unavailable for this ticker.</div>';
+}
+
+// Same radar+legend SHAPE as renderFundamentalsRadar (not a shared
+// function -- kept separate deliberately so a change to one pillar's
+// chart can't silently affect the other's), own container/tooltip
+// element ids so both charts can render on the same page without
+// colliding.
+function renderMarketRadar(market) {
+  const el = document.getElementById('market-visual');
+  const categories = market.categories || {};
+  if (Object.keys(categories).length === 0) {
+    el.innerHTML = '<div class="fund-empty">Market data unavailable for this ticker.</div>';
+    return;
+  }
+
+  const n = MARKET_CATEGORY_KEYS.length;
+  const size = 240, cx = size / 2, cy = size / 2, maxR = 84;
+  const angleFor = i => -90 + (360 / n) * i;
+  const toXY = (angleDeg, r) => {
+    const rad = angleDeg * Math.PI / 180;
+    return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+  };
+
+  const rings = [20, 40, 60, 80, 100].map(pct => {
+    const r = (pct / 100) * maxR;
+    const pts = MARKET_CATEGORY_KEYS.map((_, i) => toXY(angleFor(i), r).map(v => v.toFixed(1)).join(',')).join(' ');
+    return `<polygon points="${pts}" fill="none" stroke="var(--border)" stroke-width="1"/>`;
+  }).join('');
+
+  const spokes = MARKET_CATEGORY_KEYS.map((_, i) => {
+    const [x, y] = toXY(angleFor(i), maxR);
+    return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`;
+  }).join('');
+
+  const dataPts = MARKET_CATEGORY_KEYS.map((key, i) => {
+    const v = categories[key];
+    const r = (v === null || v === undefined) ? 0 : (Math.max(0, Math.min(100, v)) / 100) * maxR;
+    return toXY(angleFor(i), r);
+  });
+  const dataPolyStr = dataPts.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ');
+
+  const dots = MARKET_CATEGORY_KEYS.map((key, i) => {
+    const v = categories[key];
+    const [x, y] = dataPts[i];
+    const color = fundScoreColor(v);
+    const missing = v === null || v === undefined;
+    return `<circle class="radar-dot" data-key="${key}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="${missing ? 'var(--surface-2)' : color}" stroke="${color}" stroke-width="2" stroke-dasharray="${missing ? '2,2' : 'none'}"/>` +
+           `<circle class="radar-hit" data-key="${key}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="16" fill="transparent"/>`;
+  }).join('');
+
+  const labels = MARKET_CATEGORY_KEYS.map((key, i) => {
+    const angle = angleFor(i);
+    const [x, y] = toXY(angle, maxR + 18);
+    const cosA = Math.cos(angle * Math.PI / 180);
+    let anchor = 'middle';
+    if (cosA > 0.15) anchor = 'start';
+    else if (cosA < -0.15) anchor = 'end';
+    return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}" dominant-baseline="middle" class="radar-label">${MARKET_CATEGORY_META[key].label}</text>`;
+  }).join('');
+
+  const legend = MARKET_CATEGORY_KEYS.map(key => {
+    const v = categories[key];
+    const meta = MARKET_CATEGORY_META[key];
+    const color = fundScoreColor(v);
+    const valText = (v === null || v === undefined) ? 'n/a' : Math.round(v);
+    return `<div class="fund-legend-row" data-key="${key}">
+      <span class="fund-legend-dot" style="background:${color}"></span>
+      <div class="fund-legend-text">
+        <div class="fund-legend-label">${meta.label}</div>
+        <div class="fund-legend-desc">${meta.desc}</div>
+      </div>
+      <div class="fund-legend-val mono" style="color:${color}">${valText}</div>
+    </div>`;
+  }).join('');
+
+  const confLabel = market.confidence_label;
+  const confBadge = confLabel ? `<div class="fund-legend-row" style="opacity:0.75;">
+      <span class="fund-legend-dot" style="background:var(--text-faint)"></span>
+      <div class="fund-legend-text">
+        <div class="fund-legend-label">Confidence</div>
+        <div class="fund-legend-desc">Coverage, momentum agreement &amp; sample depth</div>
+      </div>
+      <div class="fund-legend-val mono">${confLabel}${market.confidence != null ? ' (' + Math.round(market.confidence) + ')' : ''}</div>
+    </div>` : '';
+
+  el.innerHTML = `
+    <div class="fund-radar-wrap">
+      <div class="fund-radar-chart">
+        <svg viewBox="0 0 ${size} ${size}" class="fund-radar-svg">
+          ${rings}${spokes}
+          <polygon points="${dataPolyStr}" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+          ${dots}${labels}
+        </svg>
+        <div class="fund-tooltip" id="market-tooltip"></div>
+      </div>
+      <div class="fund-legend">${legend}${confBadge}</div>
+    </div>`;
+
+  const tooltip = document.getElementById('market-tooltip');
+  const chartWrap = el.querySelector('.fund-radar-chart');
+  function highlight(key, evt) {
+    el.querySelectorAll('.radar-dot, .fund-legend-row').forEach(x => x.classList.remove('active'));
+    if (!key) { tooltip.style.opacity = '0'; return; }
+    el.querySelectorAll(`[data-key="${key}"]`).forEach(x => x.classList.add('active'));
+    const v = categories[key];
+    tooltip.textContent = `${MARKET_CATEGORY_META[key].label}: ${v === null || v === undefined ? 'n/a' : Math.round(v)}`;
+    if (evt) {
+      const rect = chartWrap.getBoundingClientRect();
+      tooltip.style.left = Math.max(0, Math.min(rect.width, evt.clientX - rect.left)) + 'px';
+      tooltip.style.top = Math.max(0, evt.clientY - rect.top - 30) + 'px';
+      tooltip.style.opacity = '1';
+    }
+  }
+  el.querySelectorAll('.radar-hit').forEach(hit => {
+    hit.addEventListener('mousemove', (e) => highlight(hit.dataset.key, e));
+    hit.addEventListener('mouseleave', () => highlight(null));
+  });
+  el.querySelectorAll('.fund-legend-row[data-key]').forEach(row => {
     row.addEventListener('mouseenter', () => highlight(row.dataset.key));
     row.addEventListener('mouseleave', () => highlight(null));
   });

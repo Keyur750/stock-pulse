@@ -34,7 +34,7 @@ from fundamentals import fetch_fundamentals, score_fundamentals, fetch_financial
 from market_history import build_ticker_history
 from logos import ensure_logo
 from wallstreet import fetch_analyst_data, score_wallstreet, fetch_eps_estimate_history, fetch_upgrades_downgrades, wallstreet_confidence, wallstreet_confidence_label
-from market import fetch_market_data, score_market
+from market import fetch_market_data, score_market, market_confidence, market_confidence_label
 from trends import fetch_search_interest
 from analyst import analyze_stock, MODEL as ANALYST_MODEL
 
@@ -709,7 +709,8 @@ def _normalize_crowd_score(sentiment):
 def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_history,
                           quotes, sleep_seconds=7, momentum_half_life_days=60.0,
                           momentum_lookback_days=270, momentum_shrinkage_k=3.0,
-                          confidence_target_analysts=25.0):
+                          confidence_target_analysts=25.0, benchmark_history=None,
+                          market_confidence_target_sample=40.0):
     """Runs all four pillars for a small, deliberately-scoped set of
     flagship tickers — not the whole ~50-ticker universe the rest of the
     pipeline touches, since every AI call costs quota (and eventually
@@ -754,7 +755,13 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     sub-category scores, and the new EPS-estimate-history/upgrades-
     downgrades fetches, all previously computed only to feed the AI
     prompt and then thrown away with nothing reaching the dashboard past
-    a single blended 0-100 number."""
+    a single blended 0-100 number.
+    market_data carries the same treatment again — Market pillar Phase 1
+    (see MARKET_PILLAR_RESET.md): raw momentum/positioning metrics
+    (including beta and short-interest fields that were being fetched
+    and silently discarded before this phase) plus the sub-category
+    breakdown, previously visible only as a single blended number in
+    pillar_scores."""
     by_ticker = {r["ticker"]: r for r in ticker_results}
     analyst_results = {}
     pillar_scores = {}
@@ -764,6 +771,7 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     cashflow_data = {}
     history_data = {}
     wallstreet_data = {}
+    market_data = {}
 
     logo_results = {}
     for i, ticker in enumerate(flagship_tickers):
@@ -835,8 +843,23 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
             }
 
         hist = price_history.get(ticker, [])
-        m = fetch_market_data(ticker, hist)
+        m = fetch_market_data(ticker, hist, benchmark_history)
         mscore = score_market(m) if m else None
+
+        if m:
+            # Market pillar Phase 5: a real 0-100 trust measure, same
+            # upgrade crowd_confidence()/wallstreet_confidence() already
+            # gave their own pillars -- see market_confidence()'s
+            # docstring for the three signals it combines.
+            m_confidence = market_confidence(m, mscore, target_sample_size=market_confidence_target_sample)
+            market_data[ticker] = {
+                "metrics": m,
+                "categories": mscore.get("categories") if mscore else {},
+                "coverage": mscore.get("coverage") if mscore else None,
+                "overall": mscore.get("overall") if mscore else None,
+                "confidence": m_confidence,
+                "confidence_label": market_confidence_label(m_confidence),
+            }
 
         sentiment = by_ticker.get(ticker)
         pillar_scores[ticker] = {
@@ -904,7 +927,7 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
     ud_count = sum(1 for v in wallstreet_data.values() if v.get("upgrades_downgrades"))
     print(f"  [wall street] {len(wallstreet_data)}/{len(flagship_tickers)} tickers have real analyst data "
           f"({eps_est_count} with EPS-estimate history, {ud_count} with upgrade/downgrade history)")
-    return analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data, balance_sheet_data, cashflow_data, wallstreet_data
+    return analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data, balance_sheet_data, cashflow_data, wallstreet_data, market_data
 
 
 def fetch_macro_history(sleep_seconds=2.0):
@@ -1045,6 +1068,15 @@ def main():
     price_history = {sym: q["history"] for sym, q in quotes.items() if q.get("history")}
     print(f"  got prices for {len(quotes)}/{len(price_symbols)} tickers")
 
+    # Market pillar Phase 4: one shared S&P 500 benchmark series for the
+    # whole run (not a per-ticker fetch) -- same period as every ticker's
+    # own price_history, so idiosyncratic_volatility's date-alignment
+    # actually has real overlap. A missing benchmark just means that one
+    # field comes back None for every ticker this run, same graceful-
+    # degradation pattern as every other optional signal in this pipeline.
+    benchmark_quotes = fetch_quotes(["^GSPC"], period=chart_period)
+    benchmark_history = benchmark_quotes.get("^GSPC", {}).get("history")
+
     print("Fetching ApeWisdom Reddit mention volume (independent attention check)...")
     reddit_mentions = fetch_reddit_mentions(config.get("apewisdom_max_pages", 5))
     ticker_results = merge_reddit_mentions(ticker_results, reddit_mentions)
@@ -1106,15 +1138,18 @@ def main():
     balance_sheet_data = {}
     cashflow_data = {}
     wallstreet_data = {}
+    market_data = {}
     if flagship_tickers:
         print(f"Running the 4-pillar engine + AI analyst on {len(flagship_tickers)} flagship tickers...")
-        analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data, balance_sheet_data, cashflow_data, wallstreet_data = run_analyst_pipeline(
+        analyst_results, pillar_scores, fundamentals_data, history_data, financial_history_data, balance_sheet_data, cashflow_data, wallstreet_data, market_data = run_analyst_pipeline(
             flagship_tickers, ticker_results, news_items, price_history, quotes,
             sleep_seconds=config.get("analyst_call_sleep_seconds", 7),
             momentum_half_life_days=config.get("wallstreet_momentum_half_life_days", 60.0),
             momentum_lookback_days=config.get("wallstreet_momentum_lookback_days", 270),
             momentum_shrinkage_k=config.get("wallstreet_momentum_shrinkage_k", 3.0),
             confidence_target_analysts=config.get("wallstreet_confidence_target_analysts", 25.0),
+            benchmark_history=benchmark_history,
+            market_confidence_target_sample=config.get("market_confidence_target_sample", 40.0),
         )
 
     print("Fetching multi-timeframe chart data for macro instruments (indices, crypto, commodities, global markets)...")
@@ -1158,6 +1193,7 @@ def main():
         "analyst": analyst_results,
         "pillar_scores": pillar_scores,
         "fundamentals": fundamentals_data,
+        "market": market_data,
         "wallstreet": wallstreet_data,
         "financial_history": financial_history_data,
         "balance_sheet_history": balance_sheet_data,

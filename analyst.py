@@ -225,8 +225,14 @@ def _fmt_wallstreet(wallstreet, wscore):
 def _fmt_market(market, mscore):
     if not market or not mscore or not mscore.get("overall"):
         return "Not available."
+    # Coverage denominator derived from the categories dict itself, not
+    # hardcoded -- Market pillar Phase 1 proactively fixed this the same
+    # staleness bug _fmt_fundamentals and _fmt_wallstreet each had to fix
+    # once, rather than waiting to discover it again once a future phase
+    # adds a 4th/5th category.
+    cats = mscore.get("categories", {})
     lines = [
-        f"- Overall market/momentum score: {mscore.get('overall')}/100 (data coverage: {mscore.get('coverage')}/3 categories)",
+        f"- Overall market/momentum score: {mscore.get('overall')}/100 (data coverage: {mscore.get('coverage')}/{len(cats)} categories)",
         f"- {_signed_pct(market.get('pct_from_52w_high'))} from its 52-week high, "
         f"{_signed_pct(market.get('pct_from_52w_low'))} from its 52-week low",
         f"- {_signed_pct(market.get('pct_from_50d_avg'))} vs its 50-day average, "

@@ -12,6 +12,10 @@ bullish thesis is already priced in. That distinction is exactly what
 this pillar exists to let the Divergence Engine and the AI reason
 about — see PRODUCT.md's "everyone agrees, but the stock is already up
 150%" example.
+
+See MARKET_PILLAR_RESET.md for the full rebuild plan this file went
+through (Phases 1-6 of 7 done as of the market_confidence() below) and
+the research behind each phase.
 """
 
 import statistics
@@ -19,11 +23,58 @@ import statistics
 import yfinance as yf
 
 
-def fetch_market_data(symbol: str, price_history: list | None = None) -> dict | None:
+def _returns(closes: list) -> list:
+    return [(closes[i] - closes[i - 1]) / closes[i - 1] * 100
+            for i in range(1, len(closes)) if closes[i - 1]]
+
+
+def _idiosyncratic_volatility(price_history: list, benchmark_history: list) -> float | None:
+    """Market-model (single-index) regression of the ticker's daily
+    returns against a benchmark's (S&P 500) over the same window,
+    returning the stdev of the RESIDUALS -- the idiosyncratic volatility
+    Ang/Hodrick/Xing/Zhang (2006) actually validated, not the ticker's
+    total volatility (market.py's original daily_volatility_pct, which
+    conflates market-wide moves with stock-specific ones -- see
+    MARKET_PILLAR_RESET.md's Phase 4 section). Aligns the two series by
+    DATE first (not by index), since a data gap in either series would
+    otherwise silently misalign the returns. Returns None (not a
+    fabricated value) whenever there's fewer than 10 overlapping trading
+    days, or the benchmark itself shows zero variance (degenerate,
+    should not happen in practice but guarded rather than dividing by
+    zero)."""
+    stock_by_date = {h["date"]: h["close"] for h in price_history if h.get("close")}
+    bench_by_date = {h["date"]: h["close"] for h in benchmark_history if h.get("close")}
+    common_dates = sorted(set(stock_by_date) & set(bench_by_date))
+    if len(common_dates) < 11:
+        return None
+
+    stock_closes = [stock_by_date[d] for d in common_dates]
+    bench_closes = [bench_by_date[d] for d in common_dates]
+    stock_ret = _returns(stock_closes)
+    bench_ret = _returns(bench_closes)
+    if len(stock_ret) < 10 or len(stock_ret) != len(bench_ret):
+        return None
+
+    mkt_variance = statistics.variance(bench_ret)
+    if not mkt_variance:
+        return None
+    local_beta = statistics.covariance(stock_ret, bench_ret) / mkt_variance
+    local_alpha = statistics.mean(stock_ret) - local_beta * statistics.mean(bench_ret)
+    residuals = [s - (local_alpha + local_beta * mk) for s, mk in zip(stock_ret, bench_ret)]
+    return statistics.stdev(residuals)
+
+
+def fetch_market_data(symbol: str, price_history: list | None = None,
+                       benchmark_history: list | None = None) -> dict | None:
     """Raw market/momentum metrics for a ticker, or None if the data
     couldn't be fetched. `price_history` is the same {date, close} list
     already fetched by market_data.py — reused here for realized
-    volatility instead of a second API call."""
+    volatility instead of a second API call. `benchmark_history` (Market
+    pillar Phase 4) is the same shape for the S&P 500 (^GSPC), fetched
+    ONCE per run in main.py (not per ticker) and passed in — used to
+    compute idiosyncratic volatility via a market-model regression; None
+    or too-short a benchmark series just means that field comes back
+    None, same graceful-degradation pattern as everything else here."""
     try:
         info = yf.Ticker(symbol).info
     except Exception:
@@ -47,14 +98,17 @@ def fetch_market_data(symbol: str, price_history: list | None = None) -> dict | 
     pct_from_200d = ((price - avg_200d) / avg_200d * 100) if (price and avg_200d) else None
 
     daily_volatility = None
+    volatility_sample_size = 0
     if price_history and len(price_history) >= 10:
         closes = [h["close"] for h in price_history if h.get("close")]
-        returns = [
-            (closes[i] - closes[i - 1]) / closes[i - 1] * 100
-            for i in range(1, len(closes)) if closes[i - 1]
-        ]
+        returns = _returns(closes)
+        volatility_sample_size = len(returns)
         if len(returns) >= 5:
             daily_volatility = statistics.stdev(returns)
+
+    idiosyncratic_volatility = None
+    if price_history and benchmark_history:
+        idiosyncratic_volatility = _idiosyncratic_volatility(price_history, benchmark_history)
 
     return {
         "price": price,
@@ -67,6 +121,8 @@ def fetch_market_data(symbol: str, price_history: list | None = None) -> dict | 
         "pct_from_50d_avg": round(pct_from_50d, 1) if pct_from_50d is not None else None,
         "pct_from_200d_avg": round(pct_from_200d, 1) if pct_from_200d is not None else None,
         "daily_volatility_pct": round(daily_volatility, 2) if daily_volatility is not None else None,
+        "idiosyncratic_volatility_pct": round(idiosyncratic_volatility, 2) if idiosyncratic_volatility is not None else None,
+        "volatility_sample_size": volatility_sample_size,
         "beta": g("beta"),
         "short_percent_of_float": g("shortPercentOfFloat"),
         "short_ratio": g("shortRatio"),
@@ -103,12 +159,82 @@ _MA_200D_PTS = [(-35, 12), (-15, 32), (0, 50), (15, 70), (35, 90), (65, 100)]
 # (this pillar rewards stable trends, not wild swings in either direction).
 _VOLATILITY_PTS = [(0.5, 95), (1.0, 80), (1.75, 60), (2.75, 38), (4.0, 18), (6.0, 5)]
 
+# Market pillar Phase 2 -- short interest, per Asquith/Pathak/Ritter
+# (2005): short-sale-constrained stocks (high short interest relative to
+# float) show real, economically meaningful subsequent underperformance
+# (215bps/month equal-weighted in their sample), twice as strong on news
+# days -- see MARKET_PILLAR_RESET.md's research section. `short_percent_
+# of_float` is the primary input, matching the literature's own framing
+# (short interest AS A SHARE OF FLOAT is the constraint measure); `short_
+# ratio` (days-to-cover) is a distinct construct -- squeeze-risk/liquidity,
+# not the same "is this a real bearish constraint signal" question --
+# confirmed live (2026-08-21) the two don't move together tightly on this
+# watchlist (e.g. SBUX: 3.8% of float but short_ratio 5.1 vs MU: 2.7% of
+# float but short_ratio 0.6 -- same ballpark % but very different ratios),
+# so `short_ratio` deliberately stays supplementary raw context only, not
+# folded into this score, to avoid conflating two different constructs.
+# Breakpoints derived from a live run across the full 30-ticker watchlist
+# (2026-08-21): min=0.01% (BA), p25=1.81%, median=2.74%, p75=9.91%,
+# p90=13.46%, max=27.6% (NBIS) -- higher % scores lower, per the
+# literature's underperformance finding.
+_SHORT_INTEREST_PTS = [(0.5, 90), (2.0, 72), (4.0, 58), (7.0, 42), (10.0, 28), (15.0, 15), (25.0, 5)]
+
+# Market pillar Phase 3 -- beta / low-beta tilt, per Frazzini & Pedersen's
+# Betting Against Beta (2014): low-beta stocks earn higher risk-adjusted
+# returns than high-beta ones, the opposite of naive CAPM intuition (BAB
+# factor Sharpe ratio 0.78 over 1926-2012, ~2x the value factor's). The
+# honest translation of a portfolio-level alpha finding into a single-
+# stock 0-100 score is a MODEST tilt, not a dominant signal -- see this
+# category's placeholder weight below and its deliberately gentler score
+# range than the other categories. Centered on the true CAPM market
+# beta of 1.0, not this watchlist's own median -- confirmed live
+# (2026-08-21) this flagship, growth-tilted watchlist's own median beta
+# is 1.27, well above 1.0, so most flagship names scoring modestly below
+# neutral here is a real, honest reflection of this basket's own
+# structural tilt, not a scoring bug -- same "document it, don't force a
+# comparable distribution" precedent Wall Street's README already
+# established for sell-side ratings clustering bullish. Real range
+# confirmed live: min=0.17 (XOM), max=3.49 (CVNA).
+_BETA_PTS = [(0.3, 70), (0.7, 60), (1.0, 50), (1.5, 40), (2.2, 28), (3.0, 18), (3.5, 12)]
+
+
+def _score_short_interest(m: dict) -> float | None:
+    pct = m.get("short_percent_of_float")
+    if pct is None:
+        return None
+    score = _scale(pct * 100, _SHORT_INTEREST_PTS)
+    return round(score, 1) if score is not None else None
+
+
+def _score_beta(m: dict) -> float | None:
+    beta = m.get("beta")
+    if beta is None:
+        return None
+    score = _scale(beta, _BETA_PTS)
+    return round(score, 1) if score is not None else None
+
 
 def score_market(m: dict) -> dict:
-    """Turns raw market metrics into three 0-100 sub-scores plus a
-    weighted overall. Missing data (e.g. no 52-week high on a fresh
-    IPO) drops that category rather than guessing — `coverage` reports
-    how many of the 3 categories had real data."""
+    """Turns raw market metrics into 0-100 sub-scores plus a weighted
+    overall. Missing data (e.g. no 52-week high on a fresh IPO, or no
+    beta/short-interest coverage) drops that category rather than
+    guessing — `coverage` reports how many categories had real data.
+
+    Weights (Market pillar Phase 5 reweight, 2026-08-21) reflect how
+    strongly each category's underlying research is actually evidenced,
+    not the original hand-picked 0.40/0.35/0.25 (see MARKET_PILLAR_
+    RESET.md's research section for the sources): `extension` (George &
+    Hwang 2004 — the single most robust, internationally-replicated
+    effect here, no long-term reversal) keeps the largest share;
+    `trend` is trimmed to reflect the honest caveat that moving-average
+    rules' historical edge has measurably decayed since 1986 even though
+    the underlying momentum window is still real; `stability` (now
+    idiosyncratic-volatility-aware, Ang/Hodrick/Xing/Zhang 2006 — a major,
+    widely-replicated anomaly) keeps a substantial share; `short_interest`
+    (Asquith/Pathak/Ritter 2005) and `beta_tilt` (Frazzini & Pedersen
+    2014, deliberately the smallest weight — a portfolio-level alpha
+    finding translated into a modest single-stock tilt, not a dominant
+    signal) round out the total."""
     extension = _scale(m.get("pct_from_52w_high"), _EXTENSION_PTS)
     if extension is not None:
         extension = round(extension, 1)
@@ -116,12 +242,32 @@ def score_market(m: dict) -> dict:
     trend = _avg([_scale(m.get("pct_from_50d_avg"), _MA_50D_PTS),
                   _scale(m.get("pct_from_200d_avg"), _MA_200D_PTS)])
 
-    stability = _scale(m.get("daily_volatility_pct"), _VOLATILITY_PTS)
+    # Market pillar Phase 4: score off idiosyncratic (market-model-
+    # residual) volatility when it's computable -- matches what Ang/
+    # Hodrick/Xing/Zhang (2006) actually validated, not the total-
+    # volatility proxy this category started with. Same key name
+    # (`stability`), same fallback-on-missing-data pattern
+    # fundamentals.py's Altman Z''/legacy-blend fallback for
+    # `balance_sheet` already established -- falls back to total
+    # volatility whenever the benchmark regression isn't computable
+    # (thin overlap, no benchmark series available), never a crash or a
+    # fabricated value.
+    vol_input = m.get("idiosyncratic_volatility_pct")
+    if vol_input is None:
+        vol_input = m.get("daily_volatility_pct")
+    stability = _scale(vol_input, _VOLATILITY_PTS)
     if stability is not None:
         stability = round(stability, 1)
 
-    categories = {"extension": extension, "trend": trend, "stability": stability}
-    weights = {"extension": 0.40, "trend": 0.35, "stability": 0.25}
+    short_interest = _score_short_interest(m)
+    beta_tilt = _score_beta(m)
+
+    categories = {
+        "extension": extension, "trend": trend, "stability": stability,
+        "short_interest": short_interest, "beta_tilt": beta_tilt,
+    }
+    weights = {"extension": 0.35, "trend": 0.20, "stability": 0.20,
+               "short_interest": 0.15, "beta_tilt": 0.10}
 
     present = {k: v for k, v in categories.items() if v is not None}
     coverage = len(present)
@@ -132,3 +278,73 @@ def score_market(m: dict) -> dict:
         overall = None
 
     return {"overall": overall, "coverage": coverage, "categories": categories}
+
+
+# Market pillar Phase 5 -- market_confidence(). Same three-independent-
+# signals-weighted-sum SHAPE as crowd_confidence()/wallstreet_confidence()
+# (not a copy -- structurally different inputs), same goal: a real 0-100
+# trust measure instead of a bare category-coverage count.
+#
+# Breakpoints/target below are derived from a live run across the full
+# 30-ticker watchlist (2026-08-21, see MARKET_PILLAR_RESET.md's Phase 5
+# section for the raw numbers), not guessed.
+_DEFAULT_CONFIDENCE_TARGET_SAMPLE = 40.0
+
+
+def market_confidence(m: dict | None, mscore: dict | None,
+                       target_sample_size: float = _DEFAULT_CONFIDENCE_TARGET_SAMPLE) -> float | None:
+    """Combines three independent, already-computed signals into one
+    0-100 measure of how much to trust a ticker's Market score:
+
+    1. Volatility sample size (35%) -- `volatility_sample_size` (the
+       number of daily-return observations behind stability's score)
+       scaled against `target_sample_size`, capped at 100. Rarely the
+       binding constraint on an established flagship watchlist (most
+       tickers have a near-full ~60-day window), but a real, protective
+       signal for a genuinely thin case (a recent IPO, a data gap) --
+       same role crowd_confidence()'s sample-size term plays even though
+       it's usually not the limiting factor either.
+    2. Extension/trend agreement (40%) -- the single most real,
+       currently-discriminating signal found in this pillar's live data:
+       how closely `extension` (distance from 52-week high) and `trend`
+       (distance from moving averages) agree. Both are momentum-flavored
+       reads computed from different windows -- when they agree, the
+       pillar's own internal read is coherent; a sharp disagreement
+       (e.g. a stock still far below its 52-week high but showing a
+       strongly positive medium-term trend read) is real, meaningful
+       tension worth trusting less at face value, not noise to average
+       away. `None` (either category unavailable) scores a neutral 50,
+       genuinely not assessable rather than a proven bad signal.
+    3. Category completeness (25%) -- `mscore["coverage"]` against the
+       full category count, same coverage-as-confidence-input shape
+       Wall Street's own confidence function uses.
+
+    Returns `None` only when `m`/`mscore` themselves are missing --
+    nothing to be confident or unconfident about."""
+    if not m or not mscore:
+        return None
+
+    sample = m.get("volatility_sample_size") or 0
+    sample_term = min(100.0, 100.0 * sample / target_sample_size) if target_sample_size else 100.0
+
+    cats = mscore.get("categories", {})
+    extension, trend = cats.get("extension"), cats.get("trend")
+    if extension is not None and trend is not None:
+        agreement_term = max(0.0, 100.0 - abs(extension - trend))
+    else:
+        agreement_term = 50.0
+
+    total_cats = len(cats) or 1
+    completeness_term = 100.0 * (mscore.get("coverage") or 0) / total_cats
+
+    return round(0.35 * sample_term + 0.40 * agreement_term + 0.25 * completeness_term, 1)
+
+
+def market_confidence_label(score: float | None) -> str:
+    if score is None:
+        return "Unknown"
+    if score >= 70:
+        return "High"
+    if score >= 40:
+        return "Medium"
+    return "Low"
