@@ -103,6 +103,9 @@
   .nav-links a { font-size: 13.5px; font-weight: 500; color: var(--text-secondary); text-decoration: none; padding: 8px 14px; border-radius: var(--radius-sm); transition: color .15s ease, background-color .15s ease; }
   .nav-links a:hover { color: var(--text-primary); background: var(--surface-2); }
   .nav-links a.active { color: var(--accent); background: var(--accent-dim); }
+  /* Site Redesign Reset, Phase 2: About/Careers stay one click away
+     without competing visually with Dashboard/Sentiment. */
+  .nav-links a.nav-secondary { font-size: 12.5px; color: var(--text-faint); }
   .nav-cta { background: var(--accent) !important; color: #fff !important; font-weight: 700 !important; }
   .nav-cta:hover { filter: brightness(1.1); background: var(--accent) !important; }
   @media (max-width: 780px) { .nav-links a:not(.nav-cta) { display: none; } }
@@ -415,10 +418,11 @@
       <span class="brand-word">UNDERTOW</span>
     </a>
     <div class="nav-links">
-      <a href="index.html" class="active">Home</a>
-      <a href="about.html">About</a>
-      <a href="careers.html">Careers</a>
-      <a href="dashboard.html" class="nav-cta">Explore the Intelligence →</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="sentiment.html">Sentiment</a>
+      <a href="about.html" class="nav-secondary">About</a>
+      <a href="careers.html" class="nav-secondary">Careers</a>
+      <a href="dashboard.html" class="nav-cta">Open the Dashboard</a>
     </div>
   </nav>
 </div>
@@ -430,7 +434,7 @@
       <h1 class="reveal visible">Every stock has four opinions.<br><span class="accent">We show you when they clash.</span></h1>
       <p class="hero-sub reveal visible reveal-1">Retail sentiment, Wall Street consensus, business fundamentals, and price action — four independent reads on the same company, checked against each other in real time. When they agree, that's confirmation. When they don't, that's usually the story worth reading.</p>
       <div class="hero-ctas reveal visible reveal-2">
-        <a class="btn btn-primary" href="dashboard.html">Explore the Intelligence</a>
+        <a class="btn btn-primary" href="dashboard.html">Open the Dashboard</a>
         <a class="btn btn-ghost" href="#how-it-works">See how Undertow works</a>
       </div>
       <div class="hero-trust reveal visible reveal-2">
@@ -631,7 +635,7 @@
     <div class="cta-band reveal">
       <h2>See what's moving now.</h2>
       <p>Fresh every day — where the crowd, Wall Street, the business, and the market agree, and where they don't.</p>
-      <div class="hero-ctas"><a class="btn btn-primary" href="dashboard.html">Open the live dashboard →</a></div>
+      <div class="hero-ctas"><a class="btn btn-primary" href="dashboard.html">Open the Dashboard</a></div>
     </div>
   </div>
 </section>

@@ -43,6 +43,7 @@
   .nav-links a { font-size: 13.5px; font-weight: 500; color: var(--text-secondary); text-decoration: none; padding: 8px 14px; border-radius: var(--radius-sm); transition: color .15s ease, background-color .15s ease; }
   .nav-links a:hover { color: var(--text-primary); background: var(--surface-2); }
   .nav-links a.active { color: var(--accent); background: var(--accent-dim); }
+  .nav-links a.nav-secondary { font-size: 12.5px; color: var(--text-faint); }
   .nav-cta { background: var(--accent) !important; color: #fff !important; font-weight: 700 !important; }
   .nav-cta:hover { filter: brightness(1.1); }
   @media (max-width: 780px) { .nav-links a:not(.nav-cta) { display: none; } }
@@ -99,10 +100,11 @@
   <nav class="topnav">
     <a class="brand" href="index.html"><div class="brand-mark"><svg width="15" height="15" viewBox="0 0 32 32" fill="none"><path d="M4,20 C8,11 12,11 16,17.5 C20,24 24,24 28,13" stroke="#3B82F6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="brand-word">UNDERTOW</span></a>
     <div class="nav-links">
-      <a href="index.html">Home</a>
-      <a href="about.html" class="active">About</a>
-      <a href="careers.html">Careers</a>
-      <a href="dashboard.html" class="nav-cta">Explore the Intelligence →</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="sentiment.html">Sentiment</a>
+      <a href="about.html" class="nav-secondary active">About</a>
+      <a href="careers.html" class="nav-secondary">Careers</a>
+      <a href="dashboard.html" class="nav-cta">Open the Dashboard</a>
     </div>
   </nav>
 </div>
