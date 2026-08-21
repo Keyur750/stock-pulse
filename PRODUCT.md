@@ -520,8 +520,22 @@ this shape later instead of needing a rebuild.
 
 ## Explicitly out of scope right now
 
-No brokerage integration, no trade execution, no user accounts, no
-mobile app, no chatbot. Not because they're wrong ideas — because
-building them now would slow down the one thing that has to be true
-first: the four-pillar engine and its divergence/change/track-record
-moat are genuinely good on a small, well-understood set of stocks.
+No brokerage integration, no trade execution, no mobile app, no chatbot.
+Not because they're wrong ideas — because building them now would slow
+down the one thing that has to be true first: the four-pillar engine and
+its divergence/change/track-record moat are genuinely good on a small,
+well-understood set of stocks.
+
+**Accounts — resolved 2026-08-21, no longer out of scope.** A minimal
+account system (Supabase auth, a personal watchlist) exists and is now
+wired consistently across all three app pages (Dashboard/Sentiment/Stock
+Intelligence) — this doc previously said "no user accounts," which was
+already inaccurate by the time it was written (the underlying Supabase
+tables/auth predate this doc) and stayed unreconciled until
+`SITE_REDESIGN_RESET.md`'s Phase 3 caught and fixed the inconsistency
+(2 of 3 pages had it, 1 didn't, and this doc denied any of it existed).
+**Deliberately kept minimal, not because building more was hard:** an
+account unlocks the watchlist and nothing else for now — no alerts, no
+saved screens, no personalization beyond that — a direct decision, not a
+default, so accounts don't quietly grow scope without a real reason
+driving each addition. Revisit only when a specific need justifies it.

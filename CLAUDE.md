@@ -127,14 +127,15 @@ fabricates a data point). `logos.py` caches real company logos to
 one slice at a time (`ticker_snapshots` → `sentiment_history` →
 `signal_history`, in that order, each still additive — the JSON files
 in `data/` are still the primary source, Supabase is a parallel write).
-**Note found during this doc's research, not yet resolved:** `schema.sql`
+**Reconciled 2026-08-21 (was flagged here as unresolved):** `schema.sql`
 references pre-existing `stocks` / `watchlists` / `watchlist_items`
 tables with a `user_id` column referencing `auth.users` — real user-
-account infrastructure already exists in the live Supabase project from
-an earlier "Milestone A" this doc's author didn't find written up
-anywhere else. `PRODUCT.md` currently says "no user accounts" is
-explicitly out of scope — worth reconciling with whoever picks this up,
-not assumed either way.
+account infrastructure from an earlier, undocumented "Milestone A."
+`PRODUCT.md` used to say "no user accounts" was out of scope, which was
+already inaccurate when written. `SITE_REDESIGN_RESET.md`'s Phase 3
+closed this: accounts are in scope, wired consistently across all three
+app pages, and deliberately unlock only the existing personal watchlist
+for now (no alerts, no saved screens) — `PRODUCT.md` now says so.
 
 **Config:** `config.json` — watchlist (30 tickers) = flagship_tickers
 right now (see `PRODUCT.md`'s "Decisions locked in" for why they're kept

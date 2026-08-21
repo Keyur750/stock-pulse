@@ -426,23 +426,23 @@ directly.
   from the primary nav entirely — they still need to be one click away,
   just not competing visually with Dashboard/Sentiment.
 
-### Phase 3 — Accounts & personalization decision
+### Phase 3 — Accounts & personalization decision ✅ DONE (2026-08-21)
 **Goal:** resolve the accounts question before Phase 2's nav is
 finalized, since the nav's rightmost element depends on the answer.
-- **This is a product decision the user makes, not a design call.**
-  Decision already made 2026-08-21: **finish it everywhere** (see
-  "Decisions resolved" below).
-- **Partially done as a side effect of Phase 1:** `stock_template.html`
-  is now wired into the same auth state as the other two pages —
-  `templates/partials/nav.html.j2`/`auth_modal.html.j2` gave it a real
+- **Finish it everywhere** — decided 2026-08-21, not shelved.
+- `stock_template.html` wired into the same auth state as the other two
+  pages, as a side effect of Phase 1's nav/auth consolidation
+  (`templates/partials/nav.html.j2`/`auth_modal.html.j2` gave it a real
   `nav-auth` element and shared login/signup modal where it previously
-  had none at all. This was Phase 3's first bullet; it's done.
-- **Still open, the two real remaining tasks:**
-  1. Decide what an account unlocks beyond a watchlist (alerts? saved
-     screens? nothing more yet?) — genuinely unresolved, not defaulted.
-  2. Update `PRODUCT.md` to state accounts exist and why, replacing its
-     current "no user accounts... explicitly out of scope" line, which
-     is now factually wrong.
+  had none at all).
+- **What an account unlocks — decided directly by the user, 2026-08-21:**
+  the existing personal watchlist, and nothing more for now. No alerts,
+  no saved screens — a deliberate scope decision, not a default, so
+  accounts don't quietly grow without a real need driving each addition.
+- `PRODUCT.md` updated to state accounts exist and why, replacing its
+  previously-inaccurate "no user accounts... explicitly out of scope"
+  line — this also closes the "Milestone A" reconciliation gap
+  `CLAUDE.md` had flagged as unresolved.
 
 ### Phase 4 — Visual redesign pass
 **Goal:** the actual "fresh look," now built on a stable foundation
@@ -752,7 +752,7 @@ comes when that phase is actually scoped for building)
 | 0 | Design token foundation + component inventory | ✅ Tokens + inventory written, wired into all three app pages (Phase 1's nav/auth/CSS consolidation, verified live 2026-08-21) |
 | 1 | Shared partials + payload slicing + static-page wiring | ✅ Done, fully verified live (2026-08-21) — nav/auth/CSS consolidation, payload slicing, and index/about/careers Jinja2 wiring all confirmed against a real pipeline run |
 | 2 | Flat, identical navigation everywhere; per-ticker static URLs (resolved: yes, build them) | Not started |
-| 3 | Accounts: finish everywhere (decided 2026-08-21) | Not started — decision made, build pending |
+| 3 | Accounts: finish everywhere, unlocks watchlist only for now | ✅ Done (2026-08-21) — wired via Phase 1, scope decided by user, `PRODUCT.md` updated |
 | 4 | Visual redesign pass — now includes the four-axis pillar glyph, in-context divergence "why," confidence-indicator component, mobile-first layout, live WCAG 2.2 checks | Not started — depends on Phases 0-1 |
 | 4B | Content & copy audit | Findings documented above; fixes not applied — pairs with Phase 2 |
 | 4C | First-run onboarding (added 2026-08-21 after external research pass) | Not started — depends on Phase 4 |
@@ -769,6 +769,8 @@ comes when that phase is actually scoped for building)
 3. Starting point: **Phase 0, in order** — not jumping ahead.
 4. Rollout cadence: **build further ahead, review in batches** rather
    than a confirm-every-small-step loop.
+5. Account scope: **watchlist only, nothing more for now** — no alerts,
+   no saved screens (Phase 3).
 
 **Still open — will surface at the relevant phase, not blocking start:**
 1. Dark-only as a deliberate brand choice, or add real light-theme
@@ -781,16 +783,15 @@ comes when that phase is actually scoped for building)
 1. Real per-ticker static URLs — **decided: yes, build them**, replacing
    `?t=TICKER` query routing (kept as a redirect/alias). See Phase 2.
 
-**Next step:** Phase 1 is fully done and live-verified. Per the
-sequencing above (`0 → 1 → 3 → 2 → ...`), Phase 3 is next — and it's
-mostly done already (Phase 1's nav/auth consolidation incidentally wired
-`stock_template.html` into the same auth state as the other two pages).
-The two real remaining tasks are deciding what an account unlocks beyond
-a watchlist, and updating `PRODUCT.md`'s now-incorrect "no user
-accounts" line. Phase 2 (flat nav + per-ticker static pages) follows once
-Phase 3 resolves, since the nav's rightmost element depends on the
-accounts answer. Phase 4's expanded scope (four-axis glyph, in-context
-divergence, confidence component, mobile-first, live contrast checks) and
-the new Phase 4C (onboarding) are documented and ready to scope when
-their turn comes — nothing from the 2026-08-21 research pass was left
-out of this plan.
+**Next step:** Phases 0, 1, and 3 are all done. Per the sequencing above
+(`0 → 1 → 3 → 2 → ...`), **Phase 2 is next** — flatten the primary nav to
+`Undertow | Dashboard | Sentiment | [ticker search] | About | [account]`
+on every page (including the landing page and `stock.html`), make it
+sticky, and build the real per-ticker static pages (`/stock/NVDA.html`)
+this doc already resolved in favor of over `?t=TICKER` query routing.
+Phase 4B's copy fixes pair with Phase 2 per the sequencing note above.
+Phase 4's expanded scope (four-axis glyph, in-context divergence,
+confidence component, mobile-first, live contrast checks) and the new
+Phase 4C (onboarding) are documented and ready to scope when their turn
+comes — nothing from the 2026-08-21 research pass was left out of this
+plan.
