@@ -47,14 +47,17 @@ DATA_DIR = os.path.join(ROOT, "data")
 HISTORY_PATH = os.path.join(DATA_DIR, "history.json")
 ANALYST_HISTORY_PATH = os.path.join(DATA_DIR, "analyst_history.json")
 SIGNAL_HISTORY_PATH = os.path.join(DATA_DIR, "signal_history.json")
-# docs/index.html is the static marketing homepage (not touched by this
-# script); the live data dashboard is served from docs/dashboard.html.
 DASHBOARD_PATH = os.path.join(ROOT, "docs", "dashboard.html")
-TEMPLATE_PATH = os.path.join(ROOT, "dashboard_template.html")
 SENTIMENT_PAGE_PATH = os.path.join(ROOT, "docs", "sentiment.html")
-SENTIMENT_TEMPLATE_PATH = os.path.join(ROOT, "sentiment_template.html")
 STOCK_PAGE_PATH = os.path.join(ROOT, "docs", "stock.html")
-STOCK_TEMPLATE_PATH = os.path.join(ROOT, "stock_template.html")
+# Site Redesign Reset, Phase 1: index/about/careers now render through
+# the same Jinja2 pipeline as the three app pages above, from a root
+# template each, instead of being hand-edited directly in docs/ (see
+# SITE_REDESIGN_RESET.md's "Not yet done" list). No payload -- these
+# three carry no per-run data, so there's nothing to slice.
+INDEX_PATH = os.path.join(ROOT, "docs", "index.html")
+ABOUT_PATH = os.path.join(ROOT, "docs", "about.html")
+CAREERS_PATH = os.path.join(ROOT, "docs", "careers.html")
 # Site Redesign Reset, Phase 1: shared nav/auth/CSS partials, no longer
 # hand-copied into each of the three app templates -- see
 # design/COMPONENT_INVENTORY.md for what was duplicated before this and
@@ -1039,50 +1042,103 @@ def _copy_shared_design_assets():
         shutil.copyfile(os.path.join(DESIGN_DIR, name), os.path.join(ROOT, "docs", name))
 
 
+# Site Redesign Reset, Phase 1 (see SITE_REDESIGN_RESET.md's "Data
+# duplication" gap): each page's own <script> only reads a subset of the
+# full payload -- verified directly by grepping every `DATA.<key>` (and
+# `DATA['key']`/spread) access in each template, not guessed. `wallstreet`/
+# `balance_sheet_history`/`cashflow_history` are fetched and genuinely used
+# elsewhere (pillar scoring, Supabase sync, signal_history) but no
+# template renders them today -- they're excluded from all three lists
+# below rather than carried along as dead weight in every page's ~5MB
+# JSON blob. Add a key to the relevant list the day a template actually
+# needs it, not preemptively.
+_DASHBOARD_PAYLOAD_KEYS = (
+    "generated_at", "total_messages", "total_tickers", "signals",
+    "top_bullish", "top_bearish", "most_discussed", "watchlist_grid",
+    "news", "price_history", "analyst", "pillar_scores", "composite",
+    "timeframe_history", "material_events", "company_news",
+)
+_SENTIMENT_PAYLOAD_KEYS = (
+    "generated_at", "analyst", "pillar_scores", "price_history",
+    "sentiment_history", "timeframe_history", "watchlist_grid",
+    "market_insight",
+)
+_STOCK_PAYLOAD_KEYS = (
+    "analyst", "company_news", "composite", "financial_history",
+    "flagship_tickers", "fundamentals", "market", "material_events",
+    "most_discussed", "news", "pillar_scores", "signals",
+    "timeframe_history", "top_bearish", "top_bullish", "watchlist_grid",
+)
+
+
+def _slice_payload(payload, keys):
+    return {k: payload[k] for k in keys}
+
+
 def render_dashboard(payload):
-    # Dashboard now shows the same full multi-timeframe chart for every
-    # ticker (flagship stocks + macro instruments) that the Sentiment page
-    # does, so it needs timeframe_history too — no longer stripped here.
     # Compact serialization for the same reason render_sentiment_page uses
     # it: this payload is now large enough that pretty-printing it is pure
     # waste.
     _copy_shared_design_assets()
+    sliced = _slice_payload(payload, _DASHBOARD_PAYLOAD_KEYS)
     template = JINJA_ENV.get_template("dashboard_template.html")
-    html = template.render(payload_json=json.dumps(payload, separators=(",", ":")), active_page="dashboard")
+    html = template.render(payload_json=json.dumps(sliced, separators=(",", ":")), active_page="dashboard")
     os.makedirs(os.path.dirname(DASHBOARD_PATH), exist_ok=True)
     with open(DASHBOARD_PATH, "w", encoding="utf-8") as f:
         f.write(html)
 
 
 def render_sentiment_page(payload):
-    """Same embed-and-write pattern as render_dashboard, same source
-    payload — the Sentiment Intelligence page is a new view over data the
-    pipeline already computes, not a new data source. Serialized compact
-    (no indent), same reasoning as render_dashboard: nobody reads this
-    JSON by eye in the shipped page, and at this page's real data volume
-    (9 timeframes of real OHLCV per ticker) indent=2's whitespace alone
-    roughly doubles the file for no benefit."""
+    """Sliced to `_SENTIMENT_PAYLOAD_KEYS` -- the Sentiment Intelligence
+    page is a new view over data the pipeline already computes, not a new
+    data source. Serialized compact (no indent), same reasoning as
+    render_dashboard: nobody reads this JSON by eye in the shipped page,
+    and at this page's real data volume (9 timeframes of real OHLCV per
+    ticker) indent=2's whitespace alone roughly doubles the file for no
+    benefit."""
     _copy_shared_design_assets()
+    sliced = _slice_payload(payload, _SENTIMENT_PAYLOAD_KEYS)
     template = JINJA_ENV.get_template("sentiment_template.html")
-    html = template.render(payload_json=json.dumps(payload, separators=(",", ":")), active_page="sentiment")
+    html = template.render(payload_json=json.dumps(sliced, separators=(",", ":")), active_page="sentiment")
     os.makedirs(os.path.dirname(SENTIMENT_PAGE_PATH), exist_ok=True)
     with open(SENTIMENT_PAGE_PATH, "w", encoding="utf-8") as f:
         f.write(html)
 
 
 def render_stock_page(payload):
-    """Same embed-and-write pattern as render_dashboard/render_sentiment_page,
-    same source payload -- one static file (docs/stock.html), routed
-    client-side by a ?t=TICKER query param rather than one file per
+    """Sliced to `_STOCK_PAYLOAD_KEYS` -- one static file (docs/stock.html),
+    routed client-side by a ?t=TICKER query param rather than one file per
     ticker. Every flagship ticker (currently the full watchlist) already
-    has everything this page needs in `payload` -- nothing here is a new
-    data source."""
+    has everything this page needs in the sliced payload -- nothing here
+    is a new data source."""
     _copy_shared_design_assets()
+    sliced = _slice_payload(payload, _STOCK_PAYLOAD_KEYS)
     template = JINJA_ENV.get_template("stock_template.html")
-    html = template.render(payload_json=json.dumps(payload, separators=(",", ":")), active_page="stock")
+    html = template.render(payload_json=json.dumps(sliced, separators=(",", ":")), active_page="stock")
     os.makedirs(os.path.dirname(STOCK_PAGE_PATH), exist_ok=True)
     with open(STOCK_PAGE_PATH, "w", encoding="utf-8") as f:
         f.write(html)
+
+
+def render_static_pages():
+    """Site Redesign Reset, Phase 1: index_template.html/about_template.html/
+    careers_template.html are new root templates -- byte-identical to the
+    prior hand-maintained docs/index.html/about.html/careers.html content
+    (confirmed by diff before this landed), so this pass changes *how*
+    they're produced, not what they say. Nav/token consolidation for these
+    three (the marketing `.topnav` variant COMPONENT_INVENTORY.md flags as
+    incompatible with the app pages' `.site-nav`) is Phase 2/Phase 0-wiring
+    work, deliberately not done here."""
+    _copy_shared_design_assets()
+    for template_name, out_path in (
+        ("index_template.html", INDEX_PATH),
+        ("about_template.html", ABOUT_PATH),
+        ("careers_template.html", CAREERS_PATH),
+    ):
+        html = JINJA_ENV.get_template(template_name).render()
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(html)
 
 
 def main():
@@ -1294,6 +1350,7 @@ def main():
     render_dashboard(payload)
     render_sentiment_page(payload)
     render_stock_page(payload)
+    render_static_pages()
 
     save_history(history, {
         "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
