@@ -78,23 +78,23 @@
      glow, glowing ring nodes) rather than inventing a new decorative
      style — this is the site's own most-polished visual pattern,
      applied here to team growth instead of live pillar scores. */
-  .team-orbit-wrap { margin: 44px auto 6px; max-width: 460px; }
+  .team-orbit-wrap { margin: 48px auto 6px; max-width: 680px; }
   .team-orbit-panel {
     position: relative; border: 1px solid var(--border); border-radius: var(--radius-lg);
     background:
-      radial-gradient(360px 300px at 50% 40%, rgba(245,158,11,0.10), transparent 68%),
-      repeating-linear-gradient(rgba(148,163,184,0.05) 0 1px, transparent 1px 36px),
-      repeating-linear-gradient(90deg, rgba(148,163,184,0.05) 0 1px, transparent 1px 36px),
+      radial-gradient(520px 400px at 50% 38%, rgba(245,158,11,0.10), transparent 68%),
+      repeating-linear-gradient(rgba(148,163,184,0.05) 0 1px, transparent 1px 40px),
+      repeating-linear-gradient(90deg, rgba(148,163,184,0.05) 0 1px, transparent 1px 40px),
       var(--surface-1);
-    padding: 18px 20px 24px; box-shadow: var(--shadow-md); overflow: hidden;
+    padding: 26px clamp(20px, 3vw, 40px) 32px; box-shadow: var(--shadow-md); overflow: hidden;
   }
   .team-orbit-head { display: flex; align-items: center; justify-content: space-between; }
-  .team-orbit-tag { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-faint); font-weight: 700; }
-  .team-orbit-live { display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--amber); }
+  .team-orbit-tag { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-faint); font-weight: 700; }
+  .team-orbit-live { display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--amber); }
   .team-orbit-live .live-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--amber); flex-shrink: 0; animation: livePulse 2s ease-in-out infinite; }
   @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
-  .team-orbit-canvas { position: relative; width: 100%; max-width: 320px; aspect-ratio: 1 / 1; margin: 10px auto 0; }
+  .team-orbit-canvas { position: relative; width: 100%; max-width: 460px; aspect-ratio: 1 / 1; margin: 18px auto 0; }
   .orbit-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   .orbit-ring { fill: none; stroke: rgba(148, 163, 184, 0.09); stroke-width: 0.4; }
   .orbit-line { fill: none; stroke: var(--accent); stroke-width: 0.6; opacity: 0.4; stroke-dasharray: 2.4 3; animation: orbit-dash 1.6s linear infinite; }
@@ -104,10 +104,10 @@
 
   .orbit-hub {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 108px; height: 108px; border-radius: 50%;
+    width: 148px; height: 148px; border-radius: 50%;
     background: linear-gradient(160deg, var(--surface-2), var(--surface-1));
     border: 1px solid var(--accent-border);
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
     z-index: 2; animation: hub-pulse 3.4s ease-in-out infinite;
   }
   @keyframes hub-pulse {
@@ -115,33 +115,48 @@
     50% { box-shadow: 0 0 0 1px var(--accent-dim), 0 0 44px -6px rgba(59, 130, 246, 0.75); }
   }
   @media (prefers-reduced-motion: reduce) { .orbit-hub { animation: none; box-shadow: 0 0 0 1px var(--accent-dim), 0 0 30px -10px rgba(59, 130, 246, 0.55); } }
-  .orbit-hub-mark { width: 24px; height: 24px; color: var(--accent); }
-  .orbit-hub-label { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 12.5px; letter-spacing: .01em; color: var(--text-primary); margin-top: 2px; }
-  .orbit-hub-sub { font-size: 9px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+  .orbit-hub-mark { width: 32px; height: 32px; color: var(--accent); }
+  .orbit-hub-label { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 15px; letter-spacing: .01em; color: var(--text-primary); margin-top: 3px; }
+  .orbit-hub-sub { font-size: 10.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
 
   .orbit-node {
-    position: absolute; transform: translate(-50%, -50%); width: 72px; height: 72px; border-radius: 50%;
+    position: absolute; transform: translate(-50%, -50%); width: 104px; height: 104px; border-radius: 50%;
     background: var(--surface-1); border: 1px solid var(--border);
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
     box-shadow: var(--shadow-sm); cursor: default; z-index: 1;
     transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
     animation: node-float 4.6s ease-in-out infinite;
   }
   .orbit-node:hover { border-color: var(--accent-border); box-shadow: 0 0 0 1px var(--accent-dim), var(--shadow-md); transform: translate(-50%, -50%) scale(1.08); }
-  @keyframes node-float { 0%, 100% { margin-top: 0; } 50% { margin-top: -5px; } }
+  @keyframes node-float { 0%, 100% { margin-top: 0; } 50% { margin-top: -6px; } }
   @media (prefers-reduced-motion: reduce) { .orbit-node { animation: none; } }
-  .orbit-node[data-role="data"] { top: 6%; left: 50%; animation-delay: 0s; }
-  .orbit-node[data-role="design"] { top: 50%; left: 94%; animation-delay: -1.2s; }
-  .orbit-node[data-role="research"] { top: 94%; left: 50%; animation-delay: -2.4s; }
-  .orbit-node[data-role="community"] { top: 50%; left: 6%; animation-delay: -3.4s; }
-  .orbit-node-icon { width: 20px; height: 20px; color: var(--accent-on-soft); }
-  .orbit-node-label { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; letter-spacing: .04em; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); }
+  .orbit-node[data-role="data"] { top: 3%; left: 50%; animation-delay: 0s; }
+  .orbit-node[data-role="design"] { top: 50%; left: 96%; animation-delay: -1.2s; }
+  .orbit-node[data-role="research"] { top: 97%; left: 50%; animation-delay: -2.4s; }
+  .orbit-node[data-role="community"] { top: 50%; left: 4%; animation-delay: -3.4s; }
+  .orbit-node-icon { width: 26px; height: 26px; color: var(--accent-on-soft); }
+  .orbit-node-label { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); }
 
-  @media (max-width: 480px) {
-    .team-orbit-canvas { max-width: 260px; }
-    .orbit-hub { width: 92px; height: 92px; }
-    .orbit-node { width: 60px; height: 60px; }
-    .orbit-hub-label { font-size: 11px; }
+  /* Fills the space below the canvas with real, honest numbers instead
+     of leaving it empty -- same imap-stats pattern index.html uses under
+     its Signal Map, so the panel reads as a full instrument rather than
+     a small floating badge. */
+  .team-orbit-stats { display: flex; justify-content: center; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+  .team-orbit-stat { text-align: center; padding: 14px 26px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface-1); min-width: 130px; }
+  .team-orbit-stat-val { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 800; color: var(--text-primary); }
+  .team-orbit-stat-label { font-size: 10.5px; color: var(--text-faint); margin-top: 4px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+
+  @media (max-width: 640px) {
+    .team-orbit-canvas { max-width: 340px; }
+    .orbit-hub { width: 116px; height: 116px; }
+    .orbit-node { width: 82px; height: 82px; }
+    .orbit-hub-label { font-size: 13px; }
+    .orbit-node-icon { width: 21px; height: 21px; }
+  }
+  @media (max-width: 400px) {
+    .team-orbit-canvas { max-width: 280px; }
+    .orbit-hub { width: 98px; height: 98px; }
+    .orbit-node { width: 68px; height: 68px; }
   }
 
   section.section { padding: 40px 0; }
@@ -256,6 +271,11 @@
             <span class="orbit-node-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
             <span class="orbit-node-label">Community</span>
           </div>
+        </div>
+        <div class="team-orbit-stats">
+          <div class="team-orbit-stat"><div class="team-orbit-stat-val">4</div><div class="team-orbit-stat-label">Roles mapped</div></div>
+          <div class="team-orbit-stat"><div class="team-orbit-stat-val">0</div><div class="team-orbit-stat-label">Open today</div></div>
+          <div class="team-orbit-stat"><div class="team-orbit-stat-val">Solo</div><div class="team-orbit-stat-label">Founder-built</div></div>
         </div>
       </div>
     </div>
