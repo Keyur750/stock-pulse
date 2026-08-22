@@ -515,6 +515,10 @@
   .pillar-divergence-badge.down { background: var(--bear-soft); color: var(--bear); border: 1px solid var(--bear-border); }
   .pillar-divergence-badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-border); }
   .pillar-divergence-badge.info { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
+  /* Site Redesign Reset, Phase 4 (research point 6): plain-English, not
+     AI-generated -- always present even on a day the AI analyst call
+     itself fails. */
+  .pillar-divergence-why { font-size: 12px; color: var(--text-secondary); margin: -8px 0 14px; max-width: 480px; }
   .pillar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   @media (max-width: 560px) { .pillar-grid { grid-template-columns: repeat(2, 1fr); } }
   .pillar-card { border-radius: var(--radius-md); padding: 14px 10px; text-align: center; border: 1px solid var(--border); background: var(--surface-2); }
@@ -1598,12 +1602,7 @@ function fillList(id, items) {
 }
 
 const PILLAR_LABELS = { crowd: 'Crowd', wall_street: 'Wall Street', business: 'Business', market: 'Market' };
-const DIVERGENCE_META = {
-  emerging_consensus: { icon: '●', label: 'Emerging Consensus', cls: 'up' },
-  retail_euphoria: { icon: '▲', label: 'Retail Euphoria', cls: 'warn' },
-  fundamental_deterioration: { icon: '▼', label: 'Fundamental Deterioration', cls: 'down' },
-  under_the_radar: { icon: '◆', label: 'Under-the-Radar', cls: 'info' },
-};
+{% include "partials/divergence_meta.js.j2" %}
 
 function pillarColorHex(score) {
   if (score === null || score === undefined) return '#64748B';
@@ -1629,9 +1628,15 @@ function renderPillarRow(sym) {
   const pillars = (DATA.pillar_scores || {})[sym];
   if (!pillars) { el.innerHTML = ''; return; }
 
-  const divKey = pillars.divergence;
-  const badge = (divKey && DIVERGENCE_META[divKey])
-    ? `<div class="pillar-divergence-badge ${DIVERGENCE_META[divKey].cls}">${DIVERGENCE_META[divKey].icon} ${DIVERGENCE_META[divKey].label}</div>`
+  // Site Redesign Reset, Phase 4: was reading pillars.divergence, a field
+  // that never existed on DATA.pillar_scores[sym] (which only ever has
+  // crowd/wall_street/business/market) -- the badge silently never
+  // rendered on this page as a result. Fixed to the same DATA.signals
+  // lookup dashboard_template.html's own (working) version already uses.
+  const sig = (DATA.signals || []).find(s => s.ticker === sym && DIVERGENCE_META[s.type]);
+  const badge = sig
+    ? `<div class="pillar-divergence-badge ${DIVERGENCE_META[sig.type].cls}">${DIVERGENCE_META[sig.type].icon} ${DIVERGENCE_META[sig.type].label}</div>
+       <div class="pillar-divergence-why">${DIVERGENCE_META[sig.type].why}</div>`
     : '';
 
   const reads = ((DATA.analyst || {})[sym] || {}).pillar_reads;
@@ -2203,9 +2208,14 @@ function renderDetailPane(s) {
   const reads = ((DATA.analyst || {})[s.ticker] || {}).pillar_reads;
   const narrative = (reads && reads.crowd) ? reads.crowd : 'Not enough evidence to generate a reliable AI explanation yet.';
 
-  const divKey = s.pillars.divergence;
+  // Site Redesign Reset, Phase 4: same s.pillars.divergence bug as
+  // renderPillarRow above -- that field never existed, so this button
+  // and its "why" never rendered. Fixed the same way.
+  const divSig = (DATA.signals || []).find(sg => sg.ticker === s.ticker && DIVERGENCE_META[sg.type]);
+  const divKey = divSig ? divSig.type : null;
   const divergenceHtml = (divKey && DIVERGENCE_META[divKey])
-    ? `<button class="detail-divergence ${DIVERGENCE_META[divKey].cls}" type="button" onclick="openChartModal('${s.ticker}')">${DIVERGENCE_META[divKey].icon} ${DIVERGENCE_META[divKey].label} — view 4-pillar breakdown →</button>`
+    ? `<button class="detail-divergence ${DIVERGENCE_META[divKey].cls}" type="button" onclick="openChartModal('${s.ticker}')">${DIVERGENCE_META[divKey].icon} ${DIVERGENCE_META[divKey].label} — view 4-pillar breakdown →</button>
+       <div class="pillar-divergence-why">${DIVERGENCE_META[divKey].why}</div>`
     : `<div class="detail-context" style="border-top:none;padding-top:0;margin-top:14px;">No notable pillar divergence for ${s.ticker} today.</div>`;
 
   let contextHtml = '';

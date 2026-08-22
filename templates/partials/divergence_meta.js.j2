@@ -1,0 +1,22 @@
+{#
+  Site Redesign Reset, Phase 4: one source for the Divergence Engine's
+  display metadata, replacing three identical hand-copied JS objects
+  (dashboard/sentiment/stock templates) -- COMPONENT_INVENTORY.md's
+  Phase 0 pass already flagged this exact duplication. `why` is new
+  (Phase 4, research point 6: the divergence "why" surfaces in context,
+  at the point it fired, not only inside a modal/detail view) -- plain-
+  English definitions taken directly from PRODUCT.md's "The moat"
+  section, so the copy here and the copy that document uses to explain
+  the product to a human are the same words, not two versions that can
+  drift apart.
+#}
+const DIVERGENCE_META = {
+  emerging_consensus: { icon: '●', label: 'Emerging Consensus', cls: 'up',
+    why: 'All four pillars are moving the same direction — high alignment.' },
+  retail_euphoria: { icon: '▲', label: 'Retail Euphoria', cls: 'warn',
+    why: 'Crowd chatter is hot, but Wall Street and the business itself haven’t confirmed it yet.' },
+  fundamental_deterioration: { icon: '▼', label: 'Fundamental Deterioration', cls: 'down',
+    why: 'Price and sentiment are rising while the underlying business metrics are actually falling.' },
+  under_the_radar: { icon: '◆', label: 'Under-the-Radar', cls: 'info',
+    why: 'Wall Street and the business are improving, but crowd attention hasn’t caught up yet.' },
+};

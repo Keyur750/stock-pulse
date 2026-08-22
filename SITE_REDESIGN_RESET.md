@@ -526,10 +526,30 @@ drove it (see "Research foundations" above).
   caught and fixed one real bug before it shipped: the first viewBox was
   too narrow and clipped the "Wall St" label past its edge, found via
   `getBBox()` measurement, not assumed fixed by eye.
-- **The divergence "why" surfaces in context, at the point it fired** —
-  not only inside a modal/detail view (research point 6). The AI analyst
-  already generates a one-line reason per divergence; this phase gets it
-  onto the chart/timeline itself.
+- **✅ Done: the divergence "why" surfaces in context, at the point it
+  fired** (research point 6) — a one-line plain-English explanation now
+  renders directly under the divergence badge itself, everywhere the
+  badge appears (dashboard's chart modal, sentiment's chart modal and
+  detail pane, the stock page's sentiment strip including its live
+  Supabase-polling refresh path). Deliberately **not** AI-generated text
+  pulled from a modal — these are the same plain-English pattern
+  definitions already in `PRODUCT.md`'s "moat" section (single source:
+  `templates/partials/divergence_meta.js.j2`, replacing three identical
+  hand-copied `DIVERGENCE_META` objects `COMPONENT_INVENTORY.md` already
+  flagged), so the "why" is always present even on a day the AI analyst
+  call itself fails — a real, current concern given today's Gemini quota
+  exhaustion, not a hypothetical one. **Two real, previously-invisible
+  bugs found and fixed while extracting this:** `sentiment_template.html`
+  read `pillars.divergence` in two separate places (the chart-modal badge
+  and the detail-pane button) — a field that never existed on
+  `DATA.pillar_scores[sym]` (only `crowd`/`wall_street`/`business`/
+  `market` do), so the divergence badge has silently never rendered
+  anywhere on the Sentiment Intelligence page. Fixed both to the same
+  `DATA.signals` lookup `dashboard_template.html`'s own (working) version
+  already used. Verified against real data with a deliberately-forced
+  Retail Euphoria case (confirmed via live DOM inspection, not just
+  static HTML) and confirmed the negative case renders zero why-spans
+  when no pattern fires.
 - **A real confidence-indicator component** (research point 7) —
   `composite_confidence`, `business_confidence`, and the other three
   pillar confidence scores are real, computed values with no visual

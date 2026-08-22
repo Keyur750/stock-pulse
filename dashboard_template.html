@@ -208,6 +208,12 @@
   .pillar-divergence-badge.down { background: var(--bear-soft); color: var(--bear); border: 1px solid var(--bear-border); }
   .pillar-divergence-badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-border); }
   .pillar-divergence-badge.info { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
+  /* Site Redesign Reset, Phase 4 (research point 6): the divergence
+     "why" sits directly under its own badge, not only in a separate AI
+     section further down -- and it's a plain-English pattern definition,
+     not AI-generated text, so it's always there even on a day the AI
+     analyst call itself fails. */
+  .pillar-divergence-why { font-size: 12px; color: var(--text-secondary); margin: -8px 0 14px; max-width: 480px; }
   .pillar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   @media (max-width: 560px) { .pillar-grid { grid-template-columns: repeat(2, 1fr); } }
   .pillar-card { border-radius: var(--radius-md); padding: 14px 10px; text-align: center; border: 1px solid var(--border); background: var(--surface-2); }
@@ -1043,12 +1049,7 @@ const PILLAR_LABELS = { crowd: 'Crowd', wall_street: 'Wall Street', business: 'B
 // bullish/aligned, red = bearish/deteriorating, amber = divergence or
 // warning. No decorative colors — every signal type maps to one of these
 // four plus gray for pure-attention (volume/search) signals.
-const DIVERGENCE_META = {
-  emerging_consensus: { icon: '●', label: 'Emerging Consensus', cls: 'up' },
-  retail_euphoria: { icon: '▲', label: 'Retail Euphoria', cls: 'warn' },
-  fundamental_deterioration: { icon: '▼', label: 'Fundamental Deterioration', cls: 'down' },
-  under_the_radar: { icon: '◆', label: 'Under-the-Radar', cls: 'info' },
-};
+{% include "partials/divergence_meta.js.j2" %}
 const SIGNAL_META = {
   bullish_dip: { chip: 'Price vs. Chatter', cls: 'up' },
   bearish_rally: { chip: 'Price vs. Chatter', cls: 'down' },
@@ -1090,7 +1091,8 @@ function renderPillarRow(sym) {
 
   const sig = DATA.signals.find(s => s.ticker === sym && DIVERGENCE_META[s.type]);
   const badge = sig
-    ? `<div class="pillar-divergence-badge ${DIVERGENCE_META[sig.type].cls}">${DIVERGENCE_META[sig.type].icon} ${DIVERGENCE_META[sig.type].label}</div>`
+    ? `<div class="pillar-divergence-badge ${DIVERGENCE_META[sig.type].cls}">${DIVERGENCE_META[sig.type].icon} ${DIVERGENCE_META[sig.type].label}</div>
+       <div class="pillar-divergence-why">${DIVERGENCE_META[sig.type].why}</div>`
     : '';
 
   const reads = ((DATA.analyst || {})[sym] || {}).pillar_reads;
