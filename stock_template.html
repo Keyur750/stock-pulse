@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Stock Intelligence — Undertow</title>
+<title>Stock — Undertow</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B1626'/%3E%3Cpath d='M4,20 C8,11 12,11 16,17.5 C20,24 24,24 28,13' fill='none' stroke='%233B82F6' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -327,12 +327,15 @@
 <main id="page-main">
   <div id="not-found" class="not-found" style="display:none;">
     <h1>Ticker not found</h1>
-    <p>We don't have Stock Intelligence coverage for this symbol yet.</p>
+    <p>We don't have coverage for this symbol yet.</p>
     <a href="dashboard.html">&larr; Back to Dashboard</a>
   </div>
 
   <div id="page-content" style="display:none;">
-    <div class="crumb"><a href="dashboard.html">&larr; Dashboard</a> &nbsp;/&nbsp; Stock Intelligence &nbsp;/&nbsp; <span id="crumb-sym"></span></div>
+    <!-- Site Redesign Reset, Phase 4B: "Stock Intelligence" dropped --
+         it added a word without adding information (the ticker symbol
+         right after it is already the specific label this crumb needs). -->
+    <div class="crumb"><a href="dashboard.html">&larr; Dashboard</a> &nbsp;/&nbsp; <span id="crumb-sym"></span></div>
 
     <div class="stock-header">
       <div class="stock-id">
@@ -1882,7 +1885,7 @@ if (!activeTicker || !flagshipTickers.has(activeTicker)) {
   document.getElementById('page-content').style.display = 'none';
 } else {
   document.getElementById('page-content').style.display = 'block';
-  document.title = `${activeTicker} — Stock Intelligence — Undertow`;
+  document.title = `${activeTicker} — Undertow`;
   initPage(activeTicker);
 }
 </script>

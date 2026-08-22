@@ -45,9 +45,9 @@
   .wrap-wide { max-width: 1560px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 56px); }
 
   /* Ticker tape — same live pattern already proven on Dashboard/Sentiment/
-     Stock Intelligence, missing here before now. This is the single
-     biggest reason those pages feel "alive" and this one didn't: they
-     always have something moving; this had nothing. */
+     Stock, missing here before now. This is the single biggest reason
+     those pages feel "alive" and this one didn't: they always have
+     something moving; this had nothing. */
   .tape-wrap { background: var(--bg-secondary); border-bottom: 1px solid var(--border); overflow: hidden; white-space: nowrap; padding: 8px 0; }
   .tape { display: inline-block; padding-left: 100%; animation: scroll-left 55s linear infinite; }
   .tape-wrap:hover .tape { animation-play-state: paused; }
@@ -170,7 +170,7 @@
   }
 
   /* Hero visualization panel — a terminal-like frame around the
-     Company Intelligence Map: faint grid, faint radial glow, thin
+     Signal Map: faint grid, faint radial glow, thin
      border, small corner labels. Gives the diagram somewhere to live
      other than bare page background, and is most of what makes it read
      as "an intelligence screen" rather than "a floating decoration."
@@ -193,7 +193,7 @@
   .hero-viz-updated .live-badge-dot { background: var(--bull); }
   @media (max-width: 1080px) { .hero-viz-panel { padding: 24px 20px 28px; } }
 
-  /* Company Intelligence Map — the actual product mechanism (four
+  /* Signal Map — the actual product mechanism (four
      independent signals cross-checked against one company) drawn as a
      living radial system instead of a static box grid. Every number in
      it is real: queried live from the same database the product pages
@@ -465,7 +465,7 @@
 
     <div class="hero-viz-panel reveal visible reveal-3">
       <div class="hero-viz-head">
-        <span class="hero-viz-tag">MARKET INTELLIGENCE MAP</span>
+        <span class="hero-viz-tag">SIGNAL MAP</span>
         <span class="hero-viz-updated"><span class="live-badge-dot"></span>UPDATED <span id="hero-updated">JUST NOW</span></span>
       </div>
       <div class="imap" id="imap">
@@ -489,7 +489,15 @@
           </div>
           <div class="imap-center">
             <svg class="imap-center-ring" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="46"/><circle class="ring-fill" id="ring-overall" cx="50" cy="50" r="46"/></svg>
-            <div class="imap-center-sym" id="imap-sym">MARKET</div>
+            <!-- Site Redesign Reset, Phase 4B: was "MARKET" -- genuinely
+                 ambiguous right next to a node also labeled "Market"
+                 (one of the four pillars), and nothing distinguished
+                 "this is an average across every company we track" from
+                 "this is one stock's score." "AVERAGE" is also short
+                 enough to fit this circle's mobile-breakpoint size
+                 (112px) without a separate font-size override, unlike a
+                 longer replacement. -->
+            <div class="imap-center-sym" id="imap-sym">AVERAGE</div>
             <div class="imap-center-score"><span id="imap-overall">—</span><span>/100</span></div>
             <div class="imap-center-tag" id="imap-tag">—</div>
             <div class="imap-center-align" id="imap-align"></div>
@@ -598,7 +606,7 @@
 
 <section class="section" id="explorer">
   <div class="wrap-wide">
-    <span class="section-kicker reveal">SEE THE INTELLIGENCE FOR YOURSELF</span>
+    <span class="section-kicker reveal">EXPLORE THE DATA</span>
     <h2 class="section-title reveal reveal-1">Pick any company we track.</h2>
     <p class="section-sub reveal reveal-2">Same real data as the map above, for whichever one you want to look at.</p>
 
@@ -610,17 +618,28 @@
   </div>
 </section>
 
+<!-- Site Redesign Reset, Phase 4B: this section used to have 6 tiles,
+     4 of which (Retail sentiment / Analyst expectations / Business
+     fundamentals / Market behavior) just re-explained the same four
+     pillars "THE FOUR SIGNALS" bento grid above already covers, in
+     slightly different words -- confirmed by direct comparison, not
+     assumed. Cut to the 3 things this page doesn't already say
+     elsewhere: the two genuinely distinct tiles (Emerging narratives,
+     AI synthesis) kept as-is, plus Divergence detection -- the actual
+     competitive differentiator per PRODUCT.md's "moat" and
+     COMPETITIVE_INTELLIGENCE.md's research (none of the 10 researched
+     competitors do real cross-pillar divergence reconciliation), which
+     wasn't named anywhere on the landing page before this. Track record
+     isn't repeated here either -- it already has its own full section
+     below ("HISTORICAL TRACK RECORD"). -->
 <section class="section">
   <div class="wrap">
     <span class="section-kicker reveal">WHY UNDERTOW</span>
-    <h2 class="section-title reveal reveal-1">Six things reconciled into one honest read</h2>
+    <h2 class="section-title reveal reveal-1">Not just four scores — the reconciliation between them</h2>
     <div class="why-grid">
-      <div class="why-tile surface surface-hover reveal reveal-1"><h4>Retail sentiment</h4><p>StockTwits and Reddit, self-tagged bullish/bearish, cross-checked against Google Trends attention.</p></div>
+      <div class="why-tile surface surface-hover reveal reveal-1"><h4>Divergence detection</h4><p>Every pillar pair compared, not just shown side by side — named patterns like "retail's hot but the business hasn't confirmed it" instead of four numbers you have to reconcile yourself.</p></div>
       <div class="why-tile surface surface-hover reveal reveal-2"><h4>Emerging narratives</h4><p>What's actually being said, filtered and ranked — not just headline volume.</p></div>
-      <div class="why-tile surface surface-hover reveal reveal-3"><h4>Analyst expectations</h4><p>Consensus ratings, price targets, and whether the tone is shifting.</p></div>
-      <div class="why-tile surface surface-hover reveal reveal-4"><h4>Business fundamentals</h4><p>Growth, profitability, cash flow, balance sheet, and valuation — scored transparently.</p></div>
-      <div class="why-tile surface surface-hover reveal reveal-1"><h4>Market behavior</h4><p>Momentum, extension, and volatility — what's already priced in.</p></div>
-      <div class="why-tile surface surface-hover reveal reveal-2"><h4>AI synthesis</h4><p>Reasoned, not formulaic — explains why the pillars agree or conflict, in plain language.</p></div>
+      <div class="why-tile surface surface-hover reveal reveal-3"><h4>AI synthesis</h4><p>Reasoned, not formulaic — explains why the pillars agree or conflict, in plain language.</p></div>
     </div>
   </div>
 </section>
@@ -760,7 +779,7 @@ async function pollMacro() {
 pollMacro();
 setInterval(pollMacro, 60000);
 
-// Company Intelligence Map -- real 4-pillar scores AVERAGED across every
+// Signal Map -- real 4-pillar scores AVERAGED across every
 // tracked company, not one arbitrary ticker. A single company's numbers
 // don't represent "the market"; this does. Real day-over-day movement
 // now that signal_history has accumulated multiple real days. Nothing
@@ -1295,7 +1314,7 @@ function selectExplorerTicker(ticker) {
     <div class="explorer-body">
       <div class="explorer-pillars">${pillarsHtml}</div>
       <div>
-        <div class="explorer-read-label">Intelligence</div>
+        <div class="explorer-read-label">AI Read</div>
         ${readHtml}
         <a class="explorer-cta" href="stock-${ticker}.html">Full breakdown on ${ticker} →</a>
       </div>

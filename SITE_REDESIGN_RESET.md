@@ -682,7 +682,7 @@ drove it (see "Research foundations" above).
   on the site, which needs the full-surface review Phase 5's systematic
   pass is for, not a spot-fix bundled into an unrelated feature.
 
-### Phase 4B — Content & copy audit
+### Phase 4B — Content & copy audit ✅ DONE (2026-08-21)
 **Goal:** the actual sentence-level pass requested alongside this doc —
 where wording genuinely helps or hurts, called out with the exact
 current text, not a rewrite for its own sake. Worth saying plainly
@@ -710,6 +710,26 @@ that voice. The real, findable issues are narrower and structural:
   symbol is already the specific label there; "Stock Intelligence" adds
   a word without adding information). Give the hero widget its own name
   that isn't "Intelligence" again — e.g. "Signal Map."
+  **✅ Done, verified live in the browser (2026-08-21):** nav renamed to
+  plain "Sentiment" (`templates/partials/nav.html.j2`); stock's
+  breadcrumb, `<title>`, not-found message, and the JS `document.title`
+  template string all dropped "Stock Intelligence" (confirmed live: tab
+  title reads "NVDA — Undertow", breadcrumb reads "← Dashboard / NVDA");
+  sentiment's own `<title>`/`<h1>` renamed to plain "Sentiment"; hero
+  widget renamed "MARKET INTELLIGENCE MAP" → "SIGNAL MAP" (matching
+  internal code comments renamed to match). **Three more instances found
+  while sweeping the whole codebase for "Intelligence," not just the
+  four named in the original audit:** dashboard's Signals section was
+  titled "Market Intelligence Feed" → "Signal Feed"; the chart modal's
+  "Full Stock Intelligence →" link (both dashboard and sentiment) →
+  "Full breakdown →" (matches the phrase already used elsewhere on
+  `index.html`); the ticker-explorer card's bare "Intelligence" section
+  label → "AI Read" (matches the "AI read: N" phrasing already
+  established this session in Phase 4's confidence-indicator work). The
+  landing page's own "SEE THE INTELLIGENCE FOR YOURSELF" kicker (a sixth
+  instance, not in the original count either) → "EXPLORE THE DATA."
+  Confirmed via a final `grep -rn "Intelligence"` sweep across every
+  template that only the two brand-tagline `<title>` usages remain.
 - **The same destination has three different link labels.** All three
   go to `dashboard.html`: the hero's primary CTA says "Explore the
   Intelligence" (`index.html:433`), the nav bar's CTA says "Explore the
@@ -721,6 +741,9 @@ that voice. The real, findable issues are narrower and structural:
   nav will need anyway once "Dashboard" is a plain top-level nav item
   rather than something hidden behind "the Intelligence" — so settling
   this now avoids re-deciding it during Phase 2.
+  **✅ Already done as part of Phase 2's nav-flattening work** — all
+  three now read "Open the Dashboard," confirmed still true at the start
+  of this Phase 4B pass.
 - **Two landing-page sections re-explain the same four pillars back to
   back.** "THE FOUR SIGNALS" bento grid (`index.html:519-568`) and "WHY
   UNDERTOW" (`index.html:599-612`) both walk through Crowd/Wall Street/
@@ -738,6 +761,21 @@ that voice. The real, findable issues are narrower and structural:
   competitive differentiation, which exists in detail in
   `COMPETITIVE_INTELLIGENCE.md` and currently never surfaces on the site
   at all.
+  **✅ Done:** cut the 4 duplicate why-tiles (Retail sentiment/Analyst
+  expectations/Business fundamentals/Market behavior — all re-explaining
+  what "THE FOUR SIGNALS" bento grid already covers), kept the 2
+  genuinely distinct ones (Emerging narratives, AI synthesis), and added
+  one new tile naming the real differentiator directly: **Divergence
+  detection** — "every pillar pair compared, not just shown side by
+  side," which wasn't named anywhere on the landing page before this.
+  Track record isn't repeated in this section either — it already has
+  its own dedicated "HISTORICAL TRACK RECORD" section just below, found
+  by reading the page in full before editing rather than assumed absent.
+  H2 rewritten from "Six things reconciled into one honest read" (now
+  three) to "Not just four scores — the reconciliation between them" —
+  ties directly to the actual moat instead of a generic count. Verified
+  live: renders cleanly in a clean 3-column row at the existing
+  `.why-grid` breakpoint (built for exactly this, not adjusted).
 - **The hero's headline number isn't the same thing as a ticker's score,
   and nothing says so.** Confirmed by reading the JS: `imap-overall`
   (`index.html:892`) is a plain unweighted `average()` of the four pillar
@@ -752,6 +790,20 @@ that voice. The real, findable issues are narrower and structural:
   consider whether the hero should show a real ticker's real
   `composite_score` instead of inventing a third, simpler calculation
   that only exists in this one widget.
+  **✅ Done — took the explicit-label path, not the ticker-swap path:**
+  the widget's own `imap-sym` label (never updated by JS — a static
+  string sitting right above the score, confirmed by grep) read
+  "MARKET," which is a second, sharper problem the original audit didn't
+  name: it's genuinely confusable with the "Market" *pillar* node
+  positioned right next to it in the same radar shape, not just vague.
+  Relabeled to "AVERAGE" — short enough to fit the widget's existing
+  mobile-breakpoint size (112px) without a new font-size override, and
+  echoes the "Companies Tracked" stat already shown lower in the same
+  widget rather than introducing a new term. Left the widget itself
+  averaging across all companies rather than swapping to one ticker's
+  `composite_score` — that would change what this specific widget is
+  for (breadth at a glance for a first-time visitor), not just fix the
+  labeling ambiguity the finding was actually about.
 - **Minor, mechanical inconsistencies** that Phase 1's shared-nav-partial
   work will resolve as a side effect, not worth a standalone fix: the
   ticker search placeholder reads "Search ticker or company..." on
@@ -759,6 +811,11 @@ that voice. The real, findable issues are narrower and structural:
   — same feature, two different pages, two different placeholder strings,
   because (per Phase 1's own finding) there's no shared nav component
   for them to inherit from yet.
+  **✅ Already resolved as predicted, confirmed not just assumed:** all
+  three app pages now render the placeholder from the one shared
+  `templates/partials/nav.html.j2`, so there's exactly one string
+  ("Search ticker or company...") left, not two — this happened as a
+  side effect of Phase 1/2's own work, not a new Phase 4B fix.
 
 ### Phase 4C — First-run onboarding
 **Goal:** teach a first-time visitor to read Undertow's actual
@@ -950,7 +1007,7 @@ comes when that phase is actually scoped for building)
 | 2 | Flat navigation everywhere; per-ticker static URLs; ticker search on every app page | ✅ Done, verified with real data (2026-08-21); full marketing-nav component merge deliberately deferred to Phase 4 (visual-layer work) |
 | 3 | Accounts: finish everywhere, unlocks watchlist only for now | ✅ Done (2026-08-21) — wired via Phase 1, scope decided by user, `PRODUCT.md` updated |
 | 4 | Visual redesign pass | ✅ Done (2026-08-21) — four-axis pillar glyph, in-context divergence "why," confidence-indicator component, mobile-first verification, live WCAG 2.2 checks (2 real failures fixed, 2 pre-existing ones logged for Phase 5), hierarchy discipline confirmed, density calibration confirmed, distinct divergence-pattern signature (+ a real CSS shorthand bug caught live), standardized empty/loading/error states + a stale-copy fix |
-| 4B | Content & copy audit | Findings documented above; fixes not applied — pairs with Phase 2 |
+| 4B | Content & copy audit | ✅ Done (2026-08-21) — "Intelligence" overload fixed (7 instances, 3 found beyond the original 4), CTA labels already unified via Phase 2, WHY UNDERTOW merged from 6 tiles to 3 (real Divergence-detection differentiator added), hero number relabeled "AVERAGE", search placeholder confirmed already unified |
 | 4C | First-run onboarding (added 2026-08-21 after external research pass) | Not started — depends on Phase 4 |
 | 5 | Responsive breakpoint system + WCAG 2.2 AA accessibility bar | Not started — depends on Phase 0 |
 | 6 | Performance (Core Web Vitals bar) | Not started — mostly falls out of Phase 1 |
@@ -979,20 +1036,20 @@ comes when that phase is actually scoped for building)
 1. Real per-ticker static URLs — **decided: yes, build them**, replacing
    `?t=TICKER` query routing (kept as a redirect/alias). See Phase 2.
 
-**Next step:** Phases 0, 1, 2, 3, and 4 are all done. **Phase 4B (copy
-fixes)** is next, paired with Phase 2 per the sequencing note — the
-"Intelligence" naming collision and CTA-label fixes are ready to apply,
-already scoped with exact file/line references from the original audit.
-Phase 4C (onboarding) and the deferred marketing-nav component merge
+**Next step:** Phases 0, 1, 2, 3, 4, and 4B are all done. **Phase 4C
+(first-run onboarding)** is next per the sequencing — needs the
+four-axis glyph and divergence why-text to exist first, which Phase 4
+now provides. After that: the deferred marketing-nav component merge
 (the confidence indicator, divergence signal, and empty-state components
 all now live in `design/components.css` as real shared classes, ready
-for the marketing pages to adopt once that merge happens) are documented
-and ready to scope once Phase 4B closes out. Two concrete items were
-logged for Phase 5, not fixed in Phase 4 since they touch shared global
-tokens beyond this phase's own new components: the divergence badge's
-bear/accent text-on-soft-background contrast (4.11:1/4.12:1, just under
-4.5:1), and the general "audit every existing surface" pass Phase 5 was
-always going to need regardless. Nothing from the 2026-08-21 research
-pass was left out of this plan. A full live pipeline run (with fresh AI
-analyst text) is still worth doing once Gemini's quota resets, but as a
-routine daily refresh, not a blocker on any further building.
+for the marketing pages to adopt once that merge happens), then Phase 5
+(responsive/WCAG systematic pass) and Phase 6 (performance). Two
+concrete items were logged for Phase 5, not fixed earlier since they
+touch shared global tokens beyond any one phase's own new components:
+the divergence badge's bear/accent text-on-soft-background contrast
+(4.11:1/4.12:1, just under 4.5:1), and the general "audit every existing
+surface" pass Phase 5 was always going to need regardless. Nothing from
+the 2026-08-21 research pass was left out of this plan. A full live
+pipeline run (with fresh AI analyst text) is still worth doing once
+Gemini's quota resets, but as a routine daily refresh, not a blocker on
+any further building.

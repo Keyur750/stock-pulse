@@ -14,6 +14,10 @@
   openChartModal() directly (sentiment has no global [data-ticker] click
   delegation the way dashboard does).
 
+  Nav label is plain "Sentiment" (Phase 4B: "Intelligence" reserved for
+  the brand-level tagline only, per SITE_REDESIGN_RESET.md's copy audit
+  -- it was overloading five unrelated things across the site).
+
   Params:
     active_page: 'dashboard' | 'sentiment' | 'stock'
 #}
@@ -31,13 +35,13 @@
     <a href="#markets-strip">Markets</a>
     <a href="#news-condensed">News</a>
     <a href="#signals-block" id="nav-signals">Signals</a>
-    <a href="sentiment.html">Sentiment Intelligence</a>
+    <a href="sentiment.html">Sentiment</a>
     <a href="about.html" class="nav-secondary">About</a>
   </div>
   {% else %}
   <div class="site-nav-links">
     <a href="dashboard.html">Dashboard</a>
-    <a href="sentiment.html"{% if active_page == 'sentiment' %} class="active" aria-current="page"{% endif %}>Sentiment Intelligence</a>
+    <a href="sentiment.html"{% if active_page == 'sentiment' %} class="active" aria-current="page"{% endif %}>Sentiment</a>
     <a href="about.html" class="nav-secondary">About</a>
   </div>
   {% endif %}
