@@ -40,7 +40,7 @@ from wallstreet import fetch_analyst_data, score_wallstreet, fetch_eps_estimate_
 from market import fetch_market_data, score_market, market_confidence, market_confidence_label
 from trends import fetch_search_interest
 from analyst import analyze_stock, MODEL as ANALYST_MODEL
-from overall_score import score_composite
+from overall_score import score_composite, composite_confidence_label
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(ROOT, "data")
@@ -938,6 +938,14 @@ def run_analyst_pipeline(flagship_tickers, ticker_results, news_items, price_his
             },
             divergence_pattern=divergence_pattern,
         )
+        # Site Redesign Reset, Phase 4: label added alongside the raw
+        # number for the same reason every sibling pillar confidence
+        # already carries one -- one shared threshold scheme, not a
+        # frontend reimplementation of it.
+        if composite_scores[ticker] is not None:
+            composite_scores[ticker]["composite_confidence_label"] = composite_confidence_label(
+                composite_scores[ticker]["composite_confidence"]
+            )
 
         if f:
             fundamentals_data[ticker] = {
@@ -1045,13 +1053,31 @@ def _copy_shared_design_assets():
 # Site Redesign Reset, Phase 1 (see SITE_REDESIGN_RESET.md's "Data
 # duplication" gap): each page's own <script> only reads a subset of the
 # full payload -- verified directly by grepping every `DATA.<key>` (and
-# `DATA['key']`/spread) access in each template, not guessed. `wallstreet`/
-# `balance_sheet_history`/`cashflow_history` are fetched and genuinely used
-# elsewhere (pillar scoring, Supabase sync, signal_history) but no
-# template renders them today -- they're excluded from all three lists
-# below rather than carried along as dead weight in every page's ~5MB
-# JSON blob. Add a key to the relevant list the day a template actually
-# needs it, not preemptively.
+# `DATA['key']`/spread) access in each template, not guessed.
+# `balance_sheet_history`/`cashflow_history` are fetched and genuinely
+# used elsewhere (pillar scoring, Supabase sync, signal_history) but no
+# template renders them today -- excluded from all three lists below
+# rather than carried along as dead weight in every page's ~5MB JSON
+# blob. `wallstreet` was excluded from all three for the same reason
+# when Phase 1 shipped; Phase 4's confidence-indicator component is the
+# day a template actually needs it (the stock page's per-pillar
+# confidence dots, `wallstreet[ticker].confidence_label`), so it's added
+# back to `_STOCK_PAYLOAD_KEYS` only -- dashboard/sentiment's chart
+# modal shows only the lighter aggregate `composite_confidence`, not a
+# reason to add the much heavier `wallstreet`/`fundamentals`/`market`
+# dicts to those two pages too. `composite` itself was already in
+# `_DASHBOARD_PAYLOAD_KEYS` but missing from `_SENTIMENT_PAYLOAD_KEYS`
+# until Phase 4 fixed the same "modal only ever showed ai_score, never
+# composite_score" gap on this page too -- added here for that reason,
+# not carried over by copy-paste from dashboard's list. `signals` was
+# ALSO missing from `_SENTIMENT_PAYLOAD_KEYS` -- a second, independent
+# reason (on top of the pillars.divergence bug already fixed in
+# sentiment_template.html) the divergence badge/why-text never rendered
+# on this page: the JS was correctly reading DATA.signals.find(...) but
+# DATA.signals itself didn't exist in this page's sliced payload at all.
+# Found by actually loading the rendered page in a browser and clicking
+# through, not by grepping the template source -- a static text/dry-
+# render check can confirm the code is present, never that it runs.
 _DASHBOARD_PAYLOAD_KEYS = (
     "generated_at", "total_messages", "total_tickers", "signals",
     "top_bullish", "top_bearish", "most_discussed", "watchlist_grid",
@@ -1059,12 +1085,13 @@ _DASHBOARD_PAYLOAD_KEYS = (
     "timeframe_history", "material_events", "company_news",
 )
 _SENTIMENT_PAYLOAD_KEYS = (
-    "generated_at", "analyst", "pillar_scores", "price_history",
-    "sentiment_history", "timeframe_history", "watchlist_grid",
+    "generated_at", "analyst", "composite", "pillar_scores", "price_history",
+    "sentiment_history", "signals", "timeframe_history", "watchlist_grid",
     "market_insight",
 )
 _STOCK_PAYLOAD_KEYS = (
     "analyst", "company_news", "composite", "financial_history",
+    "wallstreet",
     "flagship_tickers", "fundamentals", "market", "material_events",
     "most_discussed", "news", "pillar_scores", "signals",
     "timeframe_history", "top_bearish", "top_bullish", "watchlist_grid",
@@ -1122,12 +1149,13 @@ def render_stock_page(payload):
         f.write(html)
 
 
-# Site Redesign Reset, Phase 2: the 9 dicts here are the ones
-# stock_template.html's JS ever indexes by ticker (confirmed by grepping
-# every `DATA.<dict>[sym]` access in the template -- none of them are
-# ever iterated over all keys, only looked up for the page's own
-# ticker), so a per-ticker page only needs its own entry in each, not
-# every flagship ticker's. The remaining `_STOCK_PAYLOAD_KEYS` fields
+# Site Redesign Reset, Phase 2 (extended in Phase 4 to add `wallstreet`
+# once the confidence-indicator component needed it): the dicts here are
+# the ones stock_template.html's JS ever indexes by ticker (confirmed by
+# grepping every `DATA.<dict>[sym]` access in the template -- none of
+# them are ever iterated over all keys, only looked up for the page's
+# own ticker), so a per-ticker page only needs its own entry in each,
+# not every flagship ticker's. The remaining `_STOCK_PAYLOAD_KEYS` fields
 # (flagship_tickers, most_discussed, top_bullish, top_bearish,
 # watchlist_grid, news, signals) are real cross-ticker lists the page
 # genuinely needs in full (search, the "which lists is this ticker in"
@@ -1137,7 +1165,7 @@ def render_stock_page(payload):
 _PER_TICKER_STOCK_KEYS = (
     "analyst", "company_news", "composite", "financial_history",
     "fundamentals", "market", "material_events", "pillar_scores",
-    "timeframe_history",
+    "timeframe_history", "wallstreet",
 )
 
 

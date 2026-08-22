@@ -161,3 +161,22 @@ def score_composite(pillar_scores: dict, confidences: dict | None = None,
         "divergence_pattern": divergence_pattern,
         "divergence_adjustment": adjustment,
     }
+
+
+def composite_confidence_label(score: float | None) -> str:
+    """Site Redesign Reset, Phase 4 (research point 7): same High/Medium/
+    Low/Unknown thresholds every sibling *_confidence_label() function
+    already uses (crowd_confidence_label/wallstreet_confidence_label/
+    market_confidence_label/business_confidence_label) -- one label
+    scheme, not a second one invented for this specific number. Applies
+    validly here even though composite_confidence is coverage-based
+    (how many pillars contributed) rather than the sample-size/agreement
+    quality the other four measure: both answer the same underlying
+    question a label communicates -- how much to trust this score."""
+    if score is None:
+        return "Unknown"
+    if score >= 70:
+        return "High"
+    if score >= 40:
+        return "Medium"
+    return "Low"

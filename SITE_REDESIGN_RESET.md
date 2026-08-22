@@ -550,13 +550,47 @@ drove it (see "Research foundations" above).
   Retail Euphoria case (confirmed via live DOM inspection, not just
   static HTML) and confirmed the negative case renders zero why-spans
   when no pattern fires.
-- **A real confidence-indicator component** (research point 7) —
-  `composite_confidence`, `business_confidence`, and the other three
-  pillar confidence scores are real, computed values with no visual
-  pattern in any template today. Needs a designed treatment (e.g. a
-  filled/hollow-dot scale, or a labeled chip with a one-line "why this
-  confidence" tooltip), reusing the existing `*_confidence_label()`
-  functions already in the codebase rather than inventing new labels.
+- **✅ Done: a real confidence-indicator component** (research point 7) —
+  a filled/hollow 3-dot scale (`confidenceDotsHtml()`, one shared
+  `templates/partials/confidence_indicator.js.j2`) reusing the exact
+  High/Medium/Low/Unknown thresholds every `*_confidence_label()`
+  function already returns, not a new scale invented for the frontend.
+  Added `composite_confidence_label()` to `overall_score.py` (the one
+  pillar-adjacent confidence with no existing label function) for the
+  same reason. Shown per-pillar on the stock page's Four-Pillar Read
+  card (`wallstreet` added back to `_STOCK_PAYLOAD_KEYS`/
+  `_PER_TICKER_STOCK_KEYS` now that a real template need exists, per
+  Phase 1's own "add a key the day a template needs it" rule) and as the
+  composite's own aggregate confidence next to the score badge on all
+  three app pages.
+  **This also closed a real, already-flagged gap while extending the
+  dashboard/sentiment chart modal:** both modals showed only `ai_score`,
+  never `composite_score` — exactly what `COMPONENT_INVENTORY.md`'s
+  Phase 0 pass had already flagged. Both now show composite as primary
+  with `ai_score` secondary, matching the stock page's header pattern.
+  **A serious regression found and fixed only by actually executing the
+  page in a browser, not by grepping/dry-rendering the template source:**
+  the ticker-search JS added to `sentiment_template.html` in the earlier
+  Phase 2 commit declared `const searchInput`, which collided with this
+  page's own pre-existing Securities-table filter box (already named
+  `searchInput`) — a `SyntaxError` that silently broke the *entire*
+  inline script on load, not just search. Confirmed via the live commit
+  history that `docs/sentiment.html` itself was never actually
+  regenerated with the broken template (the daily pipeline hasn't run
+  since, blocked on quota), so this never reached the live site, but it
+  would have on the next real run had this not been caught now. Fixed
+  by renaming every name in that block to a `navSearch*`-prefixed
+  variant. **Separately, `_SENTIMENT_PAYLOAD_KEYS` was also missing
+  `signals`**, which independently blocked the divergence badge/why-text
+  fix from the previous commit from ever actually rendering on this page
+  (the JS was correct; `DATA.signals` itself just didn't exist in the
+  sliced payload) — both gaps only surfaced by loading the rendered page
+  live and calling `openChartModal()` in the browser console, checking
+  real DOM output, not by re-reading the template source. **The lesson,
+  stated plainly for future phases:** a dry Jinja render or a text grep
+  confirms code is present in the output; it does not confirm the code
+  executes without error. Live browser verification is now the standard
+  for any change touching a `<script>` block, not an optional extra.
 - The four Divergence Engine patterns (Emerging Consensus / Retail
   Euphoria / Fundamental Deterioration / Under-the-Radar) get a real,
   distinct visual signature — this is Undertow's actual differentiator

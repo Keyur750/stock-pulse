@@ -233,6 +233,7 @@
   .cm-ai-score.down { color: var(--bear); }
   .cm-ai-score.na { color: var(--amber); }
   .cm-ai-score-label { font-size: 12px; color: var(--text-faint); }
+  .cm-ai-secondary { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
   .cm-ai-verdict { font-size: 15px; font-weight: 700; margin-top: 12px; }
   .cm-ai-summary { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: 8px 0 18px; }
   .cm-ai-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 16px; }
@@ -413,6 +414,7 @@
           <span class="cm-ai-score-label">/ 100</span>
         </div>
       </div>
+      <div class="cm-ai-secondary" id="cm-ai-secondary"></div>
       <div class="cm-ai-verdict" id="cm-ai-verdict"></div>
       <p class="cm-ai-summary" id="cm-ai-summary"></p>
       <div class="cm-ai-cols">
@@ -1050,6 +1052,7 @@ const PILLAR_LABELS = { crowd: 'Crowd', wall_street: 'Wall Street', business: 'B
 // warning. No decorative colors — every signal type maps to one of these
 // four plus gray for pure-attention (volume/search) signals.
 {% include "partials/divergence_meta.js.j2" %}
+{% include "partials/confidence_indicator.js.j2" %}
 const SIGNAL_META = {
   bullish_dip: { chip: 'Price vs. Chatter', cls: 'up' },
   bearish_rally: { chip: 'Price vs. Chatter', cls: 'down' },
@@ -1120,10 +1123,20 @@ function miniPillarRow(sym) {
   return `<div class="signal-pillars">${items}</div>`;
 }
 
-function renderAiSection(result) {
+function renderAiSection(result, composite) {
   const aiEl = document.getElementById('cm-ai');
   const emptyEl = document.getElementById('cm-ai-empty');
-  if (!result) {
+  // Site Redesign Reset, Phase 4: this modal used to show only
+  // result.ai_score, never composite_score at all -- exactly the gap
+  // COMPONENT_INVENTORY.md's Phase 0 pass flagged ("still shows only
+  // ai_score, doesn't surface composite_score"). Same primary/secondary
+  // pattern stock_template.html's header already established: composite
+  // is the deterministic, backtestable number and goes primary; ai_score
+  // is the AI's own independent read and goes secondary, never dropped.
+  const hasComposite = composite && composite.composite_score !== null && composite.composite_score !== undefined;
+  const hasAi = !!(result && result.ai_score !== null && result.ai_score !== undefined);
+  const primaryScore = hasComposite ? composite.composite_score : (hasAi ? result.ai_score : null);
+  if (primaryScore === null) {
     aiEl.style.display = 'none';
     emptyEl.style.display = 'block';
     return;
@@ -1132,8 +1145,26 @@ function renderAiSection(result) {
   aiEl.style.display = 'block';
 
   const scoreEl = document.getElementById('cm-ai-score');
-  scoreEl.textContent = result.ai_score;
-  scoreEl.className = 'cm-ai-score ' + scoreClass(result.ai_score);
+  scoreEl.textContent = primaryScore;
+  scoreEl.className = 'cm-ai-score ' + scoreClass(primaryScore);
+  const aiReadText = (hasComposite && hasAi) ? `AI read: ${result.ai_score}` : '';
+  const compConfHtml = (hasComposite && composite.composite_confidence_label)
+    ? confidenceDotsHtml(composite.composite_confidence_label) : '';
+  document.getElementById('cm-ai-secondary').innerHTML = [aiReadText, compConfHtml].filter(Boolean).join(' · ');
+
+  if (!result) {
+    // Composite exists (that's why we got this far) but the AI analyst
+    // text doesn't -- clear every text field, not just verdict/summary,
+    // so a previously-viewed ticker's bullish/bearish/risk/catalyst
+    // lists don't linger stale underneath this ticker's composite score.
+    document.getElementById('cm-ai-verdict').textContent = '';
+    document.getElementById('cm-ai-summary').textContent = '';
+    fillList('cm-ai-bullish', null);
+    fillList('cm-ai-bearish', null);
+    fillList('cm-ai-risks', null);
+    fillList('cm-ai-catalysts', null);
+    return;
+  }
   document.getElementById('cm-ai-verdict').textContent = result.verdict || '';
   document.getElementById('cm-ai-summary').textContent = result.summary || '';
   fillList('cm-ai-bullish', result.bullish_factors);
@@ -1191,7 +1222,7 @@ function openChartModal(sym) {
 
   renderPillarRow(sym);
   if (isFlagship) {
-    renderAiSection((DATA.analyst || {})[sym]);
+    renderAiSection((DATA.analyst || {})[sym], (DATA.composite || {})[sym]);
   } else {
     document.getElementById('cm-ai').style.display = 'none';
     document.getElementById('cm-ai-empty').style.display = 'none';

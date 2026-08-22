@@ -159,6 +159,7 @@
   .pillar-dial circle { transition: stroke-dasharray .6s ease; }
   .pillar-dial text { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 18px; fill: var(--text-primary); }
   .pillar-dial-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); margin-top: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .pillar-confidence { display: flex; justify-content: center; margin-top: 6px; }
   .pillar-read { font-size: 12.5px; color: var(--text-secondary); margin-top: 11px; line-height: 1.62; text-align: left; }
 
   /* Chart modal styles, reused for the inline chart */
@@ -516,6 +517,7 @@ function pillarDialSvg(score) {
   </svg>`;
 }
 {% include "partials/divergence_meta.js.j2" %}
+{% include "partials/confidence_indicator.js.j2" %}
 // Site Redesign Reset, Phase 4: the four-axis pillar shape. Same color
 // classes DIVERGENCE_META already uses elsewhere on this page (up/down/
 // warn/info) so a fired divergence pattern tints the shape the same way
@@ -600,7 +602,15 @@ function renderAiSection(result, composite) {
     headerScoreBlock.className = 'stock-ai-block ' + cls;
     headerScoreBlock.style.display = 'flex';
     headerLabel.textContent = hasComposite ? 'Undertow Score' : 'AI Score';
-    headerSecondary.textContent = (hasComposite && hasAi) ? `AI read: ${result.ai_score}` : '';
+    // Site Redesign Reset, Phase 4: the composite's own confidence
+    // (composite_confidence_label, coverage-based -- see
+    // OVERALL_SCORE_RESET.md) sits next to the AI-read secondary line,
+    // not replacing it -- innerHTML now instead of textContent since
+    // confidenceDotsHtml returns markup, not plain text.
+    const aiReadText = (hasComposite && hasAi) ? `AI read: ${result.ai_score}` : '';
+    const compConfHtml = (hasComposite && composite.composite_confidence_label)
+      ? confidenceDotsHtml(composite.composite_confidence_label) : '';
+    headerSecondary.innerHTML = [aiReadText, compConfHtml].filter(Boolean).join(' · ');
   }
 
   if (!result) {
@@ -1191,6 +1201,18 @@ function initPage(sym) {
   const finHistory = (DATA.financial_history || {})[sym];
   const pillars = (DATA.pillar_scores || {})[sym];
   const market = (DATA.market || {})[sym] || {};
+  const wallstreet = (DATA.wallstreet || {})[sym] || {};
+  // Site Redesign Reset, Phase 4 (research point 7): one lookup per
+  // pillar key, each already computed server-side by that pillar's own
+  // *_confidence_label() -- crowd's lives on the watchlist_grid/
+  // top_bullish/etc. row (`info`) since that's where crowd_confidence
+  // was already being carried through, not a new field.
+  const pillarConfidenceLabels = {
+    crowd: info.crowd_confidence_label || 'Unknown',
+    wall_street: wallstreet.confidence_label || 'Unknown',
+    business: fundamentals.confidence_label || 'Unknown',
+    market: market.confidence_label || 'Unknown',
+  };
 
   document.getElementById('crumb-sym').textContent = sym;
   document.getElementById('stock-sym').textContent = sym;
@@ -1233,6 +1255,7 @@ function initPage(sym) {
         <div class="pillar-card" style="--pillar-accent:${pillarColorHex(pillars[key])};">
           ${pillarDialSvg(pillars[key])}
           <div class="pillar-dial-label">${label}</div>
+          <div class="pillar-confidence">${confidenceDotsHtml(pillarConfidenceLabels[key])}</div>
           ${reads && reads[key] ? `<div class="pillar-read">${reads[key]}</div>` : ''}
         </div>`).join('')
     : '<div class="fund-empty">Pillar scores unavailable for this ticker.</div>';

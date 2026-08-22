@@ -95,3 +95,14 @@
 .auth-message.show { display: block; }
 .auth-message.success, .auth-message.info { background: var(--accent-dim); color: var(--accent); }
 .auth-message.error { background: var(--bear-soft); color: var(--bear); }
+
+/* ---- Confidence indicator (Site Redesign Reset, Phase 4) ---- */
+/* Pairs with templates/partials/confidence_indicator.js.j2's
+   confidenceDotsHtml(). Three dots, filled left-to-right for Low(1)/
+   Medium(2)/High(3) -- a glanceable "how much to trust this" alongside
+   any score, not a fourth color scale competing with the score colors
+   already in use (bull/bear/amber). */
+.conf-indicator { display: inline-flex; align-items: center; gap: 5px; cursor: default; }
+.conf-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); display: inline-block; }
+.conf-dot.filled { background: var(--text-secondary); }
+.conf-indicator-label { font-size: var(--text-2xs); color: var(--text-faint); text-transform: uppercase; letter-spacing: .04em; font-family: 'JetBrains Mono', monospace; }

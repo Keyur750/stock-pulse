@@ -536,6 +536,7 @@
   .cm-ai-score.down { color: var(--bear); }
   .cm-ai-score.na { color: var(--amber); }
   .cm-ai-score-label { font-size: 12px; color: var(--text-faint); }
+  .cm-ai-secondary { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
   .cm-ai-verdict { font-size: 15px; font-weight: 700; margin-top: 12px; }
   .cm-ai-summary { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: 8px 0 18px; }
   .cm-ai-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 16px; }
@@ -751,6 +752,7 @@
           <span class="cm-ai-score-label">/ 100</span>
         </div>
       </div>
+      <div class="cm-ai-secondary" id="cm-ai-secondary"></div>
       <div class="cm-ai-verdict" id="cm-ai-verdict"></div>
       <p class="cm-ai-summary" id="cm-ai-summary"></p>
       <div class="cm-ai-cols">
@@ -1603,6 +1605,7 @@ function fillList(id, items) {
 
 const PILLAR_LABELS = { crowd: 'Crowd', wall_street: 'Wall Street', business: 'Business', market: 'Market' };
 {% include "partials/divergence_meta.js.j2" %}
+{% include "partials/confidence_indicator.js.j2" %}
 
 function pillarColorHex(score) {
   if (score === null || score === undefined) return '#64748B';
@@ -1650,16 +1653,38 @@ function renderPillarRow(sym) {
 
   el.innerHTML = badge + `<div class="pillar-grid">${cards}</div>`;
 }
-function renderAiSection(result) {
+function renderAiSection(result, composite) {
   const aiEl = document.getElementById('cm-ai');
   const emptyEl = document.getElementById('cm-ai-empty');
-  if (!result) { aiEl.style.display = 'none'; emptyEl.style.display = 'block'; return; }
+  // Site Redesign Reset, Phase 4: same gap and same fix as
+  // dashboard_template.html's renderAiSection -- this modal showed only
+  // ai_score, never composite_score. Composite (deterministic,
+  // backtestable) goes primary; ai_score (the AI's own independent
+  // read) goes secondary, never dropped.
+  const hasComposite = composite && composite.composite_score !== null && composite.composite_score !== undefined;
+  const hasAi = !!(result && result.ai_score !== null && result.ai_score !== undefined);
+  const primaryScore = hasComposite ? composite.composite_score : (hasAi ? result.ai_score : null);
+  if (primaryScore === null) { aiEl.style.display = 'none'; emptyEl.style.display = 'block'; return; }
   emptyEl.style.display = 'none';
   aiEl.style.display = 'block';
 
   const scoreEl = document.getElementById('cm-ai-score');
-  scoreEl.textContent = result.ai_score;
-  scoreEl.className = 'cm-ai-score ' + scoreClass(result.ai_score);
+  scoreEl.textContent = primaryScore;
+  scoreEl.className = 'cm-ai-score ' + scoreClass(primaryScore);
+  const aiReadText = (hasComposite && hasAi) ? `AI read: ${result.ai_score}` : '';
+  const compConfHtml = (hasComposite && composite.composite_confidence_label)
+    ? confidenceDotsHtml(composite.composite_confidence_label) : '';
+  document.getElementById('cm-ai-secondary').innerHTML = [aiReadText, compConfHtml].filter(Boolean).join(' · ');
+
+  if (!result) {
+    document.getElementById('cm-ai-verdict').textContent = '';
+    document.getElementById('cm-ai-summary').textContent = '';
+    fillList('cm-ai-bullish', null);
+    fillList('cm-ai-bearish', null);
+    fillList('cm-ai-risks', null);
+    fillList('cm-ai-catalysts', null);
+    return;
+  }
   document.getElementById('cm-ai-verdict').textContent = result.verdict || '';
   document.getElementById('cm-ai-summary').textContent = result.summary || '';
   fillList('cm-ai-bullish', result.bullish_factors);
@@ -1699,7 +1724,7 @@ function openChartModal(sym) {
   }
 
   renderPillarRow(sym);
-  renderAiSection((DATA.analyst || {})[sym]);
+  renderAiSection((DATA.analyst || {})[sym], (DATA.composite || {})[sym]);
 
   document.getElementById('chart-modal').style.display = 'flex';
   document.body.classList.add('modal-open');
@@ -2458,23 +2483,28 @@ setInterval(pollTickerSnapshots, QUOTES_POLL_INTERVAL_MS);
 
 // Site Redesign Reset, Phase 2: ticker search, ported from
 // dashboard_template.html's version (same DATA.watchlist_grid/composite/
-// analyst fields this page's payload already carries -- DATA.composite
-// is empty here since it's not one of _SENTIMENT_PAYLOAD_KEYS, so this
-// falls back to ai_score exactly the way the fallback expression below
-// already handles a missing composite for any ticker). Adapted to call
+// analyst fields this page's payload already carries). Adapted to call
 // openChartModal() directly on click since this page has no global
 // [data-ticker] click delegation the way dashboard does.
-const searchInput = document.getElementById('nav-search-input');
-const searchResultsEl = document.getElementById('nav-search-results');
-const allTickers = [...new Set((DATA.watchlist_grid || []).map(t => t.ticker))].sort();
-function renderSearchResults(query) {
+// Phase 4 fix: this block's names originally shadowed this page's own
+// pre-existing `searchInput` (the Securities table filter box, declared
+// above) -- both were top-level `const`, which is a SyntaxError that
+// silently broke this entire inline script on every load, not just
+// search. Caught via an actual browser console check (dry-render/grep
+// checks only confirm the code is present as text, not that it
+// executes) -- every name below is nav-search-specific now to remove
+// the collision, not just this one instance of it.
+const navSearchInput = document.getElementById('nav-search-input');
+const navSearchResultsEl = document.getElementById('nav-search-results');
+const navSearchTickers = [...new Set((DATA.watchlist_grid || []).map(t => t.ticker))].sort();
+function renderNavSearchResults(query) {
   const q = query.trim().toUpperCase();
-  if (!q) { searchResultsEl.style.display = 'none'; return; }
-  const matches = allTickers.filter(t => t.includes(q)).slice(0, 6);
+  if (!q) { navSearchResultsEl.style.display = 'none'; return; }
+  const matches = navSearchTickers.filter(t => t.includes(q)).slice(0, 6);
   if (matches.length === 0) {
-    searchResultsEl.innerHTML = '<div class="search-empty">No matches in the flagship set</div>';
+    navSearchResultsEl.innerHTML = '<div class="search-empty">No matches in the flagship set</div>';
   } else {
-    searchResultsEl.innerHTML = matches.map(sym => {
+    navSearchResultsEl.innerHTML = matches.map(sym => {
       const composite = (DATA.composite || {})[sym];
       const ai = (DATA.analyst || {})[sym];
       const score = (composite && composite.composite_score !== null && composite.composite_score !== undefined)
@@ -2487,23 +2517,23 @@ function renderSearchResults(query) {
         </span>
       </div>`;
     }).join('');
-    searchResultsEl.querySelectorAll('.search-result').forEach(el => {
+    navSearchResultsEl.querySelectorAll('.search-result').forEach(el => {
       el.addEventListener('click', () => {
-        searchResultsEl.style.display = 'none';
-        searchInput.value = '';
+        navSearchResultsEl.style.display = 'none';
+        navSearchInput.value = '';
         openChartModal(el.dataset.ticker);
       });
     });
   }
-  searchResultsEl.style.display = 'block';
+  navSearchResultsEl.style.display = 'block';
 }
-searchInput.addEventListener('input', (e) => renderSearchResults(e.target.value));
-searchInput.addEventListener('focus', (e) => { if (e.target.value) renderSearchResults(e.target.value); });
+navSearchInput.addEventListener('input', (e) => renderNavSearchResults(e.target.value));
+navSearchInput.addEventListener('focus', (e) => { if (e.target.value) renderNavSearchResults(e.target.value); });
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('.nav-search')) searchResultsEl.style.display = 'none';
+  if (!e.target.closest('.nav-search')) navSearchResultsEl.style.display = 'none';
 });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') searchResultsEl.style.display = 'none';
+  if (e.key === 'Escape') navSearchResultsEl.style.display = 'none';
 });
 </script>
 

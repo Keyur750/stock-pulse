@@ -1,0 +1,14 @@
+{#
+  Site Redesign Reset, Phase 4 (research point 7): a real visual pattern
+  for confidence, reusing the exact High/Medium/Low/Unknown scheme every
+  *_confidence_label() function in the codebase already returns
+  (crowd_confidence_label/wallstreet_confidence_label/
+  market_confidence_label/business_confidence_label/
+  composite_confidence_label all share the identical >=70/>=40/else/None
+  thresholds) -- not a new scale invented for the frontend.
+#}
+function confidenceDotsHtml(label) {
+  const filled = label === 'High' ? 3 : label === 'Medium' ? 2 : label === 'Low' ? 1 : 0;
+  const dots = [0, 1, 2].map(i => `<span class="conf-dot${i < filled ? ' filled' : ''}"></span>`).join('');
+  return `<span class="conf-indicator" title="Confidence: ${label} -- how much to trust this score for this ticker today">${dots}<span class="conf-indicator-label">${label}</span></span>`;
+}
