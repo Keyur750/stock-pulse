@@ -118,17 +118,13 @@
   .label-bearish { background: var(--bear-soft); color: var(--bear); border: 1px solid var(--bear-border); }
   .label-neutral { background: var(--gray-soft); color: var(--text-secondary); border: 1px solid var(--border); }
   .mention-stat { font-size: 12px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; }
-  .pillar-divergence-badge { display: inline-flex; align-items: center; gap: 7px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: .02em; padding: 5px 12px; border-radius: var(--radius-sm); }
-  .pillar-divergence-badge.up { background: var(--bull-soft); color: var(--bull); border: 1px solid var(--bull-border); }
-  .pillar-divergence-badge.down { background: var(--bear-soft); color: var(--bear); border: 1px solid var(--bear-border); }
-  .pillar-divergence-badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-border); }
-  .pillar-divergence-badge.info { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
-  /* Site Redesign Reset, Phase 4 (research point 6): plain-English, not
-     AI-generated -- always present even on a day the AI analyst call
-     itself fails. flex-basis:100% forces it onto its own line below the
-     badge inside .sentiment-strip's flex-wrap row, instead of squeezing
-     in beside it. */
-  .pillar-divergence-why { flex-basis: 100%; font-size: 12px; color: var(--text-secondary); max-width: 480px; }
+  /* Site Redesign Reset, Phase 4: .pillar-divergence-badge/-icon and the
+     up/down/warn/info color classes now live in design/components.css
+     (extracted from three identical copies) -- only this file's own
+     layout override stays here. flex-basis:100% forces the why-text
+     onto its own line below the badge inside .sentiment-strip's
+     flex-wrap row, instead of squeezing in beside it. */
+  .pillar-divergence-why { flex-basis: 100%; max-width: 480px; }
 
   /* Card shell */
   .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 18px; box-shadow: var(--shadow-sm); }
@@ -178,12 +174,13 @@
   .chart-modal-asof { font-size: 10.5px; color: var(--text-faint); margin-top: 4px; }
   .chart-modal-asof.live { color: var(--bull); display: inline-flex; align-items: center; gap: 5px; }
   .chart-modal-asof.live::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--bull); flex-shrink: 0; animation: livePulse 2s ease-in-out infinite; }
-  .chart-empty-timeframe { padding: 40px 24px; text-align: center; color: var(--text-faint); font-size: 12.5px; line-height: 1.65; }
+  /* .chart-empty/.chart-empty-timeframe now live in
+     design/components.css (Site Redesign Reset, Phase 4) -- confirmed
+     byte-identical across all three app templates before extraction. */
   .chart-empty-timeframe strong { color: var(--text-secondary); }
   .chart-modal-chart { margin-top: 14px; position: relative; }
   .chart-axis-label, .chart-date-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: var(--text-faint); }
   .chart-tooltip { position: absolute; pointer-events: none; background: var(--surface-3); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 11px; font-family: 'JetBrains Mono', monospace; box-shadow: var(--shadow-md); opacity: 0; transition: opacity .1s ease; white-space: nowrap; transform: translate(-50%, 0); }
-  .chart-empty { padding: 44px 0; text-align: center; color: var(--text-faint); font-size: 13px; }
   .chart-price-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
   .chart-price { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; }
 
@@ -218,7 +215,13 @@
   .cm-ai-col ul { margin: 0; padding-left: 18px; }
   .cm-ai-col li { font-size: 12px; color: var(--text-secondary); line-height: 1.55; margin-bottom: 6px; }
   .cm-ai-disclaimer { font-size: 10.5px; color: var(--text-faint); margin-top: 4px; }
-  .cm-ai-empty { font-size: 12px; color: var(--text-faint); }
+  /* .cm-ai-empty's own styling now lives in design/components.css's
+     shared .empty-state (Site Redesign Reset, Phase 4) -- this class
+     stays only as the JS hook (getElementById('cm-ai-empty')). Text is
+     deliberately NOT unified with dashboard/sentiment's copy: this
+     page's version means "the AI narrative specifically is missing"
+     (the composite_score header badge above it can still be showing
+     fine), not "no score exists at all" -- already accurate, kept as-is. */
 
   /* At-a-glance strip + fundamentals bars */
   .glance-strip { display: flex; gap: 28px; flex-wrap: wrap; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
@@ -386,7 +389,7 @@
         </div>
         <div class="cm-ai-disclaimer">AI-generated synthesis of fundamentals, sentiment, and news — not financial advice.</div>
       </div>
-      <div class="cm-ai-empty" id="cm-ai-empty" style="display:none;">AI analysis isn't available for this ticker.</div>
+      <div class="cm-ai-empty empty-state" id="cm-ai-empty" style="display:none;">AI analysis isn't available for this ticker.</div>
     </div>
 
     <div class="card">
@@ -1238,7 +1241,7 @@ function initPage(sym) {
   const sig = (DATA.signals || []).find(s => s.ticker === sym && DIVERGENCE_META[s.type]);
   if (sig) {
     const meta = DIVERGENCE_META[sig.type];
-    stripParts.push(`<span class="pillar-divergence-badge ${meta.cls}">${meta.icon} ${meta.label}</span>`);
+    stripParts.push(`<span class="pillar-divergence-badge ${meta.cls}"><span class="pillar-divergence-icon">${meta.icon}</span> ${meta.label}</span>`);
     stripParts.push(`<span class="pillar-divergence-why">${meta.why}</span>`);
   }
   stripEl.innerHTML = stripParts.join('');
@@ -1804,7 +1807,7 @@ async function pollTickerSnapshot(sym) {
       const sig = (DATA.signals || []).find(s => s.ticker === sym && DIVERGENCE_META[s.type]);
       if (sig) {
         const meta = DIVERGENCE_META[sig.type];
-        parts.push(`<span class="pillar-divergence-badge ${meta.cls}">${meta.icon} ${meta.label}</span>`);
+        parts.push(`<span class="pillar-divergence-badge ${meta.cls}"><span class="pillar-divergence-icon">${meta.icon}</span> ${meta.label}</span>`);
         parts.push(`<span class="pillar-divergence-why">${meta.why}</span>`);
       }
       stripEl.innerHTML = parts.join('');

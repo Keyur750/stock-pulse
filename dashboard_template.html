@@ -189,13 +189,14 @@
   .chart-modal-asof.live::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--bull); flex-shrink: 0; animation: livePulse 2s ease-in-out infinite; }
   @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
-  .chart-empty-timeframe { padding: 40px 24px; text-align: center; color: var(--text-faint); font-size: 12.5px; line-height: 1.65; }
+  /* .chart-empty/.chart-empty-timeframe now live in
+     design/components.css (Site Redesign Reset, Phase 4) -- confirmed
+     byte-identical across all three app templates before extraction. */
   .chart-empty-timeframe strong { color: var(--text-secondary); }
 
   .chart-modal-chart { margin-top: 20px; position: relative; }
   .chart-axis-label, .chart-date-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: var(--text-faint); }
   .chart-tooltip { position: absolute; pointer-events: none; background: var(--surface-3); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 11px; font-family: 'JetBrains Mono', monospace; box-shadow: var(--shadow-md); opacity: 0; transition: opacity .1s ease; white-space: nowrap; transform: translate(-50%, 0); }
-  .chart-empty { padding: 44px 0; text-align: center; color: var(--text-faint); font-size: 13px; }
   .chart-modal-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-faint); }
   .chart-modal-footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
   .chart-modal-footer a:hover { text-decoration: underline; }
@@ -203,17 +204,13 @@
 
   /* Four-pillar row */
   .pillar-row { margin-top: 20px; }
-  .pillar-divergence-badge { display: inline-flex; align-items: center; gap: 7px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .02em; padding: 6px 13px; border-radius: var(--radius-sm); margin-bottom: 14px; }
-  .pillar-divergence-badge.up { background: var(--bull-soft); color: var(--bull); border: 1px solid var(--bull-border); }
-  .pillar-divergence-badge.down { background: var(--bear-soft); color: var(--bear); border: 1px solid var(--bear-border); }
-  .pillar-divergence-badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-border); }
-  .pillar-divergence-badge.info { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
-  /* Site Redesign Reset, Phase 4 (research point 6): the divergence
-     "why" sits directly under its own badge, not only in a separate AI
-     section further down -- and it's a plain-English pattern definition,
-     not AI-generated text, so it's always there even on a day the AI
-     analyst call itself fails. */
-  .pillar-divergence-why { font-size: 12px; color: var(--text-secondary); margin: -8px 0 14px; max-width: 480px; }
+  /* Site Redesign Reset, Phase 4: .pillar-divergence-badge/-icon and the
+     up/down/warn/info color classes now live in design/components.css
+     (extracted from three identical copies, COMPONENT_INVENTORY.md's
+     Phase 0 finding) -- only this file's own layout override stays
+     here. Plain-English "why" text, not AI-generated, so it's always
+     present even on a day the AI analyst call itself fails. */
+  .pillar-divergence-why { margin: -8px 0 14px; max-width: 480px; }
   .pillar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   @media (max-width: 560px) { .pillar-grid { grid-template-columns: repeat(2, 1fr); } }
   .pillar-card { border-radius: var(--radius-md); padding: 14px 10px; text-align: center; border: 1px solid var(--border); background: var(--surface-2); }
@@ -246,7 +243,9 @@
   .cm-ai-col ul { margin: 0; padding-left: 18px; }
   .cm-ai-col li { font-size: 12px; color: var(--text-secondary); line-height: 1.55; margin-bottom: 6px; }
   .cm-ai-disclaimer { font-size: 10.5px; color: var(--text-faint); margin-top: 4px; }
-  .cm-ai-empty { font-size: 12px; color: var(--text-faint); margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+  /* .cm-ai-empty's own styling now lives in design/components.css's
+     shared .empty-state (Site Redesign Reset, Phase 4) -- this class
+     stays only as the JS hook (getElementById('cm-ai-empty')). */
 
   /* Auth CSS (.nav-auth*, .auth-modal*, .auth-form* etc.) now lives in
      design/components.css -- contextual, never blocking: a guest sees
@@ -427,7 +426,7 @@
       </div>
       <p class="cm-ai-disclaimer">AI-generated synthesis of fundamentals, sentiment, and news — not financial advice.</p>
     </div>
-    <div class="cm-ai-empty" id="cm-ai-empty" style="display:none;">AI analysis isn't run for every ticker yet — currently limited to a small flagship set while the model is being refined.</div>
+    <div class="cm-ai-empty empty-state" id="cm-ai-empty" style="display:none;">Not enough data available to show a score for this ticker yet.</div>
   </div>
 </div>
 
@@ -1094,7 +1093,7 @@ function renderPillarRow(sym) {
 
   const sig = DATA.signals.find(s => s.ticker === sym && DIVERGENCE_META[s.type]);
   const badge = sig
-    ? `<div class="pillar-divergence-badge ${DIVERGENCE_META[sig.type].cls}">${DIVERGENCE_META[sig.type].icon} ${DIVERGENCE_META[sig.type].label}</div>
+    ? `<div class="pillar-divergence-badge ${DIVERGENCE_META[sig.type].cls}"><span class="pillar-divergence-icon">${DIVERGENCE_META[sig.type].icon}</span> ${DIVERGENCE_META[sig.type].label}</div>
        <div class="pillar-divergence-why">${DIVERGENCE_META[sig.type].why}</div>`
     : '';
 

@@ -358,12 +358,22 @@
   .comp-stat-label { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
   .comp-stat-pct { font-size: 11px; color: var(--text-faint); font-weight: 500; margin-left: 4px; }
   .detail-context { font-size: 12px; color: var(--text-faint); margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); line-height: 1.6; }
-  .detail-divergence { display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; padding: 5px 11px; border-radius: var(--radius-sm); margin-top: 14px; cursor: pointer; transition: filter .12s ease; }
+  /* Site Redesign Reset, Phase 4: same left-border "signal" treatment
+     as .pillar-divergence-badge (design/components.css) for visual
+     consistency -- kept here rather than moved to the shared file since
+     this button (clickable, opens the chart modal) is genuinely unique
+     to this page, not a 3x-duplicated block. */
+  .detail-divergence { display: inline-flex; align-items: center; gap: 7px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; padding: 5px 11px 5px 9px; border-radius: var(--radius-sm); margin-top: 14px; cursor: pointer; transition: filter .12s ease; }
   .detail-divergence:hover { filter: brightness(1.15); }
-  .detail-divergence.up { background: var(--bull-soft); color: var(--bull); border: 1px solid var(--bull-border); }
-  .detail-divergence.down { background: var(--bear-soft); color: var(--bear); border: 1px solid var(--bear-border); }
-  .detail-divergence.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-border); }
-  .detail-divergence.info { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
+  .detail-divergence .pillar-divergence-icon { font-size: 13px; }
+  /* border-left set via the full shorthand, LAST -- the `border: 1px
+     solid ...` shorthand right before it resets border-left-width back
+     to 1px otherwise (same bug caught and fixed in
+     design/components.css's .pillar-divergence-badge). */
+  .detail-divergence.up { background: var(--bull-soft); color: var(--bull); border: 1px solid var(--bull-border); border-left: 3px solid var(--bull); }
+  .detail-divergence.down { background: var(--bear-soft); color: var(--bear); border: 1px solid var(--bear-border); border-left: 3px solid var(--bear); }
+  .detail-divergence.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-border); border-left: 3px solid var(--amber); }
+  .detail-divergence.info { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); border-left: 3px solid var(--accent); }
   .detail-actions { margin-top: 18px; display: flex; gap: 10px; }
   .detail-btn { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: var(--text-primary); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 13px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
   .detail-btn:hover { border-color: var(--border-hover); background: var(--surface-3); }
@@ -482,7 +492,9 @@
   .chart-legend-swatch.sentiment { background-image: linear-gradient(90deg, var(--amber) 60%, transparent 40%); background-size: 7px 2px; }
   .chart-sentiment-note { font-size: 10.5px; color: var(--text-faint); margin-top: 10px; }
   .chart-tooltip { position: absolute; pointer-events: none; background: var(--surface-3); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 11px; font-family: 'JetBrains Mono', monospace; box-shadow: var(--shadow-md); opacity: 0; transition: opacity .1s ease; white-space: nowrap; transform: translate(-50%, 0); }
-  .chart-empty { padding: 44px 0; text-align: center; color: var(--text-faint); font-size: 13px; line-height: 1.6; }
+  /* .chart-empty/.chart-empty-timeframe now live in
+     design/components.css (Site Redesign Reset, Phase 4) -- confirmed
+     byte-identical across all three app templates before extraction. */
 
   /* Timeframe selector — every requirement (chart data, $/% change,
      color, tooltip) is driven by whichever button is active. Selecting
@@ -504,21 +516,17 @@
   .chart-modal-asof.live::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--bull); flex-shrink: 0; animation: livePulse 2s ease-in-out infinite; }
   @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
-  .chart-empty-timeframe { padding: 40px 24px; text-align: center; color: var(--text-faint); font-size: 12.5px; line-height: 1.65; }
   .chart-empty-timeframe strong { color: var(--text-secondary); }
   .chart-modal-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-faint); }
   .chart-modal-footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
   .chart-modal-footer a:hover { text-decoration: underline; }
   body.modal-open { overflow: hidden; }
-  .pillar-divergence-badge { display: inline-flex; align-items: center; gap: 7px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .02em; padding: 6px 13px; border-radius: var(--radius-sm); margin-bottom: 14px; }
-  .pillar-divergence-badge.up { background: var(--bull-soft); color: var(--bull); border: 1px solid var(--bull-border); }
-  .pillar-divergence-badge.down { background: var(--bear-soft); color: var(--bear); border: 1px solid var(--bear-border); }
-  .pillar-divergence-badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-border); }
-  .pillar-divergence-badge.info { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
-  /* Site Redesign Reset, Phase 4 (research point 6): plain-English, not
-     AI-generated -- always present even on a day the AI analyst call
-     itself fails. */
-  .pillar-divergence-why { font-size: 12px; color: var(--text-secondary); margin: -8px 0 14px; max-width: 480px; }
+  /* Site Redesign Reset, Phase 4: .pillar-divergence-badge/-icon and the
+     up/down/warn/info color classes now live in design/components.css
+     (extracted from three identical copies) -- only this file's own
+     layout override stays here. Plain-English "why", not AI-generated,
+     so it's always present even on a day the AI analyst call fails. */
+  .pillar-divergence-why { margin: -8px 0 14px; max-width: 480px; }
   .pillar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   @media (max-width: 560px) { .pillar-grid { grid-template-columns: repeat(2, 1fr); } }
   .pillar-card { border-radius: var(--radius-md); padding: 14px 10px; text-align: center; border: 1px solid var(--border); background: var(--surface-2); }
@@ -549,7 +557,9 @@
   .cm-ai-col ul { margin: 0; padding-left: 18px; }
   .cm-ai-col li { font-size: 12px; color: var(--text-secondary); line-height: 1.55; margin-bottom: 6px; }
   .cm-ai-disclaimer { font-size: 10.5px; color: var(--text-faint); margin-top: 4px; }
-  .cm-ai-empty { font-size: 12px; color: var(--text-faint); margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+  /* .cm-ai-empty's own styling now lives in design/components.css's
+     shared .empty-state (Site Redesign Reset, Phase 4) -- this class
+     stays only as the JS hook (getElementById('cm-ai-empty')). */
 </style>
 </head>
 <body>
@@ -765,7 +775,7 @@
       </div>
       <p class="cm-ai-disclaimer">AI-generated synthesis of fundamentals, sentiment, and news — not financial advice.</p>
     </div>
-    <div class="cm-ai-empty" id="cm-ai-empty" style="display:none;">AI analysis isn't run for every ticker yet — currently limited to a small flagship set while the model is being refined.</div>
+    <div class="cm-ai-empty empty-state" id="cm-ai-empty" style="display:none;">Not enough data available to show a score for this ticker yet.</div>
   </div>
 </div>
 
@@ -1638,7 +1648,7 @@ function renderPillarRow(sym) {
   // lookup dashboard_template.html's own (working) version already uses.
   const sig = (DATA.signals || []).find(s => s.ticker === sym && DIVERGENCE_META[s.type]);
   const badge = sig
-    ? `<div class="pillar-divergence-badge ${DIVERGENCE_META[sig.type].cls}">${DIVERGENCE_META[sig.type].icon} ${DIVERGENCE_META[sig.type].label}</div>
+    ? `<div class="pillar-divergence-badge ${DIVERGENCE_META[sig.type].cls}"><span class="pillar-divergence-icon">${DIVERGENCE_META[sig.type].icon}</span> ${DIVERGENCE_META[sig.type].label}</div>
        <div class="pillar-divergence-why">${DIVERGENCE_META[sig.type].why}</div>`
     : '';
 
@@ -2239,7 +2249,7 @@ function renderDetailPane(s) {
   const divSig = (DATA.signals || []).find(sg => sg.ticker === s.ticker && DIVERGENCE_META[sg.type]);
   const divKey = divSig ? divSig.type : null;
   const divergenceHtml = (divKey && DIVERGENCE_META[divKey])
-    ? `<button class="detail-divergence ${DIVERGENCE_META[divKey].cls}" type="button" onclick="openChartModal('${s.ticker}')">${DIVERGENCE_META[divKey].icon} ${DIVERGENCE_META[divKey].label} — view 4-pillar breakdown →</button>
+    ? `<button class="detail-divergence ${DIVERGENCE_META[divKey].cls}" type="button" onclick="openChartModal('${s.ticker}')"><span class="pillar-divergence-icon">${DIVERGENCE_META[divKey].icon}</span> ${DIVERGENCE_META[divKey].label} — view 4-pillar breakdown →</button>
        <div class="pillar-divergence-why">${DIVERGENCE_META[divKey].why}</div>`
     : `<div class="detail-context" style="border-top:none;padding-top:0;margin-top:14px;">No notable pillar divergence for ${s.ticker} today.</div>`;
 

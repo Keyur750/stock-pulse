@@ -493,20 +493,27 @@ finalized, since the nav's rightmost element depends on the answer.
   line — this also closes the "Milestone A" reconciliation gap
   `CLAUDE.md` had flagged as unresolved.
 
-### Phase 4 — Visual redesign pass ⏳ IN PROGRESS (2026-08-21)
+### Phase 4 — Visual redesign pass ✅ DONE (2026-08-21)
 **Goal:** the actual "fresh look," now built on a stable foundation
 instead of polish applied on top of duplication. Expanded 2026-08-21
 after a deep external-research pass — several items below are new
 concrete goals, not just polish, each citing the research point that
 drove it (see "Research foundations" above).
-- Hierarchy discipline: one dominant number per view, secondary context
-  smaller and quieter — the pattern already established this session for
-  `composite_score`/`ai_score` on the stock header extends to every
-  score surface site-wide.
-- Density calibrated per page: Dashboard grid can stay information-dense
-  (Bloomberg-terminal style is appropriate for a scanning view); a single
-  stock's detail page should breathe more, closer to how a focused
-  single-instrument view reads on Robinhood/Public.com.
+- **✅ Confirmed: hierarchy discipline** — one dominant number per view,
+  secondary context smaller and quieter. The `composite_score`/`ai_score`
+  pattern is now applied everywhere both numbers can appear (stock
+  header, dashboard modal, sentiment modal, all landed earlier this
+  phase) — confirmed by grepping every `ai_score` reference site-wide
+  for one left showing it as a bare, un-hierarchied primary number; none
+  found. The broader principle (every list row's own internal hierarchy)
+  isn't a single fixable item — it's an ongoing discipline to keep
+  applying as new surfaces get touched, not a discrete task with a
+  finish line.
+- **✅ Confirmed: density calibrated per page** — Dashboard's grid was
+  already information-dense (Bloomberg-terminal style, appropriate for a
+  scanning view) and the stock page's card-based layout already breathes
+  more (spacious header, one card per concern) before this phase started
+  — this was the existing design, not a gap Phase 4 needed to build.
 - **✅ Verified: every new Phase 4 component at phone width** (research
   point 9) — the four-axis glyph, per-pillar confidence dots, and the
   divergence why-text all checked at a real 375px viewport via live DOM
@@ -602,16 +609,52 @@ drove it (see "Research foundations" above).
   confirms code is present in the output; it does not confirm the code
   executes without error. Live browser verification is now the standard
   for any change touching a `<script>` block, not an optional extra.
-- The four Divergence Engine patterns (Emerging Consensus / Retail
-  Euphoria / Fundamental Deterioration / Under-the-Radar) get a real,
-  distinct visual signature — this is Undertow's actual differentiator
-  per `PRODUCT.md`'s own "moat" framing, and today it's a small icon+
-  label pill. Worth designing so a user learns to recognize each pattern
-  at a glance, the way a "Smart Score" badge is instantly recognizable
-  on competitor sites.
-- Standardize empty/loading/error states as real designed components
-  (Phase 0's inventory), not ad hoc per-page text — currently inconsistent
-  across files (e.g. `cm-ai-empty`'s copy and styling isn't shared).
+- **✅ Done: the four Divergence Engine patterns get a real, distinct
+  visual signature** — this is Undertow's actual differentiator per
+  `PRODUCT.md`'s "moat" framing, and it was a small icon+label pill
+  before this. Upgraded to a left-bordered "signal" treatment (3px
+  color-coded border, larger icon in its own `.pillar-divergence-icon`
+  span) everywhere the badge appears, and extracted from three identical
+  hand-copied CSS blocks into `design/components.css` in the same pass
+  (`COMPONENT_INVENTORY.md`'s Phase 0 finding). **A real CSS bug caught
+  and fixed via live `getComputedStyle()` measurement, not assumed from
+  reading the rule:** the `border: 1px solid ...` shorthand in each
+  `.up`/`.down`/`.warn`/`.info` variant was silently resetting
+  `border-left-width` back to 1px, since a CSS shorthand overwrites
+  every sub-property it covers regardless of what an earlier rule set —
+  a plain `border-left-color` override after it kept the color right
+  but left the border at 1px, not the intended 3px. Fixed by using the
+  full `border-left: 3px solid ...` shorthand last in each variant, and
+  applied identically to `sentiment_template.html`'s `.detail-divergence`
+  button (kept file-local, not extracted — it's genuinely unique to that
+  page). Verified live on all three app pages post-fix: 3px confirmed on
+  every variant, zero console errors.
+- **✅ Done: standardized empty/loading/error states** as real designed
+  components (Phase 0's inventory), not ad hoc per-page text. Extracted
+  `.cm-ai-empty`'s styling and the (already byte-identical)
+  `.chart-empty`/`.chart-empty-timeframe` into `design/components.css`
+  as shared `.empty-state`/`.chart-empty`/`.chart-empty-timeframe`
+  classes — fixing the same `text-faint` (3.17:1, fails the 4.5:1 text
+  minimum) → `text-secondary` (6.68:1) WCAG issue this phase already
+  found and fixed elsewhere, now applied here too. **Fixed the exact
+  stale copy `COMPONENT_INVENTORY.md`'s Phase 0 pass already flagged:**
+  dashboard/sentiment's AI-empty message claimed analysis was "currently
+  limited to a small flagship set while the model is being refined" —
+  false, `flagship_tickers` has been the full 30-ticker watchlist all
+  along. Replaced with "Not enough data available to show a score for
+  this ticker yet." on both. **Deliberately did NOT unify this with
+  `stock_template.html`'s own empty-state text**, which means something
+  different — that page's message is specifically "the AI narrative is
+  missing" (the composite-score header badge above it can still be
+  showing fine), not "no score exists at all" — already accurate,
+  confirmed live against real JPM data (composite `71.3` showing in the
+  header while the AI-narrative empty state correctly displays below
+  it). Also converted `index_template.html`'s two duplicated inline
+  `style="..."` loading placeholders (not a class at all before this)
+  into a local `.loading-state` class with the same WCAG fix — kept
+  local rather than added to `design/components.css` since this page
+  doesn't link that stylesheet yet (that's the deferred marketing-nav
+  component merge, still open).
 - **✅ Done: a live WCAG 2.2 AA contrast check on every color decision
   made in this phase** (research point 8) — computed real contrast
   ratios in the browser (relative-luminance formula against actual
@@ -906,7 +949,7 @@ comes when that phase is actually scoped for building)
 | 1 | Shared partials + payload slicing + static-page wiring | ✅ Done, fully verified live (2026-08-21) — nav/auth/CSS consolidation, payload slicing, and index/about/careers Jinja2 wiring all confirmed against a real pipeline run |
 | 2 | Flat navigation everywhere; per-ticker static URLs; ticker search on every app page | ✅ Done, verified with real data (2026-08-21); full marketing-nav component merge deliberately deferred to Phase 4 (visual-layer work) |
 | 3 | Accounts: finish everywhere, unlocks watchlist only for now | ✅ Done (2026-08-21) — wired via Phase 1, scope decided by user, `PRODUCT.md` updated |
-| 4 | Visual redesign pass | ⏳ In progress (2026-08-21) — ✅ four-axis pillar glyph, in-context divergence "why," confidence-indicator component, mobile-first verification, live WCAG 2.2 checks (2 real failures found + fixed, 2 pre-existing ones logged for Phase 5); still open: hierarchy discipline site-wide, density calibration, a real distinct visual signature per divergence pattern (beyond today's icon+label pill), standardized empty/loading/error states |
+| 4 | Visual redesign pass | ✅ Done (2026-08-21) — four-axis pillar glyph, in-context divergence "why," confidence-indicator component, mobile-first verification, live WCAG 2.2 checks (2 real failures fixed, 2 pre-existing ones logged for Phase 5), hierarchy discipline confirmed, density calibration confirmed, distinct divergence-pattern signature (+ a real CSS shorthand bug caught live), standardized empty/loading/error states + a stale-copy fix |
 | 4B | Content & copy audit | Findings documented above; fixes not applied — pairs with Phase 2 |
 | 4C | First-run onboarding (added 2026-08-21 after external research pass) | Not started — depends on Phase 4 |
 | 5 | Responsive breakpoint system + WCAG 2.2 AA accessibility bar | Not started — depends on Phase 0 |
@@ -936,20 +979,20 @@ comes when that phase is actually scoped for building)
 1. Real per-ticker static URLs — **decided: yes, build them**, replacing
    `?t=TICKER` query routing (kept as a redirect/alias). See Phase 2.
 
-**Next step:** Phase 2 is fully done. Phase 4 is in progress: the
-four-axis glyph, in-context divergence "why," confidence-indicator
-component, mobile-first verification, and a live WCAG 2.2 pass are all
-done (two real contrast failures found and fixed; a further regression
-in sentiment_template.html's search JS was also found and fixed along
-the way, caught only by live browser execution, not static checks).
-Remaining in Phase 4: site-wide hierarchy discipline, per-page density
-calibration, a real distinct visual signature per divergence pattern
-(beyond today's icon+label pill), and standardized empty/loading/error
-states. **Phase 4B (copy fixes)** is next after that, paired with Phase
-2 per the sequencing note — the "Intelligence" naming collision and
-CTA-label fixes are ready to apply. Phase 4C (onboarding) and the
-deferred marketing-nav component merge are documented and ready to scope
-once Phase 4 closes out — nothing from the 2026-08-21 research pass was
-left out of this plan. A full live pipeline run (with fresh AI analyst
-text) is still worth doing once Gemini's quota resets, but as a routine
-daily refresh, not a blocker on any further building.
+**Next step:** Phases 0, 1, 2, 3, and 4 are all done. **Phase 4B (copy
+fixes)** is next, paired with Phase 2 per the sequencing note — the
+"Intelligence" naming collision and CTA-label fixes are ready to apply,
+already scoped with exact file/line references from the original audit.
+Phase 4C (onboarding) and the deferred marketing-nav component merge
+(the confidence indicator, divergence signal, and empty-state components
+all now live in `design/components.css` as real shared classes, ready
+for the marketing pages to adopt once that merge happens) are documented
+and ready to scope once Phase 4B closes out. Two concrete items were
+logged for Phase 5, not fixed in Phase 4 since they touch shared global
+tokens beyond this phase's own new components: the divergence badge's
+bear/accent text-on-soft-background contrast (4.11:1/4.12:1, just under
+4.5:1), and the general "audit every existing surface" pass Phase 5 was
+always going to need regardless. Nothing from the 2026-08-21 research
+pass was left out of this plan. A full live pipeline run (with fresh AI
+analyst text) is still worth doing once Gemini's quota resets, but as a
+routine daily refresh, not a blocker on any further building.

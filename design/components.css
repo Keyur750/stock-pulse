@@ -96,6 +96,61 @@
 .auth-message.success, .auth-message.info { background: var(--accent-dim); color: var(--accent); }
 .auth-message.error { background: var(--bear-soft); color: var(--bear); }
 
+/* ---- Divergence signal badge (Site Redesign Reset, Phase 4) ---- */
+/* Extracted from three identical hand-copied CSS blocks
+   (COMPONENT_INVENTORY.md's Phase 0 finding, same duplication already
+   fixed once for the JS side via templates/partials/divergence_meta.js.j2)
+   and upgraded from a plain icon+label pill to a left-bordered "signal"
+   treatment -- the Divergence Engine is Undertow's actual differentiator
+   per PRODUCT.md's "moat", so each pattern deserves to read as a
+   designed signal, not a generic label. Border colors already verified
+   >=3:1 against the card background in this same Phase 4's WCAG pass
+   (bull 6.75:1, bear 4.55:1, amber 7.98:1, accent 4.66:1). Each file
+   keeps only its own layout-specific override (stock's flex-basis:100%
+   for its flex-wrap strip, dashboard/sentiment's block margin) --
+   colors and the icon treatment live here once. */
+.pillar-divergence-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+  letter-spacing: .02em; padding: 6px 13px 6px 11px; border-radius: var(--radius-sm);
+}
+.pillar-divergence-icon { font-size: 15px; line-height: 1; }
+/* border-left set via the full shorthand, LAST, deliberately -- the
+   `border: 1px solid ...` shorthand right before it resets every
+   border-*-width sub-property (including border-left-width) back to
+   1px, so a plain `border-left-color` override here would keep the
+   badge's left edge at 1px, not the intended 3px. Caught via a live
+   getComputedStyle() check showing 1px where 3px was expected, not
+   assumed from reading the rule order. */
+.pillar-divergence-badge.up { background: var(--bull-soft); color: var(--bull); border: 1px solid var(--bull-border); border-left: 3px solid var(--bull); }
+.pillar-divergence-badge.down { background: var(--bear-soft); color: var(--bear); border: 1px solid var(--bear-border); border-left: 3px solid var(--bear); }
+.pillar-divergence-badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-border); border-left: 3px solid var(--amber); }
+.pillar-divergence-badge.info { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); border-left: 3px solid var(--accent); }
+.pillar-divergence-why { font-size: 12px; color: var(--text-secondary); }
+/* .detail-divergence (sentiment_template.html's clickable detail-pane
+   variant) reuses the same up/down/warn/info color classes above but
+   keeps its own button-specific box/hover styling in that file --
+   different element (button vs span/div), not a duplicate of this. */
+
+/* ---- Empty state (Site Redesign Reset, Phase 4) ---- */
+/* Extracted from three separate implementations (Phase 0's
+   COMPONENT_INVENTORY.md: dashboard/sentiment had one identical copy,
+   stock_template.html's own version had no separation styling at all --
+   no margin-top/padding-top/border-top, so its empty message ran
+   straight into the price chart above it with no visual break).
+   color is text-secondary, not the original text-faint -- text-faint
+   measured 3.17:1 against the card background in this phase's WCAG
+   pass, below the 4.5:1 text minimum; text-secondary (6.68:1) already
+   used for this exact fix elsewhere in this same phase. */
+.empty-state { font-size: 12px; color: var(--text-secondary); margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+/* Chart-area empty states -- confirmed byte-identical across all three
+   app templates before this extraction (no reconciliation needed, only
+   the .cm-ai-empty variant above had actually drifted). Same
+   text-faint -> text-secondary WCAG fix as .empty-state above
+   (text-faint measured 3.17:1, below the 4.5:1 text minimum). */
+.chart-empty { padding: 44px 0; text-align: center; color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
+.chart-empty-timeframe { padding: 40px 24px; text-align: center; color: var(--text-secondary); font-size: 12.5px; line-height: 1.65; }
+
 /* ---- Confidence indicator (Site Redesign Reset, Phase 4) ---- */
 /* Pairs with templates/partials/confidence_indicator.js.j2's
    confidenceDotsHtml(). Three dots, filled left-to-right for Low(1)/
