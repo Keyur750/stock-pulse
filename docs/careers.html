@@ -63,6 +63,9 @@
     padding: 52px 44px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: center;
   }
   .hero-wave { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.16; pointer-events: none; }
+  .hero-wave .wave-scroll { animation: wave-scroll 18s linear infinite; }
+  @keyframes wave-scroll { from { transform: translateX(0); } to { transform: translateX(-600px); } }
+  @media (prefers-reduced-motion: reduce) { .hero-wave .wave-scroll { animation: none; } }
   .hero-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber); background: var(--amber-soft); border: 1px solid rgba(245,158,11,0.32); display: inline-flex; padding: 6px 15px; border-radius: 20px; position: relative; }
   .hero h1 { font-size: clamp(30px, 3.6vw, 44px); line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; margin: 20px 0 0; position: relative; }
   .hero h1 .accent { color: var(--accent); }
@@ -142,9 +145,13 @@
 <header class="hero">
   <div class="wrap">
     <div class="hero-panel reveal visible">
-      <svg class="hero-wave" viewBox="0 0 600 200" preserveAspectRatio="none">
-        <path d="M0,140 C80,90 160,180 240,110 C320,50 400,150 480,100 C520,75 560,110 600,95" fill="none" stroke="#3B82F6" stroke-width="2"/>
-        <path d="M0,160 C80,120 160,190 240,140 C320,90 400,170 480,130 C520,110 560,135 600,120" fill="none" stroke="#3B82F6" stroke-width="1.2" opacity="0.5"/>
+      <svg class="hero-wave" viewBox="0 0 1200 200" preserveAspectRatio="none">
+        <g class="wave-scroll">
+          <path d="M0,140 C37.5,140 37.5,100 75,100 C112.5,100 112.5,140 150,140 C187.5,140 187.5,100 225,100 C262.5,100 262.5,140 300,140 C337.5,140 337.5,100 375,100 C412.5,100 412.5,140 450,140 C487.5,140 487.5,100 525,100 C562.5,100 562.5,140 600,140" fill="none" stroke="#3B82F6" stroke-width="2"/>
+          <path d="M600,140 C637.5,140 637.5,100 675,100 C712.5,100 712.5,140 750,140 C787.5,140 787.5,100 825,100 C862.5,100 862.5,140 900,140 C937.5,140 937.5,100 975,100 C1012.5,100 1012.5,140 1050,140 C1087.5,140 1087.5,100 1125,100 C1162.5,100 1162.5,140 1200,140" fill="none" stroke="#3B82F6" stroke-width="2"/>
+          <path d="M0,160 C37.5,160 37.5,120 75,120 C112.5,120 112.5,160 150,160 C187.5,160 187.5,120 225,120 C262.5,120 262.5,160 300,160 C337.5,160 337.5,120 375,120 C412.5,120 412.5,160 450,160 C487.5,160 487.5,120 525,120 C562.5,120 562.5,160 600,160" fill="none" stroke="#3B82F6" stroke-width="1.2" opacity="0.5"/>
+          <path d="M600,160 C637.5,160 637.5,120 675,120 C712.5,120 712.5,160 750,160 C787.5,160 787.5,120 825,120 C862.5,120 862.5,160 900,160 C937.5,160 937.5,120 975,120 C1012.5,120 1012.5,160 1050,160 C1087.5,160 1087.5,120 1125,120 C1162.5,120 1162.5,160 1200,160" fill="none" stroke="#3B82F6" stroke-width="1.2" opacity="0.5"/>
+        </g>
       </svg>
       <div>
         <span class="hero-kicker">CAREERS</span>
