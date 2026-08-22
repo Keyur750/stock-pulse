@@ -358,10 +358,44 @@
      hero diagram above, so here it's a small reference chip in the
      header, not a second giant number. The description is the actual
      content of the card. */
-  .signal-bento-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 44px; }
+  .signal-bento-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 44px; perspective: 1200px; }
   @media (max-width: 780px) { .signal-bento-grid { grid-template-columns: 1fr; } }
-  .signal-bento { border-radius: var(--radius-lg); padding: 28px 32px; background: var(--surface-1); border: 1px solid var(--border); transition: border-color .18s ease, background-color .18s ease; }
+  /* Deliberately not another radial diagram (the Signal Map already
+     owns that language) -- a cursor-reactive tilt card with a moving
+     glass sheen and a slow-orbiting gradient ring around each card's own
+     edge, tinted to that pillar's real color. Two independent motion
+     systems layered on one card: pointer-driven (tilt + spotlight,
+     JS-set --mx/--my/--rx/--ry below) and ambient (the border ring, pure
+     CSS, keeps moving even for someone who never touches the card). */
+  .signal-bento {
+    position: relative; border-radius: var(--radius-lg); padding: 28px 32px;
+    background: var(--surface-1); border: 1px solid var(--border);
+    transform: perspective(900px) rotateX(var(--tilt-y, 0deg)) rotateY(var(--tilt-x, 0deg)) scale(var(--bento-scale, 1));
+    transition: border-color .18s ease, background-color .18s ease, transform .5s cubic-bezier(.2,.8,.2,1);
+  }
   .signal-bento:hover { border-color: var(--border-hover); background: var(--surface-2); }
+  .signal-bento::before {
+    content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1.4px;
+    background: conic-gradient(from 0deg, transparent 0%, var(--pillar-glow, var(--accent)) 10%, transparent 26%, transparent 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    opacity: 0.85; pointer-events: none; animation: bento-ring-spin 7s linear infinite;
+  }
+  @keyframes bento-ring-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .signal-bento::before { animation: none; } }
+  .signal-bento[data-key="crowd"] { --pillar-glow: var(--bull); }
+  .signal-bento[data-key="wall_street"] { --pillar-glow: var(--amber); }
+  .signal-bento[data-key="business"] { --pillar-glow: var(--bull); }
+  .signal-bento[data-key="market"] { --pillar-glow: var(--accent); }
+  /* Glassy light sheen that follows the cursor -- opacity toggled by
+     JS on enter/leave, position tracked via --mx/--my (percent). */
+  .signal-bento-sheen {
+    position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0; border-radius: inherit;
+    background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.09), transparent 60%);
+    transition: opacity .3s ease;
+  }
+  .signal-bento.tilting .signal-bento-sheen { opacity: 1; }
+  .signal-bento-head, .signal-bento-desc { position: relative; z-index: 1; }
   .signal-bento-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .signal-bento-head-left { display: flex; align-items: center; gap: 12px; }
   .signal-bento-icon { width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 14px; flex-shrink: 0; }
@@ -602,6 +636,7 @@
 
     <div class="signal-bento-grid">
       <div class="signal-bento reveal reveal-1" data-key="crowd">
+        <div class="signal-bento-sheen"></div>
         <div class="signal-bento-head">
           <div class="signal-bento-head-left">
             <div class="signal-bento-icon" style="background:var(--bull-soft);color:var(--bull);">C</div>
@@ -612,6 +647,7 @@
         <p class="signal-bento-desc">Retail sentiment is loud but often wrong on its own. We cross-check StockTwits, Reddit, and Google search interest against each other — three independent crowds instead of one — before calling anything a real signal.</p>
       </div>
       <div class="signal-bento reveal reveal-2" data-key="wall_street">
+        <div class="signal-bento-sheen"></div>
         <div class="signal-bento-head">
           <div class="signal-bento-head-left">
             <div class="signal-bento-icon" style="background:var(--amber-soft);color:var(--amber);">W</div>
@@ -622,6 +658,7 @@
         <p class="signal-bento-desc">Analyst ratings move slowly, which makes the direction more useful than the number itself. We track whether professional sentiment is getting more or less bullish over time, not just where it happens to sit today.</p>
       </div>
       <div class="signal-bento reveal reveal-3" data-key="business">
+        <div class="signal-bento-sheen"></div>
         <div class="signal-bento-head">
           <div class="signal-bento-head-left">
             <div class="signal-bento-icon" style="background:var(--bull-soft);color:var(--bull);">B</div>
@@ -632,6 +669,7 @@
         <p class="signal-bento-desc">Revenue, margins, cash flow, balance sheet health, and valuation — the company underneath the ticker. It's the slowest-moving of the four signals, and usually the most durable one.</p>
       </div>
       <div class="signal-bento reveal reveal-4" data-key="market">
+        <div class="signal-bento-sheen"></div>
         <div class="signal-bento-head">
           <div class="signal-bento-head-left">
             <div class="signal-bento-icon" style="background:var(--accent-dim);color:var(--accent);">M</div>
@@ -761,6 +799,38 @@ const obs = new IntersectionObserver((entries) => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
 }, { threshold: 0.12 });
 document.querySelectorAll('.reveal:not(.visible)').forEach(el => obs.observe(el));
+
+// Four Signals cards: cursor-reactive tilt + glass sheen. Deliberately
+// pointer-driven rather than another ambient loop -- the hero already
+// has plenty of motion that runs whether or not anyone's looking; this
+// is the one part of the page that responds to the visitor directly.
+// Skipped entirely under prefers-reduced-motion, and on touch devices
+// there's no hover/mousemove to trigger it, so it degrades to a plain
+// static card with no JS cost.
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.querySelectorAll('.signal-bento').forEach(card => {
+    const onMove = (e) => {
+      const r = card.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width;
+      const py = (e.clientY - r.top) / r.height;
+      const maxTilt = 5;
+      card.style.setProperty('--tilt-x', `${(px - 0.5) * maxTilt * 2}deg`);
+      card.style.setProperty('--tilt-y', `${(0.5 - py) * maxTilt * 2}deg`);
+      card.style.setProperty('--bento-scale', '1.015');
+      card.style.setProperty('--mx', `${px * 100}%`);
+      card.style.setProperty('--my', `${py * 100}%`);
+      card.classList.add('tilting');
+    };
+    const onLeave = () => {
+      card.style.setProperty('--tilt-x', '0deg');
+      card.style.setProperty('--tilt-y', '0deg');
+      card.style.setProperty('--bento-scale', '1');
+      card.classList.remove('tilting');
+    };
+    card.addEventListener('mousemove', onMove);
+    card.addEventListener('mouseleave', onLeave);
+  });
+}
 
 // Nav: compact + faintly tinted once you've scrolled past the hero --
 // no blur (see the .nav-wrap.scrolled comment in <style> for why).
