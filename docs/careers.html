@@ -25,7 +25,7 @@
   html { scroll-behavior: smooth; }
   body {
     margin: 0; color: var(--text-primary); font-family: 'Inter', sans-serif;
-    background: radial-gradient(1000px 560px at 10% -8%, rgba(59,130,246,0.06), transparent 60%), var(--bg-primary);
+    background: radial-gradient(1000px 560px at 10% -8%, rgba(59,130,246,0.06), transparent 60%), radial-gradient(800px 460px at 90% 4%, rgba(245,158,11,0.05), transparent 60%), var(--bg-primary);
     background-attachment: fixed; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; overflow-x: hidden;
   }
   a { color: inherit; }
@@ -56,25 +56,92 @@
   .reveal.visible { opacity: 1; transform: translateY(0); }
   .reveal-1 { transition-delay: .05s; } .reveal-2 { transition-delay: .12s; } .reveal-3 { transition-delay: .19s; } .reveal-4 { transition-delay: .26s; }
 
-  .hero { padding: 64px 0; }
-  .hero-panel {
-    position: relative; overflow: hidden; border-radius: var(--radius-lg);
-    background: var(--surface-1); border: 1px solid var(--border);
-    padding: 52px 44px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: center;
+  .hero { padding: 64px 0 0; text-align: center; position: relative; overflow: hidden; }
+  .hero::before {
+    content: ""; position: absolute; top: -80px; left: 50%; width: 980px; height: 460px; max-width: 160%;
+    transform: translateX(-50%); pointer-events: none; z-index: -1; filter: blur(64px);
+    background: radial-gradient(ellipse at center, rgba(59,130,246,0.16), rgba(245,158,11,0.07) 52%, transparent 74%);
+    animation: hero-glow-breathe 11s ease-in-out infinite;
   }
-  .hero-wave { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.16; pointer-events: none; }
-  .hero-wave .wave-scroll { animation: wave-scroll 18s linear infinite; }
-  @keyframes wave-scroll { from { transform: translateX(0); } to { transform: translateX(-600px); } }
-  @media (prefers-reduced-motion: reduce) { .hero-wave .wave-scroll { animation: none; } }
-  .hero-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber); background: var(--amber-soft); border: 1px solid rgba(245,158,11,0.32); display: inline-flex; padding: 6px 15px; border-radius: 20px; position: relative; }
-  .hero h1 { font-size: clamp(30px, 3.6vw, 44px); line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; margin: 20px 0 0; position: relative; }
+  @keyframes hero-glow-breathe { 0%, 100% { opacity: 0.65; transform: translateX(-50%) scale(1); } 50% { opacity: 1; transform: translateX(-50%) scale(1.07); } }
+  @media (prefers-reduced-motion: reduce) { .hero::before { animation: none; } }
+  .hero-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber); background: var(--amber-soft); border: 1px solid rgba(245,158,11,0.32); display: inline-flex; padding: 6px 15px; border-radius: 20px; }
+  .hero h1 { font-size: clamp(30px, 4.2vw, 46px); line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; margin: 22px auto 0; max-width: 680px; }
   .hero h1 .accent { color: var(--accent); }
-  .hero-sub { font-size: 15.5px; color: var(--text-secondary); max-width: 460px; margin: 16px 0 0; line-height: 1.65; position: relative; }
-  .hero-figure { width: 100%; height: auto; position: relative; }
-  @media (max-width: 780px) {
-    .hero-panel { grid-template-columns: 1fr; padding: 36px 26px; text-align: center; }
-    .hero-sub { max-width: none; margin-left: auto; margin-right: auto; }
-    .hero-figure { max-width: 220px; margin: 0 auto; }
+  .hero-sub { font-size: 16px; color: var(--text-secondary); max-width: 520px; margin: 18px auto 0; line-height: 1.65; }
+
+  /* Team Signal panel — a living visualization instead of a flat
+     flowchart: the four hiring roles as floating glass nodes orbiting a
+     pulsing central hub, connected by animated lines with traveling
+     light particles. Deliberately reuses the same "intelligence panel"
+     visual language as index.html's Signal Map (grid backdrop, radial
+     glow, glowing ring nodes) rather than inventing a new decorative
+     style — this is the site's own most-polished visual pattern,
+     applied here to team growth instead of live pillar scores. */
+  .team-orbit-wrap { margin: 44px auto 6px; max-width: 460px; }
+  .team-orbit-panel {
+    position: relative; border: 1px solid var(--border); border-radius: var(--radius-lg);
+    background:
+      radial-gradient(360px 300px at 50% 40%, rgba(245,158,11,0.10), transparent 68%),
+      repeating-linear-gradient(rgba(148,163,184,0.05) 0 1px, transparent 1px 36px),
+      repeating-linear-gradient(90deg, rgba(148,163,184,0.05) 0 1px, transparent 1px 36px),
+      var(--surface-1);
+    padding: 18px 20px 24px; box-shadow: var(--shadow-md); overflow: hidden;
+  }
+  .team-orbit-head { display: flex; align-items: center; justify-content: space-between; }
+  .team-orbit-tag { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-faint); font-weight: 700; }
+  .team-orbit-live { display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--amber); }
+  .team-orbit-live .live-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--amber); flex-shrink: 0; animation: livePulse 2s ease-in-out infinite; }
+  @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  .team-orbit-canvas { position: relative; width: 100%; max-width: 320px; aspect-ratio: 1 / 1; margin: 10px auto 0; }
+  .orbit-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .orbit-ring { fill: none; stroke: rgba(148, 163, 184, 0.09); stroke-width: 0.4; }
+  .orbit-line { fill: none; stroke: var(--accent); stroke-width: 0.6; opacity: 0.4; stroke-dasharray: 2.4 3; animation: orbit-dash 1.6s linear infinite; }
+  @keyframes orbit-dash { to { stroke-dashoffset: -10.8; } }
+  .orbit-particle { fill: var(--amber); filter: drop-shadow(0 0 2.5px rgba(245, 158, 11, 0.9)); }
+  @media (prefers-reduced-motion: reduce) { .orbit-line { animation: none; } .orbit-particle { display: none; } }
+
+  .orbit-hub {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 108px; height: 108px; border-radius: 50%;
+    background: linear-gradient(160deg, var(--surface-2), var(--surface-1));
+    border: 1px solid var(--accent-border);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    z-index: 2; animation: hub-pulse 3.4s ease-in-out infinite;
+  }
+  @keyframes hub-pulse {
+    0%, 100% { box-shadow: 0 0 0 1px var(--accent-dim), 0 0 30px -10px rgba(59, 130, 246, 0.55); }
+    50% { box-shadow: 0 0 0 1px var(--accent-dim), 0 0 44px -6px rgba(59, 130, 246, 0.75); }
+  }
+  @media (prefers-reduced-motion: reduce) { .orbit-hub { animation: none; box-shadow: 0 0 0 1px var(--accent-dim), 0 0 30px -10px rgba(59, 130, 246, 0.55); } }
+  .orbit-hub-mark { width: 24px; height: 24px; color: var(--accent); }
+  .orbit-hub-label { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 12.5px; letter-spacing: .01em; color: var(--text-primary); margin-top: 2px; }
+  .orbit-hub-sub { font-size: 9px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+
+  .orbit-node {
+    position: absolute; transform: translate(-50%, -50%); width: 72px; height: 72px; border-radius: 50%;
+    background: var(--surface-1); border: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    box-shadow: var(--shadow-sm); cursor: default; z-index: 1;
+    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+    animation: node-float 4.6s ease-in-out infinite;
+  }
+  .orbit-node:hover { border-color: var(--accent-border); box-shadow: 0 0 0 1px var(--accent-dim), var(--shadow-md); transform: translate(-50%, -50%) scale(1.08); }
+  @keyframes node-float { 0%, 100% { margin-top: 0; } 50% { margin-top: -5px; } }
+  @media (prefers-reduced-motion: reduce) { .orbit-node { animation: none; } }
+  .orbit-node[data-role="data"] { top: 6%; left: 50%; animation-delay: 0s; }
+  .orbit-node[data-role="design"] { top: 50%; left: 94%; animation-delay: -1.2s; }
+  .orbit-node[data-role="research"] { top: 94%; left: 50%; animation-delay: -2.4s; }
+  .orbit-node[data-role="community"] { top: 50%; left: 6%; animation-delay: -3.4s; }
+  .orbit-node-icon { width: 20px; height: 20px; color: var(--accent-on-soft); }
+  .orbit-node-label { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; letter-spacing: .04em; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); }
+
+  @media (max-width: 480px) {
+    .team-orbit-canvas { max-width: 260px; }
+    .orbit-hub { width: 92px; height: 92px; }
+    .orbit-node { width: 60px; height: 60px; }
+    .orbit-hub-label { font-size: 11px; }
   }
 
   section.section { padding: 40px 0; }
@@ -144,34 +211,53 @@
 
 <header class="hero">
   <div class="wrap">
-    <div class="hero-panel reveal visible">
-      <svg class="hero-wave" viewBox="0 0 1200 200" preserveAspectRatio="none">
-        <defs>
-          <path id="waveLine1" d="M0,140 C80,90 160,180 240,110 C320,50 400,150 480,100 C520,75 560,130 600,140" fill="none" stroke="#3B82F6" stroke-width="2"/>
-          <path id="waveLine2" d="M0,160 C80,120 160,190 240,140 C320,90 400,170 480,130 C520,110 560,145 600,160" fill="none" stroke="#3B82F6" stroke-width="1.2" opacity="0.5"/>
-        </defs>
-        <g class="wave-scroll">
-          <use href="#waveLine1" x="0"/>
-          <use href="#waveLine1" x="600"/>
-          <use href="#waveLine1" x="1200"/>
-          <use href="#waveLine2" x="0"/>
-          <use href="#waveLine2" x="600"/>
-          <use href="#waveLine2" x="1200"/>
-        </g>
-      </svg>
-      <div>
-        <span class="hero-kicker">CAREERS</span>
-        <h1>Building the team behind <span class="accent">Undertow.</span></h1>
-        <p class="hero-sub">Undertow is growing beyond where it started. The roles below aren't posted yet, but they're what's coming next — and what we'll be looking for when they open.</p>
+    <span class="hero-kicker reveal visible">CAREERS</span>
+    <h1 class="reveal visible">Building the team behind <span class="accent">Undertow.</span></h1>
+    <p class="hero-sub reveal visible reveal-1">Undertow is growing beyond where it started. The roles below aren't posted yet, but they're what's coming next — and what we'll be looking for when they open.</p>
+
+    <div class="team-orbit-wrap reveal visible reveal-2">
+      <div class="team-orbit-panel">
+        <div class="team-orbit-head">
+          <span class="team-orbit-tag">TEAM SIGNAL</span>
+          <span class="team-orbit-live"><span class="live-badge-dot"></span>GROWING</span>
+        </div>
+        <div class="team-orbit-canvas" role="img" aria-label="Diagram: Data, Design, Research, and Community roles orbiting the growing Undertow team">
+          <svg class="orbit-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <circle class="orbit-ring" cx="50" cy="50" r="18"/>
+            <circle class="orbit-ring" cx="50" cy="50" r="31"/>
+            <circle class="orbit-ring" cx="50" cy="50" r="44"/>
+            <path class="orbit-line" id="ol-data" d="M50,50 L50,9"/>
+            <path class="orbit-line" id="ol-design" d="M50,50 L91,50"/>
+            <path class="orbit-line" id="ol-research" d="M50,50 L50,91"/>
+            <path class="orbit-line" id="ol-community" d="M50,50 L9,50"/>
+            <circle class="orbit-particle" r="1.3"><animateMotion dur="2.4s" repeatCount="indefinite" begin="0s"><mpath href="#ol-data"/></animateMotion></circle>
+            <circle class="orbit-particle" r="1.3"><animateMotion dur="2.4s" repeatCount="indefinite" begin="0.6s"><mpath href="#ol-design"/></animateMotion></circle>
+            <circle class="orbit-particle" r="1.3"><animateMotion dur="2.4s" repeatCount="indefinite" begin="1.2s"><mpath href="#ol-research"/></animateMotion></circle>
+            <circle class="orbit-particle" r="1.3"><animateMotion dur="2.4s" repeatCount="indefinite" begin="1.8s"><mpath href="#ol-community"/></animateMotion></circle>
+          </svg>
+          <div class="orbit-hub">
+            <svg class="orbit-hub-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></svg>
+            <div class="orbit-hub-label">UNDERTOW</div>
+            <div class="orbit-hub-sub">Team</div>
+          </div>
+          <div class="orbit-node" data-role="data">
+            <span class="orbit-node-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg></span>
+            <span class="orbit-node-label">Data</span>
+          </div>
+          <div class="orbit-node" data-role="design">
+            <span class="orbit-node-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></span>
+            <span class="orbit-node-label">Design</span>
+          </div>
+          <div class="orbit-node" data-role="research">
+            <span class="orbit-node-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/><path d="M8 11h6M11 8v6"/></svg></span>
+            <span class="orbit-node-label">Research</span>
+          </div>
+          <div class="orbit-node" data-role="community">
+            <span class="orbit-node-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+            <span class="orbit-node-label">Community</span>
+          </div>
+        </div>
       </div>
-      <svg class="hero-figure" viewBox="0 0 220 200">
-        <rect x="30" y="120" width="110" height="6" rx="3" fill="#22324A"/>
-        <rect x="45" y="88" width="80" height="34" rx="4" fill="#142238" stroke="#3B82F6" stroke-width="1.5"/>
-        <rect x="52" y="95" width="66" height="20" rx="2" fill="#3B82F6" opacity="0.18"/>
-        <path d="M60,102 L78,110 L96,98 L112,108" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="150" cy="70" r="16" fill="#17263D" stroke="#3B82F6" stroke-width="1.5"/>
-        <path d="M138,110 C138,92 162,92 162,110 L162,122 L138,122 Z" fill="#17263D" stroke="#3B82F6" stroke-width="1.5"/>
-      </svg>
     </div>
   </div>
 </header>
