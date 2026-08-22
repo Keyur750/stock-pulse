@@ -864,19 +864,48 @@ full tutorial system:
   session, which matters now that each ticker is its own static file
   (Phase 2) rather than one shared page.
 
-### Phase 5 — Responsive & accessibility
+### Phase 5 — Responsive & accessibility — ✅ Done (2026-08-21)
 **Goal:** a defined, systematic breakpoint scale and a verified
 accessibility bar, not ad hoc media queries.
-- Formalize a small breakpoint set (e.g. 480 / 760 / 1080px, values
-  already appearing informally across files today) and apply it
-  consistently from Phase 0's tokens, mobile-first — the actual
-  mobile-first layout decisions now happen in Phase 4 (research point 9);
-  this phase's job is verifying them systematically across the full
-  breakpoint set, not originating them here for the first time.
-- Real device testing of the dense grids/pillar dials at narrow widths —
-  currently unverified below whatever each file's ad hoc breakpoints
-  happen to cover.
-- **WCAG 2.2 AA contrast — ✅ Done (2026-08-21).** The systematic
+- **Breakpoint scale — ✅ Done.** A live audit found ~11 distinct
+  max-width values already in use (480, 560, 620, 640, 700, 760, 780,
+  900, 920, 1080, plus components.css's own 900) — organic per-component
+  tuning, the same pattern the typography scale already fixed once in
+  Phase 0. Documented a three-tier canonical scale (480 mobile / 760
+  tablet / 1080 desktop-narrow) as a comment convention at the bottom of
+  `design/tokens.css` for new components to follow — CSS custom
+  properties can't be referenced inside an `@media` condition itself, so
+  this is guidance, not a live token. **Deliberately did not force every
+  existing rule onto exactly these three values**: each was tuned against
+  its own component's real content width, and re-tuning ~30 individual
+  layouts for a cosmetic-only gain would need re-verifying all of them
+  for a real regression risk with no real bug behind it — not what this
+  phase's mobile audit was actually for.
+- **Real device testing of dense grids/pillar dials — ✅ Done.** Live
+  `getComputedStyle()`-based overflow audits (mobile ~375-467px, tablet
+  900px, desktop-narrow 1080px) across all six pages (dashboard,
+  sentiment, stock/NVDA, index, about, careers) — the sliced per-ticker
+  static pages needed a fresh real-data render (via the same non-Gemini
+  yfinance/SEC-EDGAR technique used earlier in this phase) since
+  `docs/dashboard.html`/`sentiment.html`/`stock.html` only regenerate on
+  a full pipeline run and still reflected pre-Phase-5 template code.
+  Found zero page-level overflow anywhere except intentional marquee
+  ticker-tape elements (contained by design, `docScrollWidth` stayed at
+  viewport width in every case) — **except one real, previously-uncaught
+  bug:** the securities table's mobile "card mode"
+  (`sentiment_template.html`, `@media (max-width: 640px)`) silently never
+  applied. The desktop-only `min-width: 720px` on the base `.sec-table`
+  rule was never cleared inside that media query, so despite
+  `display:block` being applied, every row — and the expandable detail
+  pane specifically, the richest content on the page — stayed pinned at
+  720px wide inside a much narrower viewport, confirmed live via
+  `getComputedStyle()` showing a 720px row inside a 467px viewport.
+  Fixed by adding `min-width: 0` to that media query's table/row/cell
+  reset; re-verified live afterward (table width 319px, detail pane
+  319px, zero overflowing elements). The four-axis pillar glyph and
+  fund-radar SVG (stock/NVDA page) were also checked directly and scale
+  down cleanly with no clipping at 375px.
+- **WCAG 2.2 AA contrast — ✅ Done.** The systematic
   full-surface pass turned out much bigger than the "one divergence
   badge" starting point below: every `color:` declaration pairing
   `--accent`/`--bear` text directly with their own `-dim`/`-soft`
@@ -1052,7 +1081,7 @@ comes when that phase is actually scoped for building)
 | 4 | Visual redesign pass | ✅ Done (2026-08-21) — four-axis pillar glyph, in-context divergence "why," confidence-indicator component, mobile-first verification, live WCAG 2.2 checks (2 real failures fixed, 2 pre-existing ones logged for Phase 5), hierarchy discipline confirmed, density calibration confirmed, distinct divergence-pattern signature (+ a real CSS shorthand bug caught live), standardized empty/loading/error states + a stale-copy fix |
 | 4B | Content & copy audit | ✅ Done (2026-08-21) — "Intelligence" overload fixed (7 instances, 3 found beyond the original 4), CTA labels already unified via Phase 2, WHY UNDERTOW merged from 6 tiles to 3 (real Divergence-detection differentiator added), hero number relabeled "AVERAGE", search placeholder confirmed already unified |
 | 4C | First-run onboarding | ✅ Done (2026-08-21) — one combined dismissible tip (not two separate popups), verified live: shows once, WCAG-checked, persists across dismiss/reload/different-ticker-page |
-| 5 | Responsive breakpoint system + WCAG 2.2 AA accessibility bar | 🔶 In progress (2026-08-21) — WCAG 2.2 AA contrast pass ✅ done (29-rule fix via new `--accent-on-soft`/`--bear-on-soft` tokens + an unrelated nav-active specificity bug caught and fixed live); breakpoint-scale formalization and real device testing of dense grids/pillar dials still open |
+| 5 | Responsive breakpoint system + WCAG 2.2 AA accessibility bar | ✅ Done (2026-08-21) — WCAG 2.2 AA contrast pass (29-rule fix via new `--accent-on-soft`/`--bear-on-soft` tokens + an unrelated nav-active specificity bug caught and fixed live); breakpoint scale documented as a 3-tier convention (480/760/1080); live mobile/tablet/desktop-narrow overflow audit across all six pages found and fixed one real bug (securities table's mobile card mode silently never applied) |
 | 6 | Performance (Core Web Vitals bar) | Not started — mostly falls out of Phase 1 |
 | 7 | Modern features, reprioritized by differentiation: comparison view → "what changed" → Cmd+K → skeleton loading → PWA (with a real install-prompt strategy) | Not started — independently shippable |
 | 8 | QA/rollout checklist | Not started |
@@ -1079,19 +1108,21 @@ comes when that phase is actually scoped for building)
 1. Real per-ticker static URLs — **decided: yes, build them**, replacing
    `?t=TICKER` query routing (kept as a redirect/alias). See Phase 2.
 
-**Next step:** Phases 0, 1, 2, 3, 4, 4B, and 4C are all done. Phase 5's
-WCAG 2.2 AA contrast pass is also now done (2026-08-21) — the full
-systematic sweep found the divergence-badge failure logged earlier was
-one instance of a ~29-rule pattern, fixed via two new tokens
-(`--accent-on-soft`/`--bear-on-soft`) plus an unrelated nav-active CSS
-specificity bug caught live on about.html/careers.html and fixed
-alongside it. Remaining in Phase 5: formalize the breakpoint scale
-(480/760/1080px already appearing informally) and real device testing of
-dense grids/pillar dials at narrow widths beyond what Phase 4's own new
-components already covered. After that: the deferred marketing-nav
-component merge (the confidence indicator, divergence signal, and
-empty-state components all now live in `design/components.css` as real
-shared classes, ready for the marketing pages to adopt), then Phase 6
-(performance). A full live pipeline run (with fresh AI analyst text) is
-still worth doing once Gemini's quota resets, but as a routine daily
-refresh, not a blocker on any further building.
+**Next step:** Phases 0 through 5 are all done (2026-08-21) — every
+phase from this doc's original scope plus everything the 2026-08-21
+research pass added. Phase 5 closed out with a WCAG 2.2 AA contrast fix
+(29 rules, two new tokens), a documented 3-tier breakpoint convention,
+and a live mobile/tablet/desktop-narrow overflow audit that caught and
+fixed one real bug (the securities table's mobile card mode silently
+never applying, due to an uncleared desktop `min-width` inside its own
+mobile media query). Remaining: the deferred marketing-nav component
+merge (the confidence indicator, divergence signal, and empty-state
+components all now live in `design/components.css` as real shared
+classes, ready for the marketing pages to adopt), then Phase 6
+(performance), Phase 7 (modern features), and Phase 8 (QA/rollout
+discipline). A full live pipeline run (with fresh AI analyst text) is
+still worth doing once Gemini's quota resets — this is what will finally
+regenerate `docs/dashboard.html`/`sentiment.html`/`stock.html`/the
+per-ticker pages with all of Phase 4/4B/4C/5's template changes baked
+in; that's a routine daily refresh, not a blocker on any further
+building.

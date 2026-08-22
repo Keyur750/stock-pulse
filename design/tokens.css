@@ -130,3 +130,38 @@
   --space-10: 40px;
   --space-12: 48px;
 }
+
+/* ---- Responsive breakpoint scale (Site Redesign Reset, Phase 5) ----
+   CSS custom properties can't be used inside an @media condition itself
+   (only inside declarations), so this is a documented convention for new
+   media queries to follow, not a live token -- write the literal px value,
+   matching one of the three tiers below, and note in a comment which
+   tier it is if the number alone isn't obviously one of these three.
+
+     480px  -- mobile: dense grids/dials collapse to a single column
+                (.pillar-grid, .cm-ai-cols, .why-grid, radar charts)
+     760px  -- tablet: two-column layouts collapse to one
+                (.detail-grid, .hero-grid, secondary nav chrome hides)
+     1080px -- desktop-narrow: sidebar/wide-grid layouts adjust before
+                the two tiers above kick in
+
+   A live audit for this phase found ~11 distinct max-width values already
+   in use across the six page templates (480, 560, 620, 640, 700, 760,
+   780, 900, 920, 1080, plus 900 in design/components.css's shared nav) --
+   evidence of organic per-component tuning, same pattern the typography
+   scale above already fixed once. Deliberately NOT force-migrating every
+   existing rule to exactly these three values here: each one was tuned
+   against its own component's real content width (e.g. a stat-strip's
+   3-tile-to-2-tile collapse doesn't happen at the same width a hero grid
+   needs to reflow at), and forcing them to match would need re-verifying
+   ~30 individual layouts for a cosmetic gain with real regression risk,
+   not a genuine bug. The real, load-bearing part of this phase's mobile
+   audit was live-testing every page at narrow widths for actual broken
+   layouts -- which found one: the securities table's mobile "card mode"
+   (sentiment_template.html, @media max-width:640px) silently never
+   applied because the desktop-only `min-width: 720px` on `.sec-table`
+   was never cleared in that media query, pinning every row (and the
+   expandable detail pane) at 720px wide inside a much narrower viewport.
+   Fixed there directly. New components should default to this three-tier
+   scale; existing ones keep their tuned values unless a real bug like
+   that one turns up. */

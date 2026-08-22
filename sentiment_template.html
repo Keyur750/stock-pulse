@@ -314,8 +314,17 @@
     .table-toolbar { flex-wrap: wrap; }
     .search-wrap { max-width: none; flex: 1 1 100%; order: 1; }
     .toolbar-select { flex: 1; order: 2; }
-    .sec-table-wrap { border: none; background: none; }
-    table.sec-table, .sec-table thead, .sec-table tbody, .sec-table tr, .sec-table td { display: block; width: 100%; }
+    .sec-table-wrap { border: none; background: none; overflow-x: hidden; }
+    /* Site Redesign Reset, Phase 5: min-width:720px on the base .sec-table
+       rule (desktop-only, keeps grid columns from cramping) was never
+       cleared here, so the "card mode" below never actually took effect --
+       display:block was applied but the table (and every row, including
+       the detail pane) stayed pinned at 720px wide inside a narrow
+       viewport, silently forcing horizontal scroll on every mobile card
+       instead of the intended stacked layout. Confirmed live via
+       getComputedStyle() showing a 720px row inside a 467px viewport
+       before this fix. */
+    table.sec-table, .sec-table thead, .sec-table tbody, .sec-table tr, .sec-table td { display: block; width: 100%; min-width: 0; }
     .sec-table thead { display: none; }
     .sec-table tr.sec-row {
       border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-1);
