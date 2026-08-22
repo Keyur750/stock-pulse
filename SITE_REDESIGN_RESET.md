@@ -396,7 +396,7 @@ not yet live-verified):**
   honest-empty-state pattern rather than crashing or fabricating a value.
   **Phase 1 is complete.**
 
-### Phase 2 — Information architecture & navigation ✅ mostly done (2026-08-21)
+### Phase 2 — Information architecture & navigation ✅ DONE (2026-08-21)
 **Goal:** every real page reachable in one click, identically, from
 everywhere — this is the fix for the "Explore the Intelligence" problem
 directly.
@@ -430,11 +430,21 @@ directly.
   cleanup step removes any `stock-{TICKER}.html` whose ticker later
   drops out of the flagship set, so a shrink never leaves a permanently
   orphaned, unlinked page behind.
-- **Not yet done:** sharing the ticker-search JS onto `sentiment.html` —
-  it has no search box at all today (confirmed zero references to
-  `nav-search` in `sentiment_template.html`'s script), a separate,
-  contained task from the nav-content work above, deliberately not
-  rushed into the same pass.
+- **Done:** ticker-search JS ported onto `sentiment.html` — it had none
+  at all before (confirmed zero references to `nav-search` in its
+  script). Adapted, not copy-pasted verbatim: dashboard's version
+  navigates via a global `[data-ticker]` click delegation this page
+  doesn't have, so the ported version calls `openChartModal()` directly
+  on click instead, matching how every other click-to-chart element on
+  this page already works. `DATA.composite` is empty here (not one of
+  `_SENTIMENT_PAYLOAD_KEYS`) — the existing composite→`ai_score`
+  fallback in the copied rendering logic already handles that
+  gracefully, confirmed rather than assumed. Incidental side effect
+  worth noting: this also silently fixed Phase 4B's flagged "two
+  different search placeholder strings" finding — both other app pages
+  already read the placeholder from this same shared `nav.html.j2`
+  partial since Phase 1, so unifying sentiment onto it left exactly one
+  placeholder string, not two.
 - **Not yet done:** full component-level merge of the marketing pages'
   nav onto the app pages' shared `.site-nav` (COMPONENT_INVENTORY.md's
   original Phase 1 aspiration) — content is now flattened and
@@ -790,7 +800,7 @@ comes when that phase is actually scoped for building)
 |---|---|---|
 | 0 | Design token foundation + component inventory | ✅ Tokens + inventory written, wired into all three app pages (Phase 1's nav/auth/CSS consolidation, verified live 2026-08-21) |
 | 1 | Shared partials + payload slicing + static-page wiring | ✅ Done, fully verified live (2026-08-21) — nav/auth/CSS consolidation, payload slicing, and index/about/careers Jinja2 wiring all confirmed against a real pipeline run |
-| 2 | Flat navigation everywhere; per-ticker static URLs | ✅ Core work done and verified live with real data (2026-08-21); sentiment search JS and full nav component merge (deferred to Phase 4) still open |
+| 2 | Flat navigation everywhere; per-ticker static URLs; ticker search on every app page | ✅ Done, verified with real data (2026-08-21); full marketing-nav component merge deliberately deferred to Phase 4 (visual-layer work) |
 | 3 | Accounts: finish everywhere, unlocks watchlist only for now | ✅ Done (2026-08-21) — wired via Phase 1, scope decided by user, `PRODUCT.md` updated |
 | 4 | Visual redesign pass — now includes the four-axis pillar glyph, in-context divergence "why," confidence-indicator component, mobile-first layout, live WCAG 2.2 checks | Not started — depends on Phases 0-1 |
 | 4B | Content & copy audit | Findings documented above; fixes not applied — pairs with Phase 2 |
@@ -822,16 +832,15 @@ comes when that phase is actually scoped for building)
 1. Real per-ticker static URLs — **decided: yes, build them**, replacing
    `?t=TICKER` query routing (kept as a redirect/alias). See Phase 2.
 
-**Next step:** Phase 2's core work is done and verified with real data
-(see above — the Gemini-quota gap never actually blocked this, since
-none of it depends on AI-generated text). Remaining: share the
-ticker-search JS onto `sentiment.html`, then move to Phase 4B's copy
-fixes (paired with Phase 2 per the sequencing note above). Phase 4's
-expanded scope (four-axis glyph, in-context divergence, confidence
-component, mobile-first, live contrast checks, plus the deferred
-marketing-nav component merge) and the new Phase 4C (onboarding) are
-documented and ready to scope when their turn comes — nothing from the
-2026-08-21 research pass was left out of this plan. A full live pipeline
-run (with fresh AI analyst text) is still worth doing once Gemini's
-quota resets, but as a routine daily refresh, not a blocker on any
-further building.
+**Next step:** Phase 2 is fully done and verified (nav flattened, real
+per-ticker static pages, ticker search on all three app pages). Per the
+sequencing above, **Phase 4B (copy fixes)** is next, paired with Phase 2
+per the sequencing note — the "Intelligence" naming collision and CTA-
+label fixes are ready to apply. Phase 4's expanded scope (four-axis
+glyph, in-context divergence, confidence component, mobile-first, live
+contrast checks, plus the deferred marketing-nav component merge) and
+the new Phase 4C (onboarding) are documented and ready to scope after
+that — nothing from the 2026-08-21 research pass was left out of this
+plan. A full live pipeline run (with fresh AI analyst text) is still
+worth doing once Gemini's quota resets, but as a routine daily refresh,
+not a blocker on any further building.

@@ -1,15 +1,18 @@
 {#
-  Shared app-page nav — Site Redesign Reset, Phase 1.
-  Replaces three hand-copied <nav class="site-nav"> blocks (dashboard/
-  sentiment/stock templates) with one source. Deliberately preserves each
-  page's real, pre-existing differences (dashboard's in-page anchors,
-  sentiment's lack of a search box) rather than silently redesigning nav
-  content -- that's Phase 2's job. Two genuine bugs/gaps ARE fixed here,
-  both already decided rather than assumed: the brand link on
-  stock_template.html pointed at dashboard.html instead of index.html
-  (every other page points home; no reason found for stock to differ,
-  treated as a bug) and stock_template.html had no nav-auth element at
-  all (Phase 3's "finish accounts everywhere" decision requires it).
+  Shared app-page nav — Site Redesign Reset, Phase 1, nav content
+  flattened in Phase 2. Replaces three hand-copied <nav class="site-nav">
+  blocks (dashboard/sentiment/stock templates) with one source. Two
+  genuine bugs/gaps were fixed in Phase 1, both already decided rather
+  than assumed: the brand link on stock_template.html pointed at
+  dashboard.html instead of index.html (every other page points home;
+  no reason found for stock to differ, treated as a bug) and
+  stock_template.html had no nav-auth element at all (Phase 3's "finish
+  accounts everywhere" decision requires it). Sentiment's search box
+  (Phase 2) now shows the same markup as the other two pages -- the JS
+  that powers it lives in sentiment_template.html itself, ported from
+  dashboard_template.html's version and adapted to call this page's own
+  openChartModal() directly (sentiment has no global [data-ticker] click
+  delegation the way dashboard does).
 
   Params:
     active_page: 'dashboard' | 'sentiment' | 'stock'
@@ -38,12 +41,10 @@
     <a href="about.html" class="nav-secondary">About</a>
   </div>
   {% endif %}
-  {% if active_page != 'sentiment' %}
   <div class="nav-search">
     <span class="nav-search-icon">⌕</span>
     <input type="text" id="nav-search-input" placeholder="Search ticker or company..." autocomplete="off">
     <div class="nav-search-results" id="nav-search-results"></div>
   </div>
-  {% endif %}
   <div class="nav-auth" id="nav-auth"></div>
 </nav>

@@ -2445,6 +2445,56 @@ async function pollTickerSnapshots() {
 }
 pollTickerSnapshots();
 setInterval(pollTickerSnapshots, QUOTES_POLL_INTERVAL_MS);
+
+// Site Redesign Reset, Phase 2: ticker search, ported from
+// dashboard_template.html's version (same DATA.watchlist_grid/composite/
+// analyst fields this page's payload already carries -- DATA.composite
+// is empty here since it's not one of _SENTIMENT_PAYLOAD_KEYS, so this
+// falls back to ai_score exactly the way the fallback expression below
+// already handles a missing composite for any ticker). Adapted to call
+// openChartModal() directly on click since this page has no global
+// [data-ticker] click delegation the way dashboard does.
+const searchInput = document.getElementById('nav-search-input');
+const searchResultsEl = document.getElementById('nav-search-results');
+const allTickers = [...new Set((DATA.watchlist_grid || []).map(t => t.ticker))].sort();
+function renderSearchResults(query) {
+  const q = query.trim().toUpperCase();
+  if (!q) { searchResultsEl.style.display = 'none'; return; }
+  const matches = allTickers.filter(t => t.includes(q)).slice(0, 6);
+  if (matches.length === 0) {
+    searchResultsEl.innerHTML = '<div class="search-empty">No matches in the flagship set</div>';
+  } else {
+    searchResultsEl.innerHTML = matches.map(sym => {
+      const composite = (DATA.composite || {})[sym];
+      const ai = (DATA.analyst || {})[sym];
+      const score = (composite && composite.composite_score !== null && composite.composite_score !== undefined)
+        ? composite.composite_score
+        : (ai ? ai.ai_score : null);
+      return `<div class="search-result" data-ticker="${sym}">
+        <span class="search-result-sym">${sym}</span>
+        <span class="search-result-meta">
+          ${score !== null && score !== undefined ? `<span class="search-result-score" style="color:${pillarColorHex(score)}">${score}</span>` : '<span class="search-result-score" style="color:var(--text-faint)">—</span>'}
+        </span>
+      </div>`;
+    }).join('');
+    searchResultsEl.querySelectorAll('.search-result').forEach(el => {
+      el.addEventListener('click', () => {
+        searchResultsEl.style.display = 'none';
+        searchInput.value = '';
+        openChartModal(el.dataset.ticker);
+      });
+    });
+  }
+  searchResultsEl.style.display = 'block';
+}
+searchInput.addEventListener('input', (e) => renderSearchResults(e.target.value));
+searchInput.addEventListener('focus', (e) => { if (e.target.value) renderSearchResults(e.target.value); });
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.nav-search')) searchResultsEl.style.display = 'none';
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') searchResultsEl.style.display = 'none';
+});
 </script>
 
 </body>
