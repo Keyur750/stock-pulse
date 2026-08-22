@@ -74,32 +74,39 @@
     .hero-figure { max-width: 220px; margin: 0 auto; }
   }
 
-  section.section { padding: 56px 0; }
+  section.section { padding: 40px 0; }
   .surface { background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-sm); border-radius: var(--radius-lg); }
-  .surface-hover { transition: border-color .18s ease, background-color .18s ease; }
-  .surface-hover:hover { border-color: var(--border-hover); background: var(--surface-2); }
+  .surface-hover { transition: border-color .18s ease, background-color .18s ease, transform .18s ease; }
+  .surface-hover:hover { border-color: var(--border-hover); background: var(--surface-2); transform: translateY(-2px); }
 
-  .status-banner { border-radius: var(--radius-lg); padding: 24px 26px; display: flex; gap: 14px; align-items: flex-start; }
-  .status-banner .icon { font-size: 13px; margin-top: 4px; color: var(--amber); }
-  .status-banner h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+  .status-banner { border-radius: var(--radius-lg); padding: 22px 28px; display: flex; gap: 18px; align-items: center; }
+  .status-icon { width: 42px; height: 42px; border-radius: var(--radius-md); background: var(--amber-soft); border: 1px solid rgba(245,158,11,0.32); color: var(--amber); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .status-icon svg { width: 20px; height: 20px; }
+  .status-banner h3 { margin: 0 0 4px; font-size: 15.5px; font-weight: 700; }
   .status-banner p { margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+  @media (max-width: 640px) { .status-banner { flex-direction: column; text-align: center; align-items: center; } }
 
-  .prose h2 { font-size: 22px; font-weight: 800; margin: 40px 0 14px; letter-spacing: -0.01em; }
-  .prose p { font-size: 15px; color: var(--text-secondary); line-height: 1.8; margin: 0 0 18px; }
+  .section-kicker { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-on-soft); font-weight: 700; margin: 0 0 8px; display: block; }
+  .prose h2 { font-size: 24px; font-weight: 800; margin: 0 0 12px; letter-spacing: -0.01em; }
+  .prose p { font-size: 15px; color: var(--text-secondary); line-height: 1.8; margin: 0 0 18px; max-width: 640px; }
 
-  .role-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 32px; }
+  .role-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 28px; }
   @media (max-width: 1080px) { .role-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 560px) { .role-grid { grid-template-columns: 1fr; } }
-  .role-card { border-radius: var(--radius-md); padding: 20px; }
+  .role-card { border-radius: var(--radius-md); padding: 22px; }
+  .role-icon { width: 38px; height: 38px; border-radius: var(--radius-sm); background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent-on-soft); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .role-icon svg { width: 19px; height: 19px; }
   .role-card .role-tag { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; padding: 3px 8px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-faint); }
-  .role-card h4 { margin: 10px 0 8px; font-size: 14px; font-weight: 700; }
+  .role-card h4 { margin: 12px 0 8px; font-size: 15.5px; font-weight: 700; }
   .role-card p { margin: 0; font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; }
 
-  .culture-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 32px; }
+  .culture-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 28px; }
   @media (max-width: 900px) { .culture-grid { grid-template-columns: 1fr; } }
-  .culture-card { border-radius: var(--radius-md); padding: 20px; text-align: center; }
-  .culture-card h4 { font-size: 13.5px; font-weight: 700; margin: 0 0 6px; }
-  .culture-card p { font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.55; }
+  .culture-card { border-radius: var(--radius-md); padding: 24px 20px; text-align: center; }
+  .culture-icon { width: 36px; height: 36px; border-radius: 50%; background: var(--bull-soft); color: var(--bull); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+  .culture-icon svg { width: 17px; height: 17px; }
+  .culture-card h4 { font-size: 14.5px; font-weight: 700; margin: 0 0 6px; }
+  .culture-card p { font-size: 12.5px; color: var(--text-secondary); margin: 0; line-height: 1.6; }
 
   .btn { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; padding: 13px 24px; border-radius: var(--radius-md); text-decoration: none; transition: transform .15s ease, filter .15s ease; }
   .btn-primary { background: var(--accent); color: #fff; }
@@ -156,10 +163,10 @@
   </div>
 </header>
 
-<section class="section" style="padding-top:24px;">
-  <div class="wrap-narrow">
+<section class="section" style="padding-top:8px;">
+  <div class="wrap">
     <div class="status-banner surface reveal">
-      <span class="icon">●</span>
+      <span class="status-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>
       <div>
         <h3>Not open yet — but not far off</h3>
         <p>There's no live application process today, so there's nothing to apply to just yet. As the team comes together, this page will say so plainly and list what's actually open.</p>
@@ -168,28 +175,33 @@
   </div>
 </section>
 
-<section class="section prose" style="padding-top:0;">
+<section class="section prose" style="padding-top:16px;">
   <div class="wrap">
+    <span class="section-kicker reveal">ROLES</span>
     <h2 class="reveal">What we're hiring for</h2>
     <p class="reveal reveal-1">These aren't live postings yet — they're a real preview of who we're planning to bring on first as the team grows.</p>
 
     <div class="role-grid">
       <div class="role-card surface surface-hover reveal reveal-1">
+        <span class="role-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg></span>
         <span class="role-tag">DATA</span>
         <h4>Data Engineer</h4>
         <p>Someone who'd get excited about wiring up another independent signal source without breaking the "no black box" rule.</p>
       </div>
       <div class="role-card surface surface-hover reveal reveal-2">
+        <span class="role-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></span>
         <span class="role-tag">DESIGN</span>
         <h4>Product Designer</h4>
         <p>Someone who cares as much about how a number is labeled as what the number is — density without clutter.</p>
       </div>
       <div class="role-card surface surface-hover reveal reveal-3">
+        <span class="role-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/><path d="M8 11h6M11 8v6"/></svg></span>
         <span class="role-tag">RESEARCH</span>
         <h4>Quant / NLP Researcher</h4>
         <p>Someone who'd push the divergence classification and narrative taxonomy past first-pass heuristics, honestly.</p>
       </div>
       <div class="role-card surface surface-hover reveal reveal-4">
+        <span class="role-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
         <span class="role-tag">COMMUNITY</span>
         <h4>Community / Trust</h4>
         <p>Someone who'd keep the project honest as it grows — no dark patterns, no paywalling transparency.</p>
@@ -198,16 +210,28 @@
   </div>
 </section>
 
-<section class="section" style="padding-top:0;">
-  <div class="wrap-narrow">
-    <h2 style="font-size:20px;font-weight:800;text-align:center;" class="reveal">What we actually care about</h2>
+<section class="section" style="padding-top:16px;">
+  <div class="wrap">
+    <div style="text-align:center;">
+      <span class="section-kicker reveal">VALUES</span>
+      <h2 style="font-size:22px;font-weight:800;margin:0 0 28px;" class="reveal">What we actually care about</h2>
+    </div>
     <div class="culture-grid">
-      <div class="culture-card surface surface-hover reveal reveal-1"><h4>Show the work</h4><p>No shipping a number without a visible source.</p></div>
-      <div class="culture-card surface surface-hover reveal reveal-2"><h4>Stay light</h4><p>Free-tier-first, no cost creep, no dependency on someone else's paywall.</p></div>
-      <div class="culture-card surface surface-hover reveal reveal-3"><h4>Say no to noise</h4><p>A feature earns its place by cutting through clutter, not adding to it.</p></div>
+      <div class="culture-card surface surface-hover reveal reveal-1">
+        <span class="culture-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+        <h4>Show the work</h4><p>No shipping a number without a visible source.</p>
+      </div>
+      <div class="culture-card surface surface-hover reveal reveal-2">
+        <span class="culture-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
+        <h4>Stay light</h4><p>Free-tier-first, no cost creep, no dependency on someone else's paywall.</p>
+      </div>
+      <div class="culture-card surface surface-hover reveal reveal-3">
+        <span class="culture-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><path d="M12 2v10"/></svg></span>
+        <h4>Say no to noise</h4><p>A feature earns its place by cutting through clutter, not adding to it.</p>
+      </div>
     </div>
 
-    <div style="text-align:center;margin-top:44px;" class="reveal">
+    <div style="text-align:center;margin-top:48px;" class="reveal">
       <p style="color:var(--text-secondary);font-size:13.5px;margin-bottom:18px;">Genuinely interested in where this goes? The project lives in the open.</p>
       <a class="btn btn-ghost" href="https://github.com/keyur750/stock-pulse" target="_blank" rel="noopener">View the project on GitHub</a>
     </div>
