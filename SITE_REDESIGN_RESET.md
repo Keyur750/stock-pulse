@@ -507,9 +507,20 @@ drove it (see "Research foundations" above).
   (Bloomberg-terminal style is appropriate for a scanning view); a single
   stock's detail page should breathe more, closer to how a focused
   single-instrument view reads on Robinhood/Public.com.
-- **Mobile-first, not a desktop-then-breakpoints retrofit** (research
-  point 9) — every component's phone-width layout gets decided as part
-  of this same pass, not left for Phase 5 to patch in afterward.
+- **✅ Verified: every new Phase 4 component at phone width** (research
+  point 9) — the four-axis glyph, per-pillar confidence dots, and the
+  divergence why-text all checked at a real 375px viewport via live DOM
+  measurement (`getBoundingClientRect()`/`getBBox()`, not eyeballing a
+  screenshot): zero horizontal page overflow, the glyph correctly scales
+  down under its existing `max-width:100%` and every axis label stays
+  inside the SVG's bounds at the smaller size, the pillar-grid correctly
+  collapses to one column under the pre-existing 480px breakpoint, and
+  the header's composite-score/confidence secondary line fits without
+  clipping. Confirms these new components genuinely were designed
+  mobile-first rather than needing a Phase 5 retrofit — this doesn't
+  cover the rest of the site's pre-existing components (dense grids,
+  financial charts, news sections), which stay Phase 5's full
+  systematic pass as already scoped there.
 - **✅ Done: a single four-axis shape as the primary pillar glyph**, not
   four separate radial dials shown side by side (research point 5) —
   `pillarShapeSvg()` in `stock_template.html`, placed above the existing
@@ -601,10 +612,32 @@ drove it (see "Research foundations" above).
 - Standardize empty/loading/error states as real designed components
   (Phase 0's inventory), not ad hoc per-page text — currently inconsistent
   across files (e.g. `cm-ai-empty`'s copy and styling isn't shared).
-- **A live WCAG 2.2 AA contrast check on every color decision made in
-  this phase, as it's made** (research point 8) — not deferred entirely
-  to Phase 5's audit; see Phase 5 for why this is now checked twice, not
-  once, and why the target version moved from 2.1 to 2.2.
+- **✅ Done: a live WCAG 2.2 AA contrast check on every color decision
+  made in this phase** (research point 8) — computed real contrast
+  ratios in the browser (relative-luminance formula against actual
+  rendered colors, not assumed from the palette) for every color this
+  phase introduced. Found and fixed two real failures, both now live:
+  the confidence-indicator label was `var(--text-faint)` on the card
+  background, 3.17:1 (fails text's 4.5:1 minimum) — swapped to
+  `var(--text-secondary)`, 6.68:1. The unfilled confidence dot was
+  `var(--border)`, 1.32:1 (fails 3:1 for a meaningful graphical element
+  — which dots are filled *is* the information, not decoration) —
+  swapped to `var(--text-faint)`, 3.17:1. Both existing tokens, not new
+  colors invented for the fix. The four-axis glyph's guide rings/axis
+  lines were checked too and left as `var(--border)` deliberately — same
+  low-contrast-background-structure treatment any chart's gridlines get
+  (the data polygon and its own stroke/dot colors carry the real
+  information, already verified above 4.5:1).
+  **One pre-existing failure found and deliberately NOT fixed here,
+  logged for Phase 5 instead:** the divergence badge's own bear/down and
+  info/accent text-on-soft-background pairs measured 4.11:1 and 4.12:1
+  — both just under the 4.5:1 minimum. Real, but these are a *pre-
+  existing* color pairing (`--bear`/`--bear-soft`, `--accent`/
+  `--accent-dim`) this phase only added new text next to, not a color
+  this phase decided — exactly the boundary Phase 4 vs. Phase 5 draws
+  below. Fixing it means adjusting a shared global token used elsewhere
+  on the site, which needs the full-surface review Phase 5's systematic
+  pass is for, not a spot-fix bundled into an unrelated feature.
 
 ### Phase 4B — Content & copy audit
 **Goal:** the actual sentence-level pass requested alongside this doc —
@@ -721,14 +754,23 @@ accessibility bar, not ad hoc media queries.
   currently unverified below whatever each file's ad hoc breakpoints
   happen to cover.
 - **WCAG 2.2 AA** contrast check on the existing dark palette (score
-  colors on tinted backgrounds — `--bull`/`--bear`/`--amber` on their
-  `-soft` variants — haven't been checked against a contrast ratio
-  target). Upgraded from this doc's original 2.1 AA target (research
-  point 8) — 2.2 is a strict superset of 2.1, so there's no cost to
-  targeting the newer version. This is the full systematic pass across
-  every existing surface; the live spot-check on Phase 4's own new color
-  decisions happens as those decisions are made (see Phase 4), so a
-  failure here doesn't mean redoing finished visual work from scratch.
+  colors on tinted backgrounds — `--bull`/`--bear`/`--amber`/`--accent`
+  on their `-soft`/`-dim` variants). Upgraded from this doc's original
+  2.1 AA target (research point 8) — 2.2 is a strict superset of 2.1, so
+  there's no cost to targeting the newer version. This is the full
+  systematic pass across every existing surface; the live spot-check on
+  Phase 4's own new color decisions happened as those decisions were
+  made (see Phase 4), so a failure here doesn't mean redoing finished
+  visual work from scratch. **A concrete starting point, not a blank
+  slate:** Phase 4's own live check already measured two real failures
+  on the divergence badge specifically — bear/down text on `--bear-soft`
+  measured 4.11:1, accent/info text on `--accent-dim` measured 4.12:1,
+  both just under the 4.5:1 text minimum (bull and amber both passed,
+  5.59:1 and 6.56:1). Left unfixed there deliberately since `--bear`/
+  `--accent` are shared global tokens used well beyond that one badge —
+  this phase is where fixing them (likely a small opacity adjustment to
+  `--bear-soft`/`--accent-dim` specifically, not the base hue) gets the
+  full-surface review a shared-token change actually needs.
 - **Decision (research-supported now, not just conventional — research
   point 13):** dark-only stays the deliberate brand choice, not a gap —
   the same instinct that already cites Bloomberg Terminal here holds up
@@ -864,7 +906,7 @@ comes when that phase is actually scoped for building)
 | 1 | Shared partials + payload slicing + static-page wiring | ✅ Done, fully verified live (2026-08-21) — nav/auth/CSS consolidation, payload slicing, and index/about/careers Jinja2 wiring all confirmed against a real pipeline run |
 | 2 | Flat navigation everywhere; per-ticker static URLs; ticker search on every app page | ✅ Done, verified with real data (2026-08-21); full marketing-nav component merge deliberately deferred to Phase 4 (visual-layer work) |
 | 3 | Accounts: finish everywhere, unlocks watchlist only for now | ✅ Done (2026-08-21) — wired via Phase 1, scope decided by user, `PRODUCT.md` updated |
-| 4 | Visual redesign pass — now includes the four-axis pillar glyph, in-context divergence "why," confidence-indicator component, mobile-first layout, live WCAG 2.2 checks | Not started — depends on Phases 0-1 |
+| 4 | Visual redesign pass | ⏳ In progress (2026-08-21) — ✅ four-axis pillar glyph, in-context divergence "why," confidence-indicator component, mobile-first verification, live WCAG 2.2 checks (2 real failures found + fixed, 2 pre-existing ones logged for Phase 5); still open: hierarchy discipline site-wide, density calibration, a real distinct visual signature per divergence pattern (beyond today's icon+label pill), standardized empty/loading/error states |
 | 4B | Content & copy audit | Findings documented above; fixes not applied — pairs with Phase 2 |
 | 4C | First-run onboarding (added 2026-08-21 after external research pass) | Not started — depends on Phase 4 |
 | 5 | Responsive breakpoint system + WCAG 2.2 AA accessibility bar | Not started — depends on Phase 0 |
@@ -894,15 +936,20 @@ comes when that phase is actually scoped for building)
 1. Real per-ticker static URLs — **decided: yes, build them**, replacing
    `?t=TICKER` query routing (kept as a redirect/alias). See Phase 2.
 
-**Next step:** Phase 2 is fully done and verified (nav flattened, real
-per-ticker static pages, ticker search on all three app pages). Per the
-sequencing above, **Phase 4B (copy fixes)** is next, paired with Phase 2
-per the sequencing note — the "Intelligence" naming collision and CTA-
-label fixes are ready to apply. Phase 4's expanded scope (four-axis
-glyph, in-context divergence, confidence component, mobile-first, live
-contrast checks, plus the deferred marketing-nav component merge) and
-the new Phase 4C (onboarding) are documented and ready to scope after
-that — nothing from the 2026-08-21 research pass was left out of this
-plan. A full live pipeline run (with fresh AI analyst text) is still
-worth doing once Gemini's quota resets, but as a routine daily refresh,
-not a blocker on any further building.
+**Next step:** Phase 2 is fully done. Phase 4 is in progress: the
+four-axis glyph, in-context divergence "why," confidence-indicator
+component, mobile-first verification, and a live WCAG 2.2 pass are all
+done (two real contrast failures found and fixed; a further regression
+in sentiment_template.html's search JS was also found and fixed along
+the way, caught only by live browser execution, not static checks).
+Remaining in Phase 4: site-wide hierarchy discipline, per-page density
+calibration, a real distinct visual signature per divergence pattern
+(beyond today's icon+label pill), and standardized empty/loading/error
+states. **Phase 4B (copy fixes)** is next after that, paired with Phase
+2 per the sequencing note — the "Intelligence" naming collision and
+CTA-label fixes are ready to apply. Phase 4C (onboarding) and the
+deferred marketing-nav component merge are documented and ready to scope
+once Phase 4 closes out — nothing from the 2026-08-21 research pass was
+left out of this plan. A full live pipeline run (with fresh AI analyst
+text) is still worth doing once Gemini's quota resets, but as a routine
+daily refresh, not a blocker on any further building.

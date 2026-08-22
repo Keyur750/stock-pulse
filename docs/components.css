@@ -103,6 +103,15 @@
    any score, not a fourth color scale competing with the score colors
    already in use (bull/bear/amber). */
 .conf-indicator { display: inline-flex; align-items: center; gap: 5px; cursor: default; }
-.conf-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); display: inline-block; }
+/* Site Redesign Reset, Phase 4 WCAG pass: both colors below were
+   checked live against the card background (#101C2D), not assumed --
+   var(--border) measured 1.32:1 for the unfilled dot (fails WCAG 2.2's
+   3:1 non-text-contrast minimum for a meaningful graphical element, not
+   pure decoration -- which dots are filled is the actual information)
+   and var(--text-faint) measured 3.17:1 for the label (fails the 4.5:1
+   text minimum). text-faint (3.17:1, passes 3:1) and text-secondary
+   (6.68:1, passes 4.5:1) both already existed as tokens -- swapped in
+   rather than adding new ones. */
+.conf-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-faint); display: inline-block; }
 .conf-dot.filled { background: var(--text-secondary); }
-.conf-indicator-label { font-size: var(--text-2xs); color: var(--text-faint); text-transform: uppercase; letter-spacing: .04em; font-family: 'JetBrains Mono', monospace; }
+.conf-indicator-label { font-size: var(--text-2xs); color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; font-family: 'JetBrains Mono', monospace; }
