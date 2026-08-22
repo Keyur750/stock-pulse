@@ -443,14 +443,27 @@ directly.
   deliberately: that's a real visual-layer change (different markup,
   different hover/active treatment), not the "mechanical, before any
   visual changes" work this phase's own principle calls for.
-- **Verified:** dry-rendered all six pages through Jinja2 with synthetic
-  multi-ticker data — confirmed no cross-ticker data leakage in any
-  per-ticker file, correct `PAGE_TICKER` baked value per file, generic
-  `stock.html` unaffected, stale-file cleanup actually removes a
-  dropped ticker's page. **Not yet verified against a real live pipeline
-  run** — blocked on today's exhausted Gemini free-tier quota (see
-  Phase 1's own note on this); real per-ticker file sizes and the actual
-  end-to-end click path haven't been checked with real data yet.
+- **Verified, two passes:** (1) dry-rendered all six pages through
+  Jinja2 with synthetic multi-ticker data — confirmed no cross-ticker
+  data leakage in any per-ticker file, correct `PAGE_TICKER` baked value
+  per file, generic `stock.html` unaffected, stale-file cleanup actually
+  removes a dropped ticker's page. (2) **Real-data verification without
+  touching Gemini at all** — the AI-quota gap only affects generated
+  *text* (ai_score, verdicts, market insight), not any of what Phase 2
+  actually changed, so real fundamentals/market/wall-street/price-history
+  data (free, non-AI `yfinance`+SEC EDGAR sources) was pulled for 3 real
+  tickers (NVDA/BA/JPM — a strong grower, a real weak name, a financial
+  for the sector-benchmark path) and rendered through the actual pipeline
+  functions in ~11 seconds. Real results: composite scores computed
+  correctly with real partial coverage (`crowd` skipped, `coverage: 3`) —
+  NVDA 76.3, BA 58.4 (appropriately low, matches Boeing's real
+  struggles), JPM 71.4; real per-ticker file sizes ~211-213KB each,
+  confirmed flat regardless of total ticker count (each page only pays
+  for its own ticker's slice + a ~98KB fixed overhead); zero
+  cross-contamination on real nested data; zero leftover Jinja tags. At
+  real 30-ticker scale this projects to ~210KB per per-ticker page
+  (20-25x smaller than today's single ~5MB `stock.html`) and a ~3.4MB
+  generic page — a real, checked number, not a guess. **Fully verified.**
 
 ### Phase 3 — Accounts & personalization decision ✅ DONE (2026-08-21)
 **Goal:** resolve the accounts question before Phase 2's nav is
@@ -777,7 +790,7 @@ comes when that phase is actually scoped for building)
 |---|---|---|
 | 0 | Design token foundation + component inventory | ✅ Tokens + inventory written, wired into all three app pages (Phase 1's nav/auth/CSS consolidation, verified live 2026-08-21) |
 | 1 | Shared partials + payload slicing + static-page wiring | ✅ Done, fully verified live (2026-08-21) — nav/auth/CSS consolidation, payload slicing, and index/about/careers Jinja2 wiring all confirmed against a real pipeline run |
-| 2 | Flat navigation everywhere; per-ticker static URLs | Mostly done (2026-08-21) — nav flattened + per-ticker pages built and dry-verified; sentiment search JS and full nav component merge still open |
+| 2 | Flat navigation everywhere; per-ticker static URLs | ✅ Core work done and verified live with real data (2026-08-21); sentiment search JS and full nav component merge (deferred to Phase 4) still open |
 | 3 | Accounts: finish everywhere, unlocks watchlist only for now | ✅ Done (2026-08-21) — wired via Phase 1, scope decided by user, `PRODUCT.md` updated |
 | 4 | Visual redesign pass — now includes the four-axis pillar glyph, in-context divergence "why," confidence-indicator component, mobile-first layout, live WCAG 2.2 checks | Not started — depends on Phases 0-1 |
 | 4B | Content & copy audit | Findings documented above; fixes not applied — pairs with Phase 2 |
@@ -809,15 +822,16 @@ comes when that phase is actually scoped for building)
 1. Real per-ticker static URLs — **decided: yes, build them**, replacing
    `?t=TICKER` query routing (kept as a redirect/alias). See Phase 2.
 
-**Next step:** run the real daily pipeline once Gemini's quota resets and
-spot-check the live site end to end (per-ticker pages actually reachable
-and correctly populated, nav links resolve, no 404s) — this is Phase 2's
-one remaining verification gap, everything else in it is built and
-dry-verified. Then: share the ticker-search JS onto `sentiment.html`
-(Phase 2's last open item), or move to Phase 4B's copy fixes (paired with
-Phase 2 per the sequencing note above). Phase 4's expanded scope
-(four-axis glyph, in-context divergence, confidence component,
-mobile-first, live contrast checks, plus the deferred marketing-nav
-component merge) and the new Phase 4C (onboarding) are documented and
-ready to scope when their turn comes — nothing from the 2026-08-21
-research pass was left out of this plan.
+**Next step:** Phase 2's core work is done and verified with real data
+(see above — the Gemini-quota gap never actually blocked this, since
+none of it depends on AI-generated text). Remaining: share the
+ticker-search JS onto `sentiment.html`, then move to Phase 4B's copy
+fixes (paired with Phase 2 per the sequencing note above). Phase 4's
+expanded scope (four-axis glyph, in-context divergence, confidence
+component, mobile-first, live contrast checks, plus the deferred
+marketing-nav component merge) and the new Phase 4C (onboarding) are
+documented and ready to scope when their turn comes — nothing from the
+2026-08-21 research pass was left out of this plan. A full live pipeline
+run (with fresh AI analyst text) is still worth doing once Gemini's
+quota resets, but as a routine daily refresh, not a blocker on any
+further building.
