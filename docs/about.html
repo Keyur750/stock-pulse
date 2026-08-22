@@ -42,16 +42,6 @@
   .nav-links { display: flex; align-items: center; gap: 4px; }
   .nav-links a { font-size: 13.5px; font-weight: 500; color: var(--text-secondary); text-decoration: none; padding: 8px 14px; border-radius: var(--radius-sm); transition: color .15s ease, background-color .15s ease; }
   .nav-links a:hover { color: var(--text-primary); background: var(--surface-2); }
-  /* Site Redesign Reset, Phase 5: real bug found via live WCAG
-     verification, not a hypothetical -- .nav-secondary and .active
-     have equal CSS specificity (both one class + element selector),
-     so whichever rule comes LATER in source order silently wins when
-     an element has both classes (the current page's own nav link is
-     both .nav-secondary and .active on this page). .nav-secondary
-     used to come second, so its text-faint color silently overrode
-     .active's intended accent color the whole time -- confirmed via
-     getComputedStyle() showing text-faint, not accent-on-soft, before
-     this reorder. .active now comes last so it wins. */
   .nav-links a.nav-secondary { font-size: 12.5px; color: var(--text-faint); }
   .nav-links a.active { color: var(--accent-on-soft); background: var(--accent-dim); }
   .nav-cta { background: var(--accent) !important; color: #fff !important; font-weight: 700 !important; }
@@ -62,33 +52,77 @@
   .reveal.visible { opacity: 1; transform: translateY(0); }
   .reveal-1 { transition-delay: .05s; } .reveal-2 { transition-delay: .12s; } .reveal-3 { transition-delay: .19s; } .reveal-4 { transition-delay: .26s; }
 
-  .hero { padding: 80px 0 16px; text-align: center; }
+  .hero { padding: 64px 0 0; text-align: center; }
   .hero-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-on-soft); background: var(--accent-dim); border: 1px solid var(--accent-border); display: inline-flex; padding: 6px 15px; border-radius: 20px; }
   .hero h1 { font-size: clamp(30px, 4.6vw, 46px); line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; margin: 22px auto 0; max-width: 700px; }
   .hero h1 .accent { color: var(--accent); }
-  .hero-sub { font-size: 16px; color: var(--text-secondary); max-width: 560px; margin: 18px auto 0; line-height: 1.6; }
+  .hero-sub { font-size: 16.5px; color: var(--text-secondary); max-width: 560px; margin: 18px auto 0; line-height: 1.65; }
 
-  section.section { padding: 56px 0; }
+  /* ---- Pillar diagram: a real visual of the actual product concept
+     (four independent pillars feeding a divergence engine), not
+     decoration -- built from the same four pillars main.py scores. ---- */
+  .pillar-diagram-wrap { margin: 44px auto 8px; max-width: 680px; }
+  .pillar-diagram { width: 100%; height: auto; display: block; }
+  .flow-line { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: 0.4; stroke-dasharray: 5 6; animation: flow-dash 1.4s linear infinite; }
+  @keyframes flow-dash { to { stroke-dashoffset: -22; } }
+  .pillar-node rect { fill: var(--surface-2); stroke: var(--border); stroke-width: 1; }
+  .pillar-node text { fill: var(--text-secondary); font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; text-anchor: middle; letter-spacing: .03em; }
+  .engine-node { fill: var(--accent-dim); stroke: var(--accent); stroke-width: 1.5; }
+  .engine-label { fill: var(--accent-on-soft); font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 700; text-anchor: middle; letter-spacing: .03em; }
+  .output-node rect { fill: var(--bull-soft); stroke: var(--bull); stroke-width: 1; }
+  .output-node text { fill: var(--bull); font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; text-anchor: middle; }
+  @media (prefers-reduced-motion: reduce) { .flow-line { animation: none; } }
+
+  /* ---- Sticky in-page section nav -- tracks scroll position via
+     IntersectionObserver, highlights the section actually in view. ---- */
+  .section-nav-wrap { position: sticky; top: 57px; z-index: 20; background: rgba(11,22,38,0.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); margin-top: 40px; }
+  .section-nav { max-width: 1180px; margin: 0 auto; padding: 0 28px; display: flex; gap: 4px; overflow-x: auto; }
+  .section-nav a { flex-shrink: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-decoration: none; padding: 13px 16px; border-bottom: 2px solid transparent; transition: color .15s ease; white-space: nowrap; }
+  .section-nav a:hover { color: var(--text-primary); }
+  .section-nav a.active { color: var(--accent-on-soft); border-bottom-color: var(--accent); }
+
+  section.section { padding: 48px 0; }
   .surface { background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-sm); border-radius: var(--radius-lg); }
-  .surface-hover { transition: border-color .18s ease, background-color .18s ease; }
-  .surface-hover:hover { border-color: var(--border-hover); background: var(--surface-2); }
+  .surface-hover { transition: border-color .18s ease, background-color .18s ease, transform .18s ease; }
+  .surface-hover:hover { border-color: var(--border-hover); background: var(--surface-2); transform: translateY(-2px); }
 
-  .prose p { font-size: 15px; color: var(--text-secondary); line-height: 1.8; margin: 0 0 18px; }
-  .prose h2 { font-size: 22px; font-weight: 800; margin: 40px 0 14px; letter-spacing: -0.01em; }
+  .prose p { font-size: 15.5px; color: var(--text-secondary); line-height: 1.8; margin: 0 0 18px; }
+  .prose h2 { font-size: 24px; font-weight: 800; margin: 44px 0 14px; letter-spacing: -0.01em; }
   .prose h2:first-child { margin-top: 0; }
-  .pull-quote { border-left: 3px solid var(--accent); padding: 4px 0 4px 20px; font-size: 17px; color: var(--text-primary); font-weight: 600; line-height: 1.5; margin: 28px 0; }
+  .section-kicker { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-on-soft); font-weight: 700; margin: 0 0 8px; display: block; }
+  .pull-quote { border-left: 3px solid var(--accent); padding: 4px 0 4px 20px; font-size: 18px; color: var(--text-primary); font-weight: 600; line-height: 1.55; margin: 30px 0; }
+
+  .pillar-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 28px 0 40px; }
+  @media (max-width: 1080px) { .pillar-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .pillar-grid { grid-template-columns: 1fr; } }
+  .pillar-card { border-radius: var(--radius-md); padding: 22px; }
+  .pillar-icon { width: 38px; height: 38px; border-radius: var(--radius-sm); background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent-on-soft); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .pillar-icon svg { width: 19px; height: 19px; }
+  .pillar-card h4 { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
+  .pillar-card p { margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
 
   .stat-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; margin: 40px 0; }
   @media (max-width: 700px) { .stat-strip { grid-template-columns: repeat(2, 1fr); } }
-  .stat-tile { background: var(--surface-1); padding: 18px; text-align: center; }
-  .stat-tile .v { font-size: 22px; font-weight: 800; color: var(--accent); }
-  .stat-tile .l { font-size: 10.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .05em; margin-top: 6px; }
+  .stat-tile { background: var(--surface-1); padding: 20px 18px; text-align: center; }
+  .stat-tile .v { font-size: 24px; font-weight: 800; color: var(--accent); }
+  .stat-tile .l { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .05em; margin-top: 7px; }
 
-  .value-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 32px; }
+  .source-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 8px; }
+  .source-badge { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: .03em; color: var(--text-secondary); background: var(--surface-2); border: 1px solid var(--border); padding: 6px 12px; border-radius: 20px; }
+
+  .isnt-list { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 10px; }
+  .isnt-list li { display: flex; align-items: flex-start; gap: 12px; font-size: 15px; color: var(--text-secondary); line-height: 1.6; }
+  .isnt-list .x-icon { width: 20px; height: 20px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-faint); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .isnt-list .x-icon svg { width: 11px; height: 11px; }
+  .isnt-list strong { color: var(--text-primary); }
+
+  .value-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 28px; }
   @media (max-width: 700px) { .value-grid { grid-template-columns: 1fr; } }
-  .value-card { border-radius: var(--radius-md); padding: 18px; }
-  .value-card h4 { margin: 0 0 6px; font-size: 13.5px; font-weight: 700; }
-  .value-card p { margin: 0; font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; }
+  .value-card { border-radius: var(--radius-md); padding: 20px; }
+  .value-icon { width: 34px; height: 34px; border-radius: 50%; background: var(--bull-soft); color: var(--bull); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+  .value-icon svg { width: 16px; height: 16px; }
+  .value-card h4 { margin: 0 0 6px; font-size: 14.5px; font-weight: 700; }
+  .value-card p { margin: 0; font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; }
 
   .btn { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; padding: 13px 24px; border-radius: var(--radius-md); text-decoration: none; transition: transform .15s ease, filter .15s ease; }
   .btn-primary { background: var(--accent); color: #fff; }
@@ -124,47 +158,142 @@
     <span class="hero-kicker reveal visible">ABOUT</span>
     <h1 class="reveal visible">A market intelligence system built to <span class="accent">show its work.</span></h1>
     <p class="hero-sub reveal visible reveal-1">Undertow is an independent, personal project — not a fund, not a data vendor. It exists because single-source sentiment tools and single-number scores weren't good enough to trust.</p>
+
+    <div class="pillar-diagram-wrap reveal visible reveal-2">
+      <svg class="pillar-diagram" viewBox="0 0 640 200" role="img" aria-label="Diagram: Crowd, Wall Street, Business, and Market pillars feed into a Divergence Engine, which outputs a signal">
+        <path class="flow-line" d="M140,27 C220,27 220,100 300,100"/>
+        <path class="flow-line" d="M140,71 C220,71 220,100 300,100"/>
+        <path class="flow-line" d="M140,115 C220,115 220,100 300,100"/>
+        <path class="flow-line" d="M140,159 C220,159 220,100 300,100"/>
+        <path class="flow-line" d="M420,100 L520,100"/>
+        <g class="pillar-node"><rect x="4" y="10" width="136" height="34" rx="8"/><text x="72" y="31">CROWD</text></g>
+        <g class="pillar-node"><rect x="4" y="54" width="136" height="34" rx="8"/><text x="72" y="75">WALL STREET</text></g>
+        <g class="pillar-node"><rect x="4" y="98" width="136" height="34" rx="8"/><text x="72" y="119">BUSINESS</text></g>
+        <g class="pillar-node"><rect x="4" y="142" width="136" height="34" rx="8"/><text x="72" y="163">MARKET</text></g>
+        <g transform="translate(360,100)">
+          <rect class="engine-node" x="-46" y="-46" width="92" height="92" rx="14" transform="rotate(45)"/>
+          <text class="engine-label" y="-6">DIVERGENCE</text>
+          <text class="engine-label" y="10">ENGINE</text>
+        </g>
+        <g class="output-node"><rect x="520" y="82" width="100" height="36" rx="18"/><text x="570" y="105">SIGNAL</text></g>
+      </svg>
+    </div>
   </div>
 </header>
 
-<section class="section">
+<div class="section-nav-wrap">
+  <nav class="section-nav" id="sectionNav">
+    <a href="#problem" data-target="problem">The problem</a>
+    <a href="#approach" data-target="approach">The approach</a>
+    <a href="#built" data-target="built">How it's built</a>
+    <a href="#isnt" data-target="isnt">What it isn't</a>
+    <a href="#values" data-target="values">Values</a>
+  </nav>
+</div>
+
+<section class="section" id="problem">
   <div class="wrap-narrow prose">
+    <span class="section-kicker reveal">01</span>
     <h2 class="reveal">The problem</h2>
     <p class="reveal reveal-1">Most "retail sentiment" tools read one feed and present a bullish/bearish score with total confidence. Most "AI stock scores" fuse everything — sentiment, analysts, fundamentals — into a single opaque number. Neither tells you when the sources actually disagree, which is usually the most important thing to know.</p>
     <p class="reveal reveal-2">Undertow started from a specific frustration: wanting to know what retail was thinking, what Wall Street expected, what the business actually showed, and whether the market had already priced it in — and not trusting any single answer enough to act on it alone.</p>
-
     <div class="pull-quote reveal reveal-1">"If four independent reads agree, that's worth something. If they don't, that's worth knowing too — and worth knowing why."</div>
+  </div>
+</section>
 
+<section class="section" id="approach" style="padding-top:0;">
+  <div class="wrap-narrow prose">
+    <span class="section-kicker reveal">02</span>
     <h2 class="reveal">The approach</h2>
-    <p class="reveal reveal-1">Undertow scores four independent pillars — Crowd (StockTwits, Reddit, Google Trends), Wall Street (analyst consensus and price targets), Business (real fundamentals), and Market (momentum and how much is already priced in) — then a synthesis layer explains where they agree and where they don't. A Divergence Engine classifies real disagreement into named patterns, not a generic "these differ" flag.</p>
-    <p class="reveal reveal-2">Every score traces back to real, live data. Nothing is asserted without showing where it came from.</p>
-
+    <p class="reveal reveal-1">Undertow scores four independent pillars, then a synthesis layer explains where they agree and where they don't. A Divergence Engine classifies real disagreement into named patterns, not a generic "these differ" flag. Every score traces back to real, live data — nothing is asserted without showing where it came from.</p>
+  </div>
+  <div class="wrap">
+    <div class="pillar-grid">
+      <div class="pillar-card surface surface-hover reveal reveal-1">
+        <span class="pillar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+        <h4>Crowd</h4>
+        <p>StockTwits, Reddit, and Google Trends — cross-checked against each other, not taken as one voice.</p>
+      </div>
+      <div class="pillar-card surface surface-hover reveal reveal-2">
+        <span class="pillar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-4"/></svg></span>
+        <h4>Wall Street</h4>
+        <p>Analyst consensus and price targets, with its own higher divergence bar since sell-side ratings skew bullish.</p>
+      </div>
+      <div class="pillar-card surface surface-hover reveal reveal-3">
+        <span class="pillar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+        <h4>Business</h4>
+        <p>Real fundamentals — growth, profitability, cash flow, balance sheet, valuation — transparently scored.</p>
+      </div>
+      <div class="pillar-card surface surface-hover reveal reveal-4">
+        <span class="pillar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg></span>
+        <h4>Market</h4>
+        <p>Momentum and how much strength is already priced in — not a verdict, context for the other three.</p>
+      </div>
+    </div>
+  </div>
+  <div class="wrap-narrow">
     <div class="stat-strip">
-      <div class="stat-tile reveal reveal-1"><div class="v mono">4</div><div class="l">Independent pillars</div></div>
+      <div class="stat-tile reveal reveal-1"><div class="v mono" data-count-to="4">0</div><div class="l">Independent pillars</div></div>
       <div class="stat-tile reveal reveal-2"><div class="v mono">Daily</div><div class="l">Auto-refresh</div></div>
       <div class="stat-tile reveal reveal-3"><div class="v mono">$0</div><div class="l">Hosting cost</div></div>
       <div class="stat-tile reveal reveal-4"><div class="v mono">Free</div><div class="l">To use, always</div></div>
     </div>
-
-    <h2 class="reveal">How it's built</h2>
-    <p class="reveal reveal-1">A Python script runs once a day on GitHub Actions' free tier, pulls from StockTwits, Reddit, ApeWisdom, Google Trends, SEC EDGAR, and Yahoo Finance, scores sentiment and fundamentals, cross-checks them against real price action, and writes a static dashboard served by GitHub Pages. No server to maintain, no database, no subscription — which also means no incentive to gate features behind a paywall.</p>
-
-    <h2 class="reveal">What it isn't</h2>
-    <p class="reveal reveal-1">Not financial advice. Not a trading signal service. Not a black box — every score traces back to a visible source. Signals highlight <em>disagreement</em> between sources, not predictions.</p>
-
-    <h3 id="disclaimer" style="font-size:14px;font-weight:700;margin-top:36px;">A quick disclaimer</h3>
-    <p style="font-size:12.5px;color:var(--text-faint);">Undertow is for personal, non-commercial use. Nothing on this site is investment advice. Prices may be delayed. Do your own research.</p>
   </div>
 </section>
 
-<section class="section" style="padding-top:0;">
+<section class="section prose" id="built" style="padding-top:0;">
   <div class="wrap-narrow">
-    <h2 style="font-size:20px;font-weight:800;text-align:center;" class="reveal">What we hold to</h2>
+    <span class="section-kicker reveal">03</span>
+    <h2 class="reveal">How it's built</h2>
+    <p class="reveal reveal-1">A Python script runs once a day on GitHub Actions' free tier, pulls from the sources below, scores sentiment and fundamentals, cross-checks them against real price action, and writes a static dashboard served by GitHub Pages. No server to maintain, no database, no subscription — which also means no incentive to gate features behind a paywall.</p>
+    <div class="source-badges reveal reveal-2">
+      <span class="source-badge">STOCKTWITS</span>
+      <span class="source-badge">REDDIT</span>
+      <span class="source-badge">APEWISDOM</span>
+      <span class="source-badge">GOOGLE TRENDS</span>
+      <span class="source-badge">SEC EDGAR</span>
+      <span class="source-badge">YAHOO FINANCE</span>
+    </div>
+  </div>
+</section>
+
+<section class="section prose" id="isnt" style="padding-top:0;">
+  <div class="wrap-narrow">
+    <span class="section-kicker reveal">04</span>
+    <h2 class="reveal">What it isn't</h2>
+    <ul class="isnt-list reveal reveal-1">
+      <li><span class="x-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></span><span><strong>Not financial advice.</strong> Nothing here is a recommendation to buy or sell.</span></li>
+      <li><span class="x-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></span><span><strong>Not a trading signal service.</strong> Divergence signals highlight disagreement, not predictions.</span></li>
+      <li><span class="x-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></span><span><strong>Not a black box.</strong> Every score traces back to a visible, real source.</span></li>
+    </ul>
+    <h3 id="disclaimer" style="font-size:14px;font-weight:700;margin-top:36px;">A quick disclaimer</h3>
+    <p style="font-size:13.5px;color:var(--text-faint);">Undertow is for personal, non-commercial use. Nothing on this site is investment advice. Prices may be delayed. Do your own research.</p>
+  </div>
+</section>
+
+<section class="section" id="values" style="padding-top:16px;">
+  <div class="wrap-narrow">
+    <div style="text-align:center;">
+      <span class="section-kicker reveal">05</span>
+      <h2 style="font-size:22px;font-weight:800;margin:0 0 28px;" class="reveal">What we hold to</h2>
+    </div>
     <div class="value-grid">
-      <div class="value-card surface surface-hover reveal reveal-1"><h4>Show the work</h4><p>Every score breaks down by pillar. No unexplained numbers.</p></div>
-      <div class="value-card surface surface-hover reveal reveal-2"><h4>Corroborate, don't cherry-pick</h4><p>Four pillars that don't share a bias by construction.</p></div>
-      <div class="value-card surface surface-hover reveal reveal-3"><h4>Free by design</h4><p>Running on free infrastructure removes the incentive to gate or manipulate.</p></div>
-      <div class="value-card surface surface-hover reveal reveal-4"><h4>Disagreement over noise</h4><p>The Divergence Engine surfaces the handful of things worth a second look.</p></div>
+      <div class="value-card surface surface-hover reveal reveal-1">
+        <span class="value-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+        <h4>Show the work</h4><p>Every score breaks down by pillar. No unexplained numbers.</p>
+      </div>
+      <div class="value-card surface surface-hover reveal reveal-2">
+        <span class="value-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M8 21H3v-5M21 3l-7 7M3 21l7-7"/></svg></span>
+        <h4>Corroborate, don't cherry-pick</h4><p>Four pillars that don't share a bias by construction.</p>
+      </div>
+      <div class="value-card surface surface-hover reveal reveal-3">
+        <span class="value-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+        <h4>Free by design</h4><p>Running on free infrastructure removes the incentive to gate or manipulate.</p>
+      </div>
+      <div class="value-card surface surface-hover reveal reveal-4">
+        <span class="value-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><path d="M12 2v10"/></svg></span>
+        <h4>Disagreement over noise</h4><p>The Divergence Engine surfaces the handful of things worth a second look.</p>
+      </div>
     </div>
     <div style="text-align:center;margin-top:40px;" class="reveal">
       <a class="btn btn-primary" href="dashboard.html">See it in action →</a>
@@ -193,6 +322,40 @@ const obs = new IntersectionObserver((entries) => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
 }, { threshold: 0.12 });
 document.querySelectorAll('.reveal:not(.visible)').forEach(el => obs.observe(el));
+
+const navLinks = document.querySelectorAll('#sectionNav a');
+const sections = Array.from(navLinks).map(a => document.getElementById(a.dataset.target)).filter(Boolean);
+const navObs = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navLinks.forEach(a => a.classList.toggle('active', a.dataset.target === entry.target.id));
+    }
+  });
+}, { rootMargin: '-35% 0px -55% 0px', threshold: 0 });
+sections.forEach(s => navObs.observe(s));
+
+const countEl = document.querySelector('[data-count-to]');
+if (countEl) {
+  let counted = false;
+  const countObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !counted) {
+        counted = true;
+        const target = parseInt(countEl.dataset.countTo, 10);
+        const start = performance.now();
+        const duration = 650;
+        function tick(now) {
+          const progress = Math.min((now - start) / duration, 1);
+          countEl.textContent = Math.round(progress * target);
+          if (progress < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+        countObs.disconnect();
+      }
+    });
+  }, { threshold: 0.5 });
+  countObs.observe(countEl);
+}
 </script>
 
 </body>
