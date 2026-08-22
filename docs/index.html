@@ -130,17 +130,40 @@
      This is the single biggest fix for "too much unused horizontal
      space on desktop": the previous layout put a 780px-wide hero inside
      a page that can be 2500px+ wide and left the rest empty. */
-  .hero { padding: 56px 0 32px; }
+  .hero { padding: 56px 0 32px; position: relative; overflow: hidden; }
+  /* Ambient drifting glow behind the text column -- the diagram on the
+     right already reads as "alive" (drawn-in lines, pulsing rings); the
+     text side had nothing moving at all. Two large, very soft blurred
+     blobs slowly drifting is enough to make the whole hero feel like one
+     living surface instead of "animated panel next to static text,"
+     without ever drawing the eye away from the headline itself. */
+  .hero-glow { position: absolute; z-index: -1; border-radius: 50%; filter: blur(70px); pointer-events: none; }
+  .hero-glow-a { top: -120px; left: -80px; width: 420px; height: 420px; background: radial-gradient(circle, rgba(59,130,246,0.16), transparent 70%); animation: hero-glow-a-drift 16s ease-in-out infinite; }
+  .hero-glow-b { top: 160px; left: 180px; width: 320px; height: 320px; background: radial-gradient(circle, rgba(245,158,11,0.10), transparent 70%); animation: hero-glow-b-drift 19s ease-in-out infinite; }
+  @keyframes hero-glow-a-drift { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(40px, 30px) scale(1.12); } }
+  @keyframes hero-glow-b-drift { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-30px, -24px) scale(1.08); } }
+  @media (prefers-reduced-motion: reduce) { .hero-glow-a, .hero-glow-b { animation: none; } }
   /* align-items: start, not center -- centering the shorter text column
      against the much-taller diagram panel left a huge dead gap ABOVE the
      headline (and another below the CTAs), which looked like a layout
      bug on load, not "generous whitespace". Anchoring both to the top
      keeps the headline right under the nav where the eye expects it. */
-  .hero-grid { display: grid; grid-template-columns: minmax(340px, 42%) 1fr; gap: 56px; align-items: start; }
+  .hero-grid { display: grid; grid-template-columns: minmax(340px, 42%) 1fr; gap: 56px; align-items: start; position: relative; z-index: 1; }
   .hero-left { text-align: left; padding-top: 6px; }
-  .hero-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-on-soft); background: var(--accent-dim); border: 1px solid var(--accent-border); display: inline-flex; padding: 6px 15px; border-radius: 20px; }
+  .hero-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-on-soft); background: var(--accent-dim); border: 1px solid var(--accent-border); display: inline-flex; align-items: center; gap: 7px; padding: 6px 15px; border-radius: 20px; }
+  .hero-kicker-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent-on-soft); flex-shrink: 0; animation: livePulse 2s ease-in-out infinite; }
   .hero h1 { font-size: clamp(36px, 3.6vw, 56px); line-height: 1.08; font-weight: 800; letter-spacing: -0.02em; margin: 22px 0 0; }
-  .hero h1 .accent { color: var(--accent); }
+  /* Slow gradient sheen across the accent line only -- reads as "premium
+     product" motion (the same technique modern SaaS hero text uses)
+     without animating the whole headline, which would be genuinely
+     distracting to read. */
+  .hero h1 .accent {
+    background: linear-gradient(100deg, var(--accent) 30%, #7DB2FF 50%, var(--accent) 70%);
+    background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: hero-accent-sheen 5s ease-in-out infinite;
+  }
+  @keyframes hero-accent-sheen { 0%, 100% { background-position: 0% 0; } 50% { background-position: 100% 0; } }
+  @media (prefers-reduced-motion: reduce) { .hero h1 .accent { animation: none; background-position: 0% 0; } }
   .hero-sub { font-size: 16.5px; color: var(--text-secondary); max-width: 480px; margin: 20px 0 0; line-height: 1.6; }
   .hero-ctas { display: flex; gap: 12px; justify-content: flex-start; margin-top: 30px; flex-wrap: wrap; }
   .btn { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; padding: 13px 24px; border-radius: var(--radius-md); text-decoration: none; transition: transform .15s ease, filter .15s ease, background-color .15s ease; }
@@ -213,11 +236,31 @@
   }
   .imap-line.drawn { stroke-dashoffset: 0; transition: stroke-dashoffset 1s cubic-bezier(.16,.8,.24,1), stroke .6s ease, opacity .6s ease; }
   .imap-line.active { stroke: var(--accent) !important; stroke-width: 1.1; opacity: 1 !important; }
+  /* Traveling particles along each spoke, once the intro draw-in is
+     done -- the diagram used to go still after loading, which read as
+     "static illustration" rather than "live system." A small dot
+     riding each line toward the center reads as data actually arriving,
+     matching the "cross-checked, live" kicker copy instead of just
+     asserting it in text. */
+  .imap-particle { fill: var(--amber); filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.85)); opacity: 0; }
+  .imap-particle.on { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .imap-particle { display: none; } }
   /* Radar rings -- pure background texture, no data attached, just gives
      the empty corners of the canvas something to sit against instead of
      bare grid. Stays inside the node radius (r<=42 in a 0-100 viewBox)
      so it never visually collides with a node or corner badge. */
   .imap-radar-ring { fill: none; stroke: rgba(148, 163, 184, 0.07); stroke-width: 0.35; }
+  /* Slow radar sweep, masked to the same circle the rings sit in --
+     ambient "this is scanning continuously" motion behind the nodes,
+     kept faint (peak 10% accent) so it never competes with the real
+     data in front of it. */
+  .imap-sweep {
+    position: absolute; inset: 0; border-radius: 50%; pointer-events: none; z-index: 0;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(59,130,246,0.10) 18deg, transparent 46deg);
+    animation: imap-sweep-spin 7s linear infinite;
+  }
+  @keyframes imap-sweep-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .imap-sweep { display: none; } }
   .imap-center {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
     width: 182px; height: 182px; border-radius: 50%;
@@ -225,7 +268,13 @@
     border: 1px solid var(--accent-border); box-shadow: 0 0 0 1px var(--accent-dim), var(--shadow-lg);
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
     z-index: 2; text-align: center;
+    animation: imap-center-breathe 4.2s ease-in-out infinite;
   }
+  @keyframes imap-center-breathe {
+    0%, 100% { box-shadow: 0 0 0 1px var(--accent-dim), var(--shadow-lg); }
+    50% { box-shadow: 0 0 0 1px var(--accent-dim), 0 0 34px -6px rgba(59, 130, 246, 0.5), var(--shadow-lg); }
+  }
+  @media (prefers-reduced-motion: reduce) { .imap-center { animation: none; } }
   /* Ring gauges -- score-as-arc, not just a number. r=46 in a 0-100
      viewBox gives circumference 2*pi*46 = 289.0; JS sets stroke-dashoffset
      to (1 - score/100) * 289 and rotates -90deg so 0% starts at 12
@@ -438,9 +487,11 @@
 </div>
 
 <header class="hero">
+  <div class="hero-glow hero-glow-a"></div>
+  <div class="hero-glow hero-glow-b"></div>
   <div class="wrap-wide hero-grid">
     <div class="hero-left">
-      <span class="hero-kicker reveal visible">FOUR SIGNALS · CROSS-CHECKED, LIVE</span>
+      <span class="hero-kicker reveal visible"><span class="hero-kicker-dot"></span>FOUR SIGNALS · CROSS-CHECKED, LIVE</span>
       <h1 class="reveal visible">Every stock has four opinions.<br><span class="accent">We show you when they clash.</span></h1>
       <p class="hero-sub reveal visible reveal-1">Retail sentiment, Wall Street consensus, business fundamentals, and price action — four independent reads on the same company, checked against each other in real time. When they agree, that's confirmation. When they don't, that's usually the story worth reading.</p>
       <div class="hero-ctas reveal visible reveal-2">
@@ -470,14 +521,19 @@
       </div>
       <div class="imap" id="imap">
         <div class="imap-canvas" id="imap-canvas">
+          <div class="imap-sweep"></div>
           <svg class="imap-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
             <circle class="imap-radar-ring" cx="50" cy="50" r="18"/>
             <circle class="imap-radar-ring" cx="50" cy="50" r="30"/>
             <circle class="imap-radar-ring" cx="50" cy="50" r="42"/>
-            <path class="imap-line" data-key="crowd" d="M50,50 L50,8"/>
-            <path class="imap-line" data-key="wall_street" d="M50,50 L91,50"/>
-            <path class="imap-line" data-key="business" d="M50,50 L50,92"/>
-            <path class="imap-line" data-key="market" d="M50,50 L9,50"/>
+            <path class="imap-line" data-key="crowd" id="il-crowd" d="M50,50 L50,8"/>
+            <path class="imap-line" data-key="wall_street" id="il-wall_street" d="M50,50 L91,50"/>
+            <path class="imap-line" data-key="business" id="il-business" d="M50,50 L50,92"/>
+            <path class="imap-line" data-key="market" id="il-market" d="M50,50 L9,50"/>
+            <circle class="imap-particle" id="ip-crowd" r="1.1"><animateMotion dur="2.1s" repeatCount="indefinite" begin="indefinite"><mpath href="#il-crowd"/></animateMotion></circle>
+            <circle class="imap-particle" id="ip-wall_street" r="1.1"><animateMotion dur="2.1s" repeatCount="indefinite" begin="indefinite"><mpath href="#il-wall_street"/></animateMotion></circle>
+            <circle class="imap-particle" id="ip-business" r="1.1"><animateMotion dur="2.1s" repeatCount="indefinite" begin="indefinite"><mpath href="#il-business"/></animateMotion></circle>
+            <circle class="imap-particle" id="ip-market" r="1.1"><animateMotion dur="2.1s" repeatCount="indefinite" begin="indefinite"><mpath href="#il-market"/></animateMotion></circle>
           </svg>
           <div class="imap-badge imap-badge-spread" id="imap-badge-spread">
             <div class="imap-badge-label">Spread</div>
@@ -1004,6 +1060,15 @@ async function pollHero() {
       document.querySelectorAll('.imap-line').forEach((el, i) => setTimeout(() => el.classList.add('drawn'), i * 90));
       document.querySelectorAll('.imap-node').forEach((el, i) => setTimeout(() => el.classList.add('in'), 260 + i * 110));
       document.querySelectorAll('.imap-badge').forEach((el, i) => setTimeout(() => el.classList.add('in'), 700 + i * 140));
+      // Kick off the traveling particles once each spoke has finished
+      // drawing in -- staggered the same way as the lines themselves so
+      // the diagram settles into continuous motion rather than snapping
+      // straight from "drawing" to "fully live" all at once.
+      document.querySelectorAll('.imap-particle').forEach((el, i) => setTimeout(() => {
+        el.classList.add('on');
+        const motion = el.querySelector('animateMotion');
+        if (motion && typeof motion.beginElement === 'function') { try { motion.beginElement(); } catch (e) {} }
+      }, 1100 + i * 90));
     }
     heroLastUpdated = Date.now();
     tickHeroUpdated();
