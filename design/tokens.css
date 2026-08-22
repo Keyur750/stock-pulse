@@ -87,7 +87,20 @@
   /* ---- Color: text ---- */
   --text-primary: #F5F7FA;
   --text-secondary: #94A3B8;
-  --text-faint: #5B6B84;
+  /* Site Redesign Reset, Phase 5 (correction, 2026-08-22): the original
+     #5B6B84 failed WCAG 2.2 AA's 4.5:1 text minimum against EVERY
+     background it's used on -- 3.35:1 on the plain page background down
+     to 2.81:1 on --surface-3, verified by computing the relative-
+     luminance formula directly, not assumed. Missed in the initial Phase
+     5 pass, which only re-checked --accent/--bear text on their own
+     tinted badge backgrounds and never re-verified this base token
+     against the ~85 places it's actually used (footers, timestamps,
+     disclaimers, meta labels, badge text like careers.html's role tags).
+     Lightened proportionally (same hue) to clear 4.5:1 against the
+     worst case (--surface-3, 4.87:1) with real margin, while staying
+     visibly dimmer than --text-secondary so the primary/secondary/faint
+     hierarchy doesn't collapse. */
+  --text-faint: #7D93B6;
 
   /* ---- Elevation ---- */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24);

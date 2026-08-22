@@ -905,12 +905,12 @@ accessibility bar, not ad hoc media queries.
   319px, zero overflowing elements). The four-axis pillar glyph and
   fund-radar SVG (stock/NVDA page) were also checked directly and scale
   down cleanly with no clipping at 375px.
-- **WCAG 2.2 AA contrast — ✅ Done.** The systematic
-  full-surface pass turned out much bigger than the "one divergence
-  badge" starting point below: every `color:` declaration pairing
-  `--accent`/`--bear` text directly with their own `-dim`/`-soft`
-  translucent background (not just the divergence badge) had the same
-  failure, ~29 rules across `dashboard_template.html`,
+- **WCAG 2.2 AA contrast — ✅ Done, in two passes (the first was
+  incomplete).** Pass 1's systematic sweep turned out much bigger than
+  the "one divergence badge" starting point below: every `color:`
+  declaration pairing `--accent`/`--bear` text directly with their own
+  `-dim`/`-soft` translucent background (not just the divergence badge)
+  had the same failure, ~29 rules across `dashboard_template.html`,
   `sentiment_template.html`, `stock_template.html`, `index_template.html`,
   `about_template.html`, `careers_template.html`, and
   `design/components.css`. **Fix approach, chosen over the opacity
@@ -937,6 +937,35 @@ accessibility bar, not ad hoc media queries.
   — confirmed via `getComputedStyle()` before/after reordering the rules
   so `.active` comes last. bull/amber were already passing (5.59:1/
   6.56:1) and untouched.
+- **Pass 2 (2026-08-22, prompted by the user directly questioning the
+  careers page after Pass 1's "done" claim) — a real gap Pass 1 missed
+  entirely:** Pass 1 only re-checked `--accent`/`--bear` text against
+  their own tinted badge backgrounds. It never re-verified `--text-faint`
+  — the base token for essentially all de-emphasized text sitewide
+  (footers, timestamps, disclaimers, meta labels, badge text like
+  careers.html's own role-tag pills) — against the surfaces it's actually
+  drawn on. Checked directly: `--text-faint` (`#5B6B84`) failed WCAG
+  AA's 4.5:1 minimum against **every** background it's used on, from
+  3.35:1 on the plain page background down to 2.81:1 on `--surface-3` —
+  not a one-off, a foundational token problem touching ~85 rules across
+  every page. Fixed by lightening the token itself (same hue,
+  proportionally brighter) to `#7D93B6`, verified to clear 4.5:1 against
+  the worst case (`--surface-3`, 4.87:1) with real margin while staying
+  visibly dimmer than `--text-secondary` so the primary/secondary/faint
+  hierarchy doesn't collapse. This token is duplicated in four places —
+  `design/tokens.css` (the actual shared source, linked externally by
+  the three app-page templates) plus embedded inline copies in
+  `index_template.html`/`about_template.html`/`careers_template.html`,
+  since the marketing pages don't consume the shared file at all despite
+  Phase 0's "single source of truth" framing — updated in all four,
+  confirmed live via `getComputedStyle()` on both a marketing page
+  (careers.html's role-tag, 2.95:1 → 5.11:1) and an app page
+  (dashboard.html's footer, picked up the fix immediately with no
+  template regeneration needed, since it reads `docs/tokens.css`
+  directly). **The honest framing:** Pass 1's "✅ Done" was real work but
+  an incomplete audit, not a false claim fixed by luck — worth recording
+  as a reminder that "systematic" needs to mean re-checking every token
+  actually in use, not just the ones a specific bug happened to touch.
 - **A concrete starting point, not a blank slate (superseded by the
   ✅ Done bullet above, kept for the record):** Phase 4's own live check
   already measured two real failures on the divergence badge
@@ -1081,7 +1110,7 @@ comes when that phase is actually scoped for building)
 | 4 | Visual redesign pass | ✅ Done (2026-08-21) — four-axis pillar glyph, in-context divergence "why," confidence-indicator component, mobile-first verification, live WCAG 2.2 checks (2 real failures fixed, 2 pre-existing ones logged for Phase 5), hierarchy discipline confirmed, density calibration confirmed, distinct divergence-pattern signature (+ a real CSS shorthand bug caught live), standardized empty/loading/error states + a stale-copy fix |
 | 4B | Content & copy audit | ✅ Done (2026-08-21) — "Intelligence" overload fixed (7 instances, 3 found beyond the original 4), CTA labels already unified via Phase 2, WHY UNDERTOW merged from 6 tiles to 3 (real Divergence-detection differentiator added), hero number relabeled "AVERAGE", search placeholder confirmed already unified |
 | 4C | First-run onboarding | ✅ Done (2026-08-21) — one combined dismissible tip (not two separate popups), verified live: shows once, WCAG-checked, persists across dismiss/reload/different-ticker-page |
-| 5 | Responsive breakpoint system + WCAG 2.2 AA accessibility bar | ✅ Done (2026-08-21) — WCAG 2.2 AA contrast pass (29-rule fix via new `--accent-on-soft`/`--bear-on-soft` tokens + an unrelated nav-active specificity bug caught and fixed live); breakpoint scale documented as a 3-tier convention (480/760/1080); live mobile/tablet/desktop-narrow overflow audit across all six pages found and fixed one real bug (securities table's mobile card mode silently never applied) |
+| 5 | Responsive breakpoint system + WCAG 2.2 AA accessibility bar | ✅ Done (2026-08-21, corrected 2026-08-22) — WCAG contrast fixed in two passes: Pass 1 (29-rule `--accent`/`--bear`-on-soft fix + a nav-active specificity bug), Pass 2 (`--text-faint` itself failed 4.5:1 against every surface it's used on, ~85 rules sitewide — Pass 1's audit scope had missed it entirely); breakpoint scale documented as a 3-tier convention (480/760/1080); live mobile/tablet/desktop-narrow overflow audit across all six pages found and fixed one real bug (securities table's mobile card mode silently never applied) |
 | 6 | Performance (Core Web Vitals bar) | Not started — mostly falls out of Phase 1 |
 | 7 | Modern features, reprioritized by differentiation: comparison view → "what changed" → Cmd+K → skeleton loading → PWA (with a real install-prompt strategy) | Not started — independently shippable |
 | 8 | QA/rollout checklist | Not started |
