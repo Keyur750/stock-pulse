@@ -817,7 +817,7 @@ that voice. The real, findable issues are narrower and structural:
   ("Search ticker or company...") left, not two — this happened as a
   side effect of Phase 1/2's own work, not a new Phase 4B fix.
 
-### Phase 4C — First-run onboarding
+### Phase 4C — First-run onboarding ✅ DONE (2026-08-21)
 **Goal:** teach a first-time visitor to read Undertow's actual
 differentiator, since nothing in this doc's original plan did that
 (research point 10). `PRODUCT.md` names the target user as someone who
@@ -825,21 +825,44 @@ differentiator, since nothing in this doc's original plan did that
 landing on a stock page showing "Retail Euphoria" has no way to learn
 what that means without already knowing the product. Lightweight, not a
 full tutorial system:
-- A short, dismissible contextual explainer the first time a divergence
-  pattern is shown (e.g. "Retail Euphoria: crowd chatter is hot, but
-  Wall Street and the business itself haven't confirmed it yet" — the
-  same plain-English definitions already in `PRODUCT.md`'s "moat"
-  section, surfaced in-product instead of only in a planning doc).
-  Dismiss once, remember via `localStorage`, no account required.
-- A one-time first-run tour on the stock page's four-axis pillar glyph
-  (Phase 4) explaining what each axis means, shown once per browser,
-  never re-shown or nagging.
-- Deliberately not gated behind Phase 3's accounts decision — this
-  should work identically for a logged-out first-time visitor, since
-  that's who needs it most.
-- Sequenced after Phase 4 (needs the four-axis glyph and divergence
-  in-context surfacing to exist first) but before Phase 7, since it's
-  closer to core product education than a "modern feature" add-on.
+- **Scope decided during implementation, not two separate popups:** the
+  original plan listed two things — a dismissible divergence-pattern
+  explainer, and a separate four-axis-glyph tour. Building both as
+  independent popups on the same page load would have meant two
+  first-time interruptions stacked on top of each other, working
+  directly against this phase's own "never re-shown or nagging" goal.
+  Phase 4 had already shipped a permanent, always-visible plain-English
+  "why" under every divergence badge by the time this phase started
+  (not true when this doc's Phase 4C section was first written) — a
+  quiet, always-there reference arguably serves a returning user better
+  than a dismiss-once popup that vanishes forever after one viewing.
+  **✅ Done: one combined, dismissible onboarding tip**, not two —
+  placed in the stock page's "Four-Pillar Read" card, above the
+  four-axis glyph: "Four independent reads — Crowd, Wall Street,
+  Business, and Market — cross-checked against each other below. When
+  they disagree, we name the pattern and explain what it means in plain
+  English, right where you see it." Teaches both concepts (what the
+  shape means, and that a permanent explanation is always available)
+  in one non-repeating nudge.
+- Shown once ever, dismissed via `localStorage`
+  (`undertow_seen_pillar_shape_tip`), wrapped in try/catch (localStorage
+  can throw in strict privacy modes — same graceful-degradation
+  discipline as every other optional feature in this codebase; worst
+  case the tip just shows again, never a crash). Reuses the divergence
+  badge's own accent color language (`--accent-dim`/`--accent-border`)
+  rather than inventing a fourth "notice" color.
+- Deliberately not gated behind Phase 3's accounts decision — works
+  identically for a logged-out first-time visitor, confirmed live (no
+  auth state involved anywhere in the dismiss/persistence logic).
+- **Verified live, not assumed:** shows on first visit; both new text
+  colors measured against the tip's actual translucent background
+  (5.91:1 and 14.11:1, both comfortably clear of the 4.5:1 text
+  minimum); clicking dismiss hides it and writes the localStorage key;
+  reloading the same page keeps it hidden; navigating to a *different*
+  ticker's own static page (BA) also keeps it hidden — confirms "once
+  per browser" behavior across pages, not just within one page's
+  session, which matters now that each ticker is its own static file
+  (Phase 2) rather than one shared page.
 
 ### Phase 5 — Responsive & accessibility
 **Goal:** a defined, systematic breakpoint scale and a verified
@@ -1008,7 +1031,7 @@ comes when that phase is actually scoped for building)
 | 3 | Accounts: finish everywhere, unlocks watchlist only for now | ✅ Done (2026-08-21) — wired via Phase 1, scope decided by user, `PRODUCT.md` updated |
 | 4 | Visual redesign pass | ✅ Done (2026-08-21) — four-axis pillar glyph, in-context divergence "why," confidence-indicator component, mobile-first verification, live WCAG 2.2 checks (2 real failures fixed, 2 pre-existing ones logged for Phase 5), hierarchy discipline confirmed, density calibration confirmed, distinct divergence-pattern signature (+ a real CSS shorthand bug caught live), standardized empty/loading/error states + a stale-copy fix |
 | 4B | Content & copy audit | ✅ Done (2026-08-21) — "Intelligence" overload fixed (7 instances, 3 found beyond the original 4), CTA labels already unified via Phase 2, WHY UNDERTOW merged from 6 tiles to 3 (real Divergence-detection differentiator added), hero number relabeled "AVERAGE", search placeholder confirmed already unified |
-| 4C | First-run onboarding (added 2026-08-21 after external research pass) | Not started — depends on Phase 4 |
+| 4C | First-run onboarding | ✅ Done (2026-08-21) — one combined dismissible tip (not two separate popups), verified live: shows once, WCAG-checked, persists across dismiss/reload/different-ticker-page |
 | 5 | Responsive breakpoint system + WCAG 2.2 AA accessibility bar | Not started — depends on Phase 0 |
 | 6 | Performance (Core Web Vitals bar) | Not started — mostly falls out of Phase 1 |
 | 7 | Modern features, reprioritized by differentiation: comparison view → "what changed" → Cmd+K → skeleton loading → PWA (with a real install-prompt strategy) | Not started — independently shippable |
@@ -1036,20 +1059,18 @@ comes when that phase is actually scoped for building)
 1. Real per-ticker static URLs — **decided: yes, build them**, replacing
    `?t=TICKER` query routing (kept as a redirect/alias). See Phase 2.
 
-**Next step:** Phases 0, 1, 2, 3, 4, and 4B are all done. **Phase 4C
-(first-run onboarding)** is next per the sequencing — needs the
-four-axis glyph and divergence why-text to exist first, which Phase 4
-now provides. After that: the deferred marketing-nav component merge
-(the confidence indicator, divergence signal, and empty-state components
-all now live in `design/components.css` as real shared classes, ready
-for the marketing pages to adopt once that merge happens), then Phase 5
-(responsive/WCAG systematic pass) and Phase 6 (performance). Two
-concrete items were logged for Phase 5, not fixed earlier since they
-touch shared global tokens beyond any one phase's own new components:
-the divergence badge's bear/accent text-on-soft-background contrast
-(4.11:1/4.12:1, just under 4.5:1), and the general "audit every existing
-surface" pass Phase 5 was always going to need regardless. Nothing from
-the 2026-08-21 research pass was left out of this plan. A full live
-pipeline run (with fresh AI analyst text) is still worth doing once
-Gemini's quota resets, but as a routine daily refresh, not a blocker on
-any further building.
+**Next step:** Phases 0, 1, 2, 3, 4, 4B, and 4C are all done — every
+phase from this doc's original scope plus everything the 2026-08-21
+research pass added. Remaining: the deferred marketing-nav component
+merge (the confidence indicator, divergence signal, and empty-state
+components all now live in `design/components.css` as real shared
+classes, ready for the marketing pages to adopt once that merge
+happens), then Phase 5 (responsive/WCAG systematic pass) and Phase 6
+(performance). Two concrete items were logged for Phase 5, not fixed
+earlier since they touch shared global tokens beyond any one phase's own
+new components: the divergence badge's bear/accent text-on-soft-
+background contrast (4.11:1/4.12:1, just under 4.5:1), and the general
+"audit every existing surface" pass Phase 5 was always going to need
+regardless. A full live pipeline run (with fresh AI analyst text) is
+still worth doing once Gemini's quota resets, but as a routine daily
+refresh, not a blocker on any further building.

@@ -143,6 +143,15 @@
      Business/Market polygon, same job Simply Wall St's Snowflake does
      for its own 5 axes), with the pillar-grid dials below staying as
      the drill-down, not replaced. */
+  /* Site Redesign Reset, Phase 4C: one-time onboarding tip, dismissed
+     via localStorage -- shares the accent color language the divergence
+     badges already use (var(--accent-dim)/var(--accent-border)) rather
+     than inventing a fourth "notice" color. */
+  .onboarding-tip { position: relative; background: var(--accent-dim); border: 1px solid var(--accent-border); border-radius: var(--radius-md); padding: 12px 34px 12px 14px; margin-bottom: 14px; font-size: 12.5px; color: var(--text-secondary); line-height: 1.55; }
+  .onboarding-tip p { margin: 0; }
+  .onboarding-tip strong { color: var(--text-primary); }
+  .onboarding-tip-close { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%; border: none; background: transparent; color: var(--text-faint); font-size: 16px; line-height: 1; cursor: pointer; }
+  .onboarding-tip-close:hover { color: var(--text-primary); background: var(--surface-2); }
   .pillar-shape-wrap { display: flex; justify-content: center; padding: 4px 0 8px; }
   .pillar-shape-svg { width: 300px; height: 260px; max-width: 100%; }
   .pillar-shape-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: .04em; fill: var(--text-secondary); text-transform: uppercase; }
@@ -363,6 +372,17 @@
 
     <div class="card">
       <div class="card-title">Four-Pillar Read</div>
+      <!-- Site Redesign Reset, Phase 4C: lightweight, one-time explainer
+           -- covers both the four-axis shape below and (if one fired)
+           the divergence badge above in the sentiment strip, rather than
+           two separate popups on the same page load. Shown once ever,
+           dismissed via localStorage, never gated behind Phase 3's
+           accounts decision since a logged-out first-time visitor is
+           exactly who needs this. -->
+      <div class="onboarding-tip" id="pillar-shape-tip" style="display:none;">
+        <button class="onboarding-tip-close" id="pillar-shape-tip-close" type="button" aria-label="Dismiss">&times;</button>
+        <p>Four independent reads — <strong>Crowd</strong>, <strong>Wall Street</strong>, <strong>Business</strong>, and <strong>Market</strong> — cross-checked against each other below. When they disagree, we name the pattern and explain what it means in plain English, right where you see it.</p>
+      </div>
       <div class="pillar-shape-wrap" id="pillar-shape-wrap"></div>
       <div class="pillar-grid" id="pillar-grid"></div>
     </div>
@@ -577,6 +597,27 @@ function pillarShapeSvg(pillars, divergencePattern) {
   }).join('');
 
   return `<svg class="pillar-shape-svg" viewBox="0 0 300 260">${rings}${axisLines}${dataShape}${dots}${labels}</svg>`;
+}
+// Site Redesign Reset, Phase 4C (research point 10): shown once ever,
+// dismissed via localStorage -- wrapped in try/catch since localStorage
+// can throw in strict privacy modes, same graceful-degradation
+// discipline as every other optional feature in this codebase (worst
+// case here: the tip just shows every visit instead of once, never a
+// crash). Deliberately not gated behind Phase 3's accounts decision --
+// works identically logged out, since that's exactly who needs it.
+const PILLAR_SHAPE_TIP_KEY = 'undertow_seen_pillar_shape_tip';
+function initPillarShapeTip() {
+  const tipEl = document.getElementById('pillar-shape-tip');
+  if (!tipEl) return;
+  let seen = false;
+  try { seen = localStorage.getItem(PILLAR_SHAPE_TIP_KEY) === '1'; } catch (e) {}
+  if (seen) return;
+  tipEl.style.display = 'block';
+  const closeBtn = document.getElementById('pillar-shape-tip-close');
+  closeBtn.addEventListener('click', () => {
+    tipEl.style.display = 'none';
+    try { localStorage.setItem(PILLAR_SHAPE_TIP_KEY, '1'); } catch (e) {}
+  });
 }
 function renderAiSection(result, composite) {
   const bodyEl = document.getElementById('cm-ai-body');
@@ -1887,6 +1928,7 @@ if (!activeTicker || !flagshipTickers.has(activeTicker)) {
   document.getElementById('page-content').style.display = 'block';
   document.title = `${activeTicker} — Undertow`;
   initPage(activeTicker);
+  initPillarShapeTip();
 }
 </script>
 </body>
