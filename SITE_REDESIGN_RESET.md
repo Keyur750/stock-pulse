@@ -493,7 +493,7 @@ finalized, since the nav's rightmost element depends on the answer.
   line — this also closes the "Milestone A" reconciliation gap
   `CLAUDE.md` had flagged as unresolved.
 
-### Phase 4 — Visual redesign pass
+### Phase 4 — Visual redesign pass ⏳ IN PROGRESS (2026-08-21)
 **Goal:** the actual "fresh look," now built on a stable foundation
 instead of polish applied on top of duplication. Expanded 2026-08-21
 after a deep external-research pass — several items below are new
@@ -510,14 +510,22 @@ drove it (see "Research foundations" above).
 - **Mobile-first, not a desktop-then-breakpoints retrofit** (research
   point 9) — every component's phone-width layout gets decided as part
   of this same pass, not left for Phase 5 to patch in afterward.
-- **A single four-axis shape as the primary pillar glyph, not four
-  separate radial dials shown side by side** (research point 5) — one
-  glanceable Crowd/Wall Street/Business/Market polygon whose shape
-  changes as the pillars diverge, with the existing four dials + per-
-  pillar reasoning available as the drill-down underneath, not replaced.
-  The single highest-leverage visual change in this phase: done well,
-  it's Undertow's own recognizable mark the way the Snowflake is Simply
-  Wall St's — real product differentiation, not just a styling pass.
+- **✅ Done: a single four-axis shape as the primary pillar glyph**, not
+  four separate radial dials shown side by side (research point 5) —
+  `pillarShapeSvg()` in `stock_template.html`, placed above the existing
+  pillar-grid in the "Four-Pillar Read" card (dials + per-pillar
+  reasoning stay as the drill-down underneath, not replaced). Reuses
+  `DIVERGENCE_META`'s existing up/down/warn/info color classes so a
+  fired divergence pattern tints the shape the same way its own badge
+  already reads, one color language rather than two. A pillar with no
+  real score is never plotted as if it scored 0 — it draws as a small
+  dashed hollow marker at center and is excluded from the filled
+  polygon entirely, so the shape's area only ever reflects pillars that
+  actually have data. Verified against real NVDA/BA/JPM data (same
+  no-Gemini check as Phase 2's) and visually confirmed in the browser —
+  caught and fixed one real bug before it shipped: the first viewBox was
+  too narrow and clipped the "Wall St" label past its edge, found via
+  `getBBox()` measurement, not assumed fixed by eye.
 - **The divergence "why" surfaces in context, at the point it fired** —
   not only inside a modal/detail view (research point 6). The AI analyst
   already generates a one-line reason per divergence; this phase gets it

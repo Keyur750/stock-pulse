@@ -136,6 +136,15 @@
      ring itself. The real AI-generated read is left-aligned, not
      centered -- centering a multi-line paragraph gives it a ragged
      edge on both sides and makes it measurably harder to read. */
+  /* Site Redesign Reset, Phase 4: the four-axis shape is the primary
+     glyph (research point 5 -- one glanceable Crowd/Wall Street/
+     Business/Market polygon, same job Simply Wall St's Snowflake does
+     for its own 5 axes), with the pillar-grid dials below staying as
+     the drill-down, not replaced. */
+  .pillar-shape-wrap { display: flex; justify-content: center; padding: 4px 0 8px; }
+  .pillar-shape-svg { width: 300px; height: 260px; max-width: 100%; }
+  .pillar-shape-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: .04em; fill: var(--text-secondary); text-transform: uppercase; }
+  .pillar-shape-value { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 800; }
   .pillar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
   @media (max-width: 900px) { .pillar-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 480px) { .pillar-grid { grid-template-columns: 1fr; } }
@@ -341,6 +350,7 @@
 
     <div class="card">
       <div class="card-title">Four-Pillar Read</div>
+      <div class="pillar-shape-wrap" id="pillar-shape-wrap"></div>
       <div class="pillar-grid" id="pillar-grid"></div>
     </div>
 
@@ -505,6 +515,60 @@ const DIVERGENCE_META = {
   fundamental_deterioration: { icon: '▼', label: 'Fundamental Deterioration', cls: 'down' },
   under_the_radar: { icon: '◆', label: 'Under-the-Radar', cls: 'info' },
 };
+// Site Redesign Reset, Phase 4: the four-axis pillar shape. Same color
+// classes DIVERGENCE_META already uses elsewhere on this page (up/down/
+// warn/info) so a fired divergence pattern tints the shape the same way
+// its own badge already reads -- one color language, not two. A pillar
+// with no real score is never plotted as if it scored 0 (that would
+// read as "definitely bad" instead of "no data") -- its vertex draws as
+// a small dashed hollow marker at center instead, and it's excluded from
+// the filled polygon entirely so the shape's area only ever reflects
+// pillars that actually have data.
+const PILLAR_SHAPE_AXES = [
+  { key: 'crowd', label: 'Crowd', angle: -Math.PI / 2 },
+  { key: 'wall_street', label: 'Wall St', angle: 0 },
+  { key: 'business', label: 'Business', angle: Math.PI / 2 },
+  { key: 'market', label: 'Market', angle: Math.PI },
+];
+function pillarShapeSvg(pillars, divergencePattern) {
+  const cx = 150, cy = 120, maxR = 68;
+  const point = (angle, frac) => [cx + frac * maxR * Math.cos(angle), cy + frac * maxR * Math.sin(angle)];
+  const meta = divergencePattern ? DIVERGENCE_META[divergencePattern] : null;
+  const shapeColor = !meta ? 'var(--accent)'
+    : meta.cls === 'up' ? 'var(--bull)' : meta.cls === 'down' ? 'var(--bear)'
+    : meta.cls === 'warn' ? 'var(--amber)' : 'var(--accent)';
+
+  const rings = [0.25, 0.5, 0.75, 1].map(f =>
+    `<polygon points="${PILLAR_SHAPE_AXES.map(a => point(a.angle, f).join(',')).join(' ')}" fill="none" stroke="var(--border)" stroke-width="1"/>`
+  ).join('');
+  const axisLines = PILLAR_SHAPE_AXES.map(a => {
+    const [x, y] = point(a.angle, 1);
+    return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
+  }).join('');
+
+  const present = PILLAR_SHAPE_AXES.filter(a => pillars && pillars[a.key] !== null && pillars[a.key] !== undefined);
+  const dataShape = present.length >= 2
+    ? `<polygon points="${present.map(a => point(a.angle, Math.max(0, Math.min(100, pillars[a.key])) / 100).join(',')).join(' ')}" fill="${shapeColor}" fill-opacity="0.22" stroke="${shapeColor}" stroke-width="2.5" stroke-linejoin="round"/>`
+    : '';
+  const dots = PILLAR_SHAPE_AXES.map(a => {
+    const val = pillars ? pillars[a.key] : null;
+    const has = val !== null && val !== undefined;
+    const [x, y] = has ? point(a.angle, Math.max(0, Math.min(100, val)) / 100) : [cx, cy];
+    return has
+      ? `<circle cx="${x}" cy="${y}" r="4" fill="${shapeColor}" stroke="var(--surface-1)" stroke-width="1.5"/>`
+      : `<circle cx="${x}" cy="${y}" r="3.5" fill="none" stroke="var(--text-faint)" stroke-width="1.5" stroke-dasharray="2 2"/>`;
+  }).join('');
+  const labels = PILLAR_SHAPE_AXES.map(a => {
+    const val = pillars ? pillars[a.key] : null;
+    const has = val !== null && val !== undefined;
+    const [lx, ly] = point(a.angle, 1.32);
+    const anchor = Math.abs(Math.cos(a.angle)) < 0.3 ? 'middle' : (Math.cos(a.angle) > 0 ? 'start' : 'end');
+    return `<text x="${lx}" y="${ly}" text-anchor="${anchor}" class="pillar-shape-label">${a.label}</text>
+      <text x="${lx}" y="${ly + 15}" text-anchor="${anchor}" class="pillar-shape-value" fill="${has ? shapeColor : 'var(--text-faint)'}">${has ? Math.round(val) : '—'}</text>`;
+  }).join('');
+
+  return `<svg class="pillar-shape-svg" viewBox="0 0 300 260">${rings}${axisLines}${dataShape}${dots}${labels}</svg>`;
+}
 function renderAiSection(result, composite) {
   const bodyEl = document.getElementById('cm-ai-body');
   const emptyEl = document.getElementById('cm-ai-empty');
@@ -1154,6 +1218,11 @@ function initPage(sym) {
     stripParts.push(`<span class="pillar-divergence-badge ${meta.cls}">${meta.icon} ${meta.label}</span>`);
   }
   stripEl.innerHTML = stripParts.join('');
+
+  // Four-axis shape (Phase 4) -- same divergence signal already
+  // computed above for the sentiment-strip badge, reused here so the
+  // shape and the badge always agree on which pattern (if any) fired.
+  document.getElementById('pillar-shape-wrap').innerHTML = pillarShapeSvg(pillars, sig ? sig.type : null);
 
   // Pillar dials
   const reads = analyst ? analyst.pillar_reads : null;
