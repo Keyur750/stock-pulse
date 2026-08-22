@@ -14,7 +14,7 @@
     --surface-1: #101C2D; --surface-2: #142238; --surface-3: #17263D;
     --text-primary: #F5F7FA; --text-secondary: #94A3B8; --text-faint: #5B6B84;
     --border: #22324A; --border-hover: #314764;
-    --accent: #3B82F6; --accent-dim: rgba(59,130,246,0.10); --accent-border: rgba(59,130,246,0.30);
+    --accent: #3B82F6; --accent-dim: rgba(59,130,246,0.10); --accent-border: rgba(59,130,246,0.30); --accent-on-soft: #629BF8;
     --bull: #10B981; --bull-soft: rgba(16,185,129,0.12);
     --bear: #EF4444; --amber: #F59E0B; --amber-soft: rgba(245,158,11,0.12);
     --gray: #64748B;
@@ -41,8 +41,13 @@
   .nav-links { display: flex; align-items: center; gap: 4px; }
   .nav-links a { font-size: 13.5px; font-weight: 500; color: var(--text-secondary); text-decoration: none; padding: 8px 14px; border-radius: var(--radius-sm); transition: color .15s ease, background-color .15s ease; }
   .nav-links a:hover { color: var(--text-primary); background: var(--surface-2); }
-  .nav-links a.active { color: var(--accent); background: var(--accent-dim); }
+  /* Site Redesign Reset, Phase 5: same specificity bug as
+     about_template.html -- .nav-secondary and .active are equal
+     specificity, so source order decides the winner when a link is
+     both (Careers' own nav link is both on this page). Reordered so
+     .active wins. */
   .nav-links a.nav-secondary { font-size: 12.5px; color: var(--text-faint); }
+  .nav-links a.active { color: var(--accent-on-soft); background: var(--accent-dim); }
   .nav-cta { background: var(--accent) !important; color: #fff !important; font-weight: 700 !important; }
   .nav-cta:hover { filter: brightness(1.1); }
   @media (max-width: 780px) { .nav-links a:not(.nav-cta) { display: none; } }

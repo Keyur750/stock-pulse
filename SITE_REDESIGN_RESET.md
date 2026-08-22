@@ -876,24 +876,44 @@ accessibility bar, not ad hoc media queries.
 - Real device testing of the dense grids/pillar dials at narrow widths —
   currently unverified below whatever each file's ad hoc breakpoints
   happen to cover.
-- **WCAG 2.2 AA** contrast check on the existing dark palette (score
-  colors on tinted backgrounds — `--bull`/`--bear`/`--amber`/`--accent`
-  on their `-soft`/`-dim` variants). Upgraded from this doc's original
-  2.1 AA target (research point 8) — 2.2 is a strict superset of 2.1, so
-  there's no cost to targeting the newer version. This is the full
-  systematic pass across every existing surface; the live spot-check on
-  Phase 4's own new color decisions happened as those decisions were
-  made (see Phase 4), so a failure here doesn't mean redoing finished
-  visual work from scratch. **A concrete starting point, not a blank
-  slate:** Phase 4's own live check already measured two real failures
-  on the divergence badge specifically — bear/down text on `--bear-soft`
-  measured 4.11:1, accent/info text on `--accent-dim` measured 4.12:1,
-  both just under the 4.5:1 text minimum (bull and amber both passed,
-  5.59:1 and 6.56:1). Left unfixed there deliberately since `--bear`/
-  `--accent` are shared global tokens used well beyond that one badge —
-  this phase is where fixing them (likely a small opacity adjustment to
-  `--bear-soft`/`--accent-dim` specifically, not the base hue) gets the
-  full-surface review a shared-token change actually needs.
+- **WCAG 2.2 AA contrast — ✅ Done (2026-08-21).** The systematic
+  full-surface pass turned out much bigger than the "one divergence
+  badge" starting point below: every `color:` declaration pairing
+  `--accent`/`--bear` text directly with their own `-dim`/`-soft`
+  translucent background (not just the divergence badge) had the same
+  failure, ~29 rules across `dashboard_template.html`,
+  `sentiment_template.html`, `stock_template.html`, `index_template.html`,
+  `about_template.html`, `careers_template.html`, and
+  `design/components.css`. **Fix approach, chosen over the opacity
+  adjustment originally guessed at below:** reducing `--bear-soft`/
+  `--accent-dim` background opacity toward 0 has a hard mathematical
+  contrast ceiling (~4.55:1 for the bear/bear-soft pair, verified by
+  computing the relative-luminance formula directly) — too thin a margin
+  to trust across every surface using it. Lightened the TEXT color ~20%
+  toward white instead: two new tokens, `--accent-on-soft: #629BF8` and
+  `--bear-on-soft: #F26969` (`design/tokens.css`), used only where
+  `--accent`/`--bear` text sits on their own `-dim`/`-soft` background,
+  not as general replacements. Verified live via `getComputedStyle()` +
+  the relative-luminance formula on real rendered pages (dashboard,
+  sentiment, stock/NVDA, index, about, careers) — all now clear the
+  4.5:1 text minimum with real headroom (5.17:1/5.45:1), not the
+  original 4.11:1/4.12:1 failures. **A second, unrelated real bug found
+  during this same live pass, also fixed:** `.nav-links a.active` and
+  `.nav-links a.nav-secondary` have identical CSS specificity (0,2,1);
+  since `.nav-secondary` was declared *after* `.active` in
+  `about_template.html`/`careers_template.html`, it silently won the
+  cascade on the current page's own nav link (which carries both classes
+  there), overriding the intended active-state accent color with
+  text-faint gray the whole time since Phase 2 added the demotion class
+  — confirmed via `getComputedStyle()` before/after reordering the rules
+  so `.active` comes last. bull/amber were already passing (5.59:1/
+  6.56:1) and untouched.
+- **A concrete starting point, not a blank slate (superseded by the
+  ✅ Done bullet above, kept for the record):** Phase 4's own live check
+  already measured two real failures on the divergence badge
+  specifically — bear/down text on `--bear-soft` measured 4.11:1,
+  accent/info text on `--accent-dim` measured 4.12:1, both just under
+  the 4.5:1 text minimum.
 - **Decision (research-supported now, not just conventional — research
   point 13):** dark-only stays the deliberate brand choice, not a gap —
   the same instinct that already cites Bloomberg Terminal here holds up
@@ -1032,7 +1052,7 @@ comes when that phase is actually scoped for building)
 | 4 | Visual redesign pass | ✅ Done (2026-08-21) — four-axis pillar glyph, in-context divergence "why," confidence-indicator component, mobile-first verification, live WCAG 2.2 checks (2 real failures fixed, 2 pre-existing ones logged for Phase 5), hierarchy discipline confirmed, density calibration confirmed, distinct divergence-pattern signature (+ a real CSS shorthand bug caught live), standardized empty/loading/error states + a stale-copy fix |
 | 4B | Content & copy audit | ✅ Done (2026-08-21) — "Intelligence" overload fixed (7 instances, 3 found beyond the original 4), CTA labels already unified via Phase 2, WHY UNDERTOW merged from 6 tiles to 3 (real Divergence-detection differentiator added), hero number relabeled "AVERAGE", search placeholder confirmed already unified |
 | 4C | First-run onboarding | ✅ Done (2026-08-21) — one combined dismissible tip (not two separate popups), verified live: shows once, WCAG-checked, persists across dismiss/reload/different-ticker-page |
-| 5 | Responsive breakpoint system + WCAG 2.2 AA accessibility bar | Not started — depends on Phase 0 |
+| 5 | Responsive breakpoint system + WCAG 2.2 AA accessibility bar | 🔶 In progress (2026-08-21) — WCAG 2.2 AA contrast pass ✅ done (29-rule fix via new `--accent-on-soft`/`--bear-on-soft` tokens + an unrelated nav-active specificity bug caught and fixed live); breakpoint-scale formalization and real device testing of dense grids/pillar dials still open |
 | 6 | Performance (Core Web Vitals bar) | Not started — mostly falls out of Phase 1 |
 | 7 | Modern features, reprioritized by differentiation: comparison view → "what changed" → Cmd+K → skeleton loading → PWA (with a real install-prompt strategy) | Not started — independently shippable |
 | 8 | QA/rollout checklist | Not started |
@@ -1059,18 +1079,19 @@ comes when that phase is actually scoped for building)
 1. Real per-ticker static URLs — **decided: yes, build them**, replacing
    `?t=TICKER` query routing (kept as a redirect/alias). See Phase 2.
 
-**Next step:** Phases 0, 1, 2, 3, 4, 4B, and 4C are all done — every
-phase from this doc's original scope plus everything the 2026-08-21
-research pass added. Remaining: the deferred marketing-nav component
-merge (the confidence indicator, divergence signal, and empty-state
-components all now live in `design/components.css` as real shared
-classes, ready for the marketing pages to adopt once that merge
-happens), then Phase 5 (responsive/WCAG systematic pass) and Phase 6
-(performance). Two concrete items were logged for Phase 5, not fixed
-earlier since they touch shared global tokens beyond any one phase's own
-new components: the divergence badge's bear/accent text-on-soft-
-background contrast (4.11:1/4.12:1, just under 4.5:1), and the general
-"audit every existing surface" pass Phase 5 was always going to need
-regardless. A full live pipeline run (with fresh AI analyst text) is
+**Next step:** Phases 0, 1, 2, 3, 4, 4B, and 4C are all done. Phase 5's
+WCAG 2.2 AA contrast pass is also now done (2026-08-21) — the full
+systematic sweep found the divergence-badge failure logged earlier was
+one instance of a ~29-rule pattern, fixed via two new tokens
+(`--accent-on-soft`/`--bear-on-soft`) plus an unrelated nav-active CSS
+specificity bug caught live on about.html/careers.html and fixed
+alongside it. Remaining in Phase 5: formalize the breakpoint scale
+(480/760/1080px already appearing informally) and real device testing of
+dense grids/pillar dials at narrow widths beyond what Phase 4's own new
+components already covered. After that: the deferred marketing-nav
+component merge (the confidence indicator, divergence signal, and
+empty-state components all now live in `design/components.css` as real
+shared classes, ready for the marketing pages to adopt), then Phase 6
+(performance). A full live pipeline run (with fresh AI analyst text) is
 still worth doing once Gemini's quota resets, but as a routine daily
 refresh, not a blocker on any further building.

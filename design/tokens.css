@@ -40,6 +40,21 @@
   --accent-dim: rgba(59, 130, 246, 0.10);
   --accent-soft: rgba(59, 130, 246, 0.16);
   --accent-border: rgba(59, 130, 246, 0.30);
+  /* Site Redesign Reset, Phase 5: text-only variant for --accent/--bear
+     text drawn on their OWN -dim/-soft background (badges, chips,
+     pills) -- --accent/--bear text measured 4.12:1/4.11:1 against their
+     own tinted background specifically (fails the 4.5:1 text minimum),
+     even though the same colors pass fine as plain text on the regular
+     page background (4.66:1/4.55:1, already fine, left untouched).
+     Reducing the background's opacity instead was tried first and
+     rejected -- it has a hard mathematical ceiling at ~4.55:1 as opacity
+     approaches 0 (the effective background just approaches the page
+     background, and 4.55:1 is too thin a margin to trust across
+     rendering variance). Lightening the text 20% toward white instead
+     gives real headroom (5.45:1/5.17:1) without touching the base hue
+     used correctly everywhere else (price-change text, chart lines,
+     etc.) -- narrow, targeted fix, not a global recolor. */
+  --accent-on-soft: #629BF8;
 
   /* ---- Color: semantic (score direction) ---- */
   --bull: #10B981;
@@ -49,6 +64,7 @@
   --bear: #EF4444;
   --bear-soft: rgba(239, 68, 68, 0.12);
   --bear-border: rgba(239, 68, 68, 0.30);
+  --bear-on-soft: #F26969;
 
   --amber: #F59E0B;
   --amber-soft: rgba(245, 158, 11, 0.12);

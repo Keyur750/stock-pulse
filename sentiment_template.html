@@ -128,7 +128,7 @@
   .hero-sentiment-delta { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 700; margin-top: 10px; display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; }
   .hero-sentiment-delta .delta-arrow { font-size: 9px; }
   .hero-sentiment-delta.up { color: var(--bull); background: var(--bull-soft); }
-  .hero-sentiment-delta.down { color: var(--bear); background: var(--bear-soft); }
+  .hero-sentiment-delta.down { color: var(--bear-on-soft); background: var(--bear-soft); }
   .hero-sentiment-delta.flat { color: var(--text-faint); background: var(--surface-2); }
 
   /* AI Insight — a slim, quiet banner, not a decorative card. The icon +
@@ -371,9 +371,9 @@
      to 1px otherwise (same bug caught and fixed in
      design/components.css's .pillar-divergence-badge). */
   .detail-divergence.up { background: var(--bull-soft); color: var(--bull); border: 1px solid var(--bull-border); border-left: 3px solid var(--bull); }
-  .detail-divergence.down { background: var(--bear-soft); color: var(--bear); border: 1px solid var(--bear-border); border-left: 3px solid var(--bear); }
+  .detail-divergence.down { background: var(--bear-soft); color: var(--bear-on-soft); border: 1px solid var(--bear-border); border-left: 3px solid var(--bear); }
   .detail-divergence.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-border); border-left: 3px solid var(--amber); }
-  .detail-divergence.info { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); border-left: 3px solid var(--accent); }
+  .detail-divergence.info { background: var(--accent-dim); color: var(--accent-on-soft); border: 1px solid var(--accent-border); border-left: 3px solid var(--accent); }
   .detail-actions { margin-top: 18px; display: flex; gap: 10px; }
   .detail-btn { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: var(--text-primary); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 13px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
   .detail-btn:hover { border-color: var(--border-hover); background: var(--surface-3); }
@@ -388,9 +388,9 @@
   .evidence-dot { color: var(--text-faint); }
   .evidence-tag { padding: 2px 7px; border-radius: 999px; font-weight: 700; }
   .evidence-tag.bullish { background: var(--bull-soft); color: var(--bull); }
-  .evidence-tag.bearish { background: var(--bear-soft); color: var(--bear); }
+  .evidence-tag.bearish { background: var(--bear-soft); color: var(--bear-on-soft); }
   .evidence-tag.neutral { background: var(--gray-soft); color: var(--text-faint); }
-  .evidence-tag.ai-read { background: var(--accent-dim); color: var(--accent); }
+  .evidence-tag.ai-read { background: var(--accent-dim); color: var(--accent-on-soft); }
   .evidence-empty { font-size: 12px; color: var(--text-faint); }
   .evidence-eyebrow { display: block; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 6px; }
   .evidence-eyebrow.bullish { color: var(--bull); }
@@ -432,7 +432,7 @@
   .breadth-day.today .breadth-day-label { color: var(--accent); font-weight: 700; }
   .breadth-today-badge {
     position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
-    background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border);
+    background: var(--accent-dim); color: var(--accent-on-soft); border: 1px solid var(--accent-border);
     font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; padding: 3px 8px;
     border-radius: 20px; white-space: nowrap;
   }
@@ -537,7 +537,7 @@
   .pillar-read { font-size: 10.5px; color: var(--text-secondary); margin-top: 7px; line-height: 1.4; }
   .cm-ai { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); }
   .cm-ai-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
-  .cm-ai-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: var(--accent-dim); border: 1px solid var(--accent-border); padding: 3px 9px; border-radius: var(--radius-sm); font-weight: 700; }
+  .cm-ai-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-on-soft); background: var(--accent-dim); border: 1px solid var(--accent-border); padding: 3px 9px; border-radius: var(--radius-sm); font-weight: 700; }
   .cm-ai-score-wrap { display: flex; align-items: baseline; gap: 4px; }
   .cm-ai-score { font-family: 'JetBrains Mono', monospace; font-size: 25px; font-weight: 700; }
   .cm-ai-score.up { color: var(--bull); }
