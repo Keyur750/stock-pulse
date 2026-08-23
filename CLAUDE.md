@@ -185,71 +185,68 @@ files' own comments before touching this.
   (see git log). Confirm with the user before pushing regardless; this
   describes the existing pattern, not blanket standing authorization.
 
-## Where things stand right now (last updated 2026-08-21)
+## Where things stand right now (last updated 2026-08-22)
 
 This section is a snapshot, not the source of truth — see item 5 of the
-reading order above. As of 2026-08-21, three RESET docs are finished and
+reading order above. As of 2026-08-22, four RESET docs are finished and
 shipped (`FULL_FUNDAMENTAL_RESET.md`, `MARKET_PILLAR_RESET.md`,
-`WALL_STREET_PILLAR_RESET.md` — see git log's "Market pillar Phases 1-6"
-and "Wall Street pillar Phases 1-4" commits), and two are active:
+`WALL_STREET_PILLAR_RESET.md`, `OVERALL_SCORE_RESET.md`), each down to
+exactly one remaining phase, and all four of those remaining phases (bar
+Wall Street's) are gated on the same thing:
 
-- **`OVERALL_SCORE_RESET.md`** — Phase 1 done and live-verified: a real,
-  deterministic `composite_score` (built from the four pillar scores +
-  confidence-weighting + a bounded divergence adjustment) now ships
-  alongside the AI analyst's own independent `ai_score`. Phase 2
-  (recalibrating the base weights against real forward-return data) is
-  blocked on `signal_history` accumulating enough real days — not
-  actionable yet, by design.
-- **`SITE_REDESIGN_RESET.md`** — **actively in progress, the live focus
-  as of this writing.** Phase 0 (design tokens + component inventory)
-  done. Phase 1 (Jinja2 templating to kill the 3x hand-copied CSS/nav/
-  auth) partially done: nav/auth/CSS consolidation across the three app
-  pages shipped and live-verified (one `sbClient`/`SUPABASE_URL` per
-  page, shared `nav.html.j2`/`auth_modal.html.j2` partials, shared
-  `design/tokens.css`+`design/components.css`). Still open within Phase
-  1: slicing the ~25-field payload per page instead of embedding it
-  whole three times, and folding `index.html`/`about.html`/
-  `careers.html` onto the same Jinja2 generation model (exact-copy
-  template sources `index_template.html`/`about_template.html`/
-  `careers_template.html` exist at repo root as of 2026-08-21, not yet
-  wired into `main.py`). Read the doc's own "Status snapshot" table and
-  "Next step:" line for the exact current point.
+- **`OVERALL_SCORE_RESET.md`**, **`FULL_FUNDAMENTAL_RESET.md`**,
+  **`MARKET_PILLAR_RESET.md`** — Phase 1 done and live-verified on each.
+  The one remaining phase on all three (recalibrating base
+  weights/backtesting against real forward-return data) is blocked on
+  `data/signal_history.json` accumulating enough real days — not
+  actionable yet, by design, not a gap to fill.
+- **`WALL_STREET_PILLAR_RESET.md`** — one open phase (price-target
+  optimism-bias treatment), gated on a research question rather than
+  history: does a free, live source of sector-average target-implied
+  upside exist? Check the doc's own "Next step" before assuming this is
+  ready to build.
+- **`SITE_REDESIGN_RESET.md`** — **Phases 0 through 5 done and
+  live-verified** (design tokens, Jinja2 templating for all six pages
+  including `index.html`/`about.html`/`careers.html`, flat navigation,
+  the accounts decision, the full visual redesign pass, a copy audit, and
+  a two-pass WCAG 2.2 AA contrast fix). Templating is fully wired now —
+  `index_template.html`/`about_template.html`/`careers_template.html`
+  all feed `main.py` via `templates/partials/*.j2`, not a stale
+  exists-but-unwired state. Phases 6 (performance/Core Web Vitals), 7
+  (modern features: comparison view, "what changed," Cmd+K, skeleton
+  loading, PWA), and 8 (QA/rollout checklist) are not started. **Note:**
+  ad-hoc visual polish has continued same-day past this doc's own last
+  edit (careers hero redesign, homepage hero motion, Four Signals card
+  tilt, and — in the single most recent commit as of this writing — full
+  **removal** of the four-axis diamond glyph that Phase 4's status line
+  still lists as shipped, keeping only the four pillar drill-down cards
+  below it). The doc's status table hasn't caught up to that reversal —
+  check `git log` for anything past the doc's own last-modified date
+  before trusting its table verbatim.
 
 **A crash-recovery note worth keeping current:** a Claude Code session
 died mid-work on 2026-08-21 while `SITE_REDESIGN_RESET.md` was being
-built; the two RESET docs above are what let a fresh session pick this
-up cold. Separately, local and `origin/main` diverged by 24 commits
-during that downtime (CI's quote-refresh/dashboard workflows kept
-running against the old pre-Jinja2 `main.py`) — resolved by stashing
-local changes, fast-forward pulling, and reapplying. **If you're
-orienting after another lost session, check `git log HEAD..origin/main`
-before trusting either side's `data/*.json`/`docs/*.html` as current.**
+built; the RESET docs above are what let a fresh session pick this up
+cold. Separately, local and `origin/main` diverged by 24 commits during
+that downtime (CI's quote-refresh/dashboard workflows kept running
+against the old pre-Jinja2 `main.py`) — resolved by stashing local
+changes, fast-forward pulling, and reapplying. **If you're orienting
+after another lost session, check `git log HEAD..origin/main` before
+trusting either side's `data/*.json`/`docs/*.html` as current.**
 
-**Separately, and lower-priority right now — not touched during the
-2026-08-21 pillar/RESET-doc work above:** Phase 4 of the crowd-score
-engine (FinBERT validation) is still genuinely open. Phases 1-3
-(author-capping, shrinkage/decay, `crowd_confidence`) shipped
-2026-08-20. Phase 4 was originally verbally scoped as "add FinBERT for
-better confidence" but never written down before an earlier lost
-session; a round of research (FinBERT reads tone not meaning, scored
-16.8% accuracy on genuine positive catalysts in a real study, and its
-confidence score doesn't track its own accuracy) reframed the plan
-around **validating FinBERT against Undertow's own real self-tagged
-ground truth before wiring it into production**, rather than assuming
-it would help. `validate_finbert.py` (repo root, not part of the daily
-pipeline) does exactly that: pulls live self-tagged StockTwits messages,
-strips the tag, and asks FinBERT / Gemini (production's current path) /
-VADER to guess it back. A 5-ticker smoke test found Gemini at ~63%
-accuracy vs. FinBERT at ~13% (FinBERT defaulted ~78% of tagged messages
-to "neutral") — a full 30-ticker run was kicked off to confirm this
-isn't a quirk of those 5 tickers. **Check `finbert_full_run.log` (repo
-root) for that result** before continuing this thread — if it confirms
-the smoke test, the honest conclusion per the user's own instruction
-("don't put FinBERT out of scope if it's helpful, but let's see") is
-likely that FinBERT doesn't help *as a blanket confidence signal* the
-way originally imagined, and Phase 4 needs a different shape — the user
-was clear they still want FinBERT kept in scope if some real use for it
-turns up, not dropped by default.
+**Phase 4 of the crowd-score engine (FinBERT validation) — resolved, not
+open.** Phases 1-3 (author-capping, shrinkage/decay, `crowd_confidence`)
+shipped 2026-08-20. The full 30-ticker `finbert_full_run.log` run
+confirmed the earlier 5-ticker smoke test: Gemini (production's current
+path) reconstructs real self-tagged StockTwits sentiment at 67.0%
+accuracy; FinBERT scores 13.8%, defaulting the large majority of
+messages to "neutral" regardless of its own confidence score. Per the
+user's own instruction ("don't put FinBERT out of scope if it's
+helpful, but let's see"), the honest conclusion is that FinBERT does not
+help *as a blanket confidence signal* the way originally imagined —
+Phase 4 needs a different shape, not more validation runs. FinBERT
+stays in scope only if a specific real use for it turns up; it should
+not be force-fit into the confidence pipeline by default.
 
 ## Quick facts worth not re-deriving
 

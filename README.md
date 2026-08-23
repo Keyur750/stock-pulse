@@ -142,7 +142,7 @@ to change it). You never need to run anything yourself again.
 Edit `watchlist` and `flagship_tickers` in `config.json` directly on GitHub
 (click the file → pencil icon → edit → commit) — no need to re-upload
 anything else, the next scheduled run picks up your changes automatically.
-Right now they're the same 15 tickers on purpose (see `PRODUCT.md`); if you
+Right now they're the same 30 tickers on purpose (see `PRODUCT.md`); if you
 add to `watchlist` without adding to `flagship_tickers`, that ticker gets
 sentiment/price/charts but not the AI analysis section.
 
