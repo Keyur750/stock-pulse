@@ -106,9 +106,27 @@
   /* Site Redesign Reset, Phase 2: About/Careers stay one click away
      without competing visually with Dashboard/Sentiment. */
   .nav-links a.nav-secondary { font-size: 12.5px; color: var(--text-faint); }
-  .nav-cta { background: var(--accent) !important; color: #fff !important; font-weight: 700 !important; }
-  .nav-cta:hover { filter: brightness(1.1); background: var(--accent) !important; }
-  @media (max-width: 780px) { .nav-links a:not(.nav-cta) { display: none; } }
+  /* Nav ticker search -- replaces the old "Open the Dashboard" CTA button,
+     which was a redundant second link to the same page the plain
+     "Dashboard" nav item already opens (user feedback, 2026-08-23).
+     Search list is a hardcoded mirror of config.json's flagship_tickers --
+     this page is static/hand-authored, not templated per-ticker, so
+     there's no embedded payload to read the list from at generation time
+     the way dashboard/sentiment/stock's search does. */
+  .nav-search { position: relative; width: 220px; flex-shrink: 0; }
+  .nav-search input { width: 100%; background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 13px; padding: 7px 12px 7px 30px; outline: none; transition: border-color .15s ease, background-color .15s ease; }
+  .nav-search input::placeholder { color: var(--text-faint); }
+  .nav-search input:focus { border-color: var(--accent-border); background: var(--surface-2); }
+  .nav-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-faint); font-size: 13px; pointer-events: none; }
+  .nav-search-results { position: absolute; top: calc(100% + 6px); right: 0; width: 260px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-md); display: none; overflow: hidden; z-index: 40; }
+  .nav-search-recent-label { padding: 8px 14px 4px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); font-weight: 700; }
+  .search-result { display: flex; align-items: center; padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background-color .12s ease; }
+  .search-result:last-child { border-bottom: none; }
+  .search-result:hover { background: var(--surface-3); }
+  .search-result-sym { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
+  .search-empty { padding: 14px; font-size: 13px; color: var(--text-faint); text-align: center; }
+  @media (max-width: 780px) { .nav-links a.nav-secondary { display: none; } .nav-search { width: 150px; } }
+  @media (max-width: 520px) { .nav-links { display: none; } .nav-search { width: 160px; } }
 
   /* Site Redesign Reset, Phase 4: was two identical inline
      style="..." attributes (COMPONENT_INVENTORY.md's Phase 0 finding),
@@ -515,7 +533,11 @@
       <a href="sentiment.html">Sentiment</a>
       <a href="about.html" class="nav-secondary">About</a>
       <a href="careers.html" class="nav-secondary">Careers</a>
-      <a href="dashboard.html" class="nav-cta">Open the Dashboard</a>
+    </div>
+    <div class="nav-search">
+      <span class="nav-search-icon">⌕</span>
+      <input type="text" id="nav-search-input" placeholder="Search ticker..." autocomplete="off">
+      <div class="nav-search-results" id="nav-search-results"></div>
     </div>
   </nav>
 </div>
@@ -838,6 +860,75 @@ const navWrapEl = document.querySelector('.nav-wrap');
 window.addEventListener('scroll', () => {
   navWrapEl.classList.toggle('scrolled', window.scrollY > 24);
 }, { passive: true });
+
+// Nav ticker search -- real navigation to that ticker's own static page
+// (docs/stock-{TICKER}.html, Site Redesign Reset Phase 2), not a chart
+// modal: this page has no embedded per-ticker payload to power one, and
+// a real page navigation is the right behavior for a landing page anyway.
+// Also remembers the last 5 tickers searched (localStorage), shown as a
+// "Recent" list when the box is focused empty, so a returning visitor
+// doesn't have to retype a symbol they've already looked up.
+const SEARCH_TICKERS = [
+  'META', 'AMZN', 'NOW', 'NVDA', 'RDDT', 'NBIS', 'SOFI', 'IONQ', 'PANW', 'TEAM',
+  'INTC', 'BA', 'NKE', 'SBUX', 'PTON', 'TSLA', 'COIN', 'BABA', 'DIS', 'PYPL',
+  'AMD', 'MU', 'JPM', 'XOM', 'UNH', 'PFE', 'SNAP', 'CVNA', 'CRWD', 'T',
+].sort();
+const RECENT_TICKERS_KEY = 'undertow_recent_tickers';
+
+function getRecentTickers() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(RECENT_TICKERS_KEY) || '[]');
+    return Array.isArray(raw) ? raw.filter(t => SEARCH_TICKERS.includes(t)) : [];
+  } catch (e) { return []; } // localStorage can throw in strict privacy modes -- fail silent, same as this page's other optional features
+}
+function pushRecentTicker(sym) {
+  try {
+    const next = [sym, ...getRecentTickers().filter(t => t !== sym)].slice(0, 5);
+    localStorage.setItem(RECENT_TICKERS_KEY, JSON.stringify(next));
+  } catch (e) {}
+}
+
+const navSearchInput = document.getElementById('nav-search-input');
+const navSearchResultsEl = document.getElementById('nav-search-results');
+
+function renderNavSearchResults(query) {
+  const q = query.trim().toUpperCase();
+  if (!q) {
+    const recent = getRecentTickers();
+    if (recent.length === 0) { navSearchResultsEl.style.display = 'none'; return; }
+    navSearchResultsEl.innerHTML = '<div class="nav-search-recent-label">Recent</div>' +
+      recent.map(sym => `<div class="search-result" data-ticker="${sym}"><span class="search-result-sym">${sym}</span></div>`).join('');
+    navSearchResultsEl.style.display = 'block';
+    return;
+  }
+  const matches = SEARCH_TICKERS.filter(t => t.includes(q)).slice(0, 6);
+  navSearchResultsEl.innerHTML = matches.length
+    ? matches.map(sym => `<div class="search-result" data-ticker="${sym}"><span class="search-result-sym">${sym}</span></div>`).join('')
+    : '<div class="search-empty">No matches in the flagship set</div>';
+  navSearchResultsEl.style.display = 'block';
+}
+function goToTicker(sym) {
+  pushRecentTicker(sym);
+  window.location.href = `stock-${sym}.html`;
+}
+navSearchInput.addEventListener('input', (e) => renderNavSearchResults(e.target.value));
+navSearchInput.addEventListener('focus', (e) => renderNavSearchResults(e.target.value));
+navSearchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const q = navSearchInput.value.trim().toUpperCase();
+    const match = SEARCH_TICKERS.includes(q) ? q : SEARCH_TICKERS.find(t => t.includes(q));
+    if (match) goToTicker(match);
+  } else if (e.key === 'Escape') {
+    navSearchResultsEl.style.display = 'none';
+  }
+});
+navSearchResultsEl.addEventListener('click', (e) => {
+  const result = e.target.closest('.search-result');
+  if (result) goToTicker(result.dataset.ticker);
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.nav-search')) navSearchResultsEl.style.display = 'none';
+});
 
 // ============================================================
 // Live data — same Supabase tables/pattern already proven on
