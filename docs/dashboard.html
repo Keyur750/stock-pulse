@@ -154,13 +154,32 @@
   .label-bearish { background: var(--bear-soft); color: var(--bear-on-soft); }
   .label-neutral { background: var(--gray-soft); color: var(--text-secondary); }
 
-  /* Condensed news — one list, three tiers tagged by badge instead of
-     three separate always-expanded sections */
-  .news-condensed-list { display: flex; flex-direction: column; }
+  /* Condensed news -- redesigned 2026-08-23: was a single throttled list
+     (7 items hardcoded, out of 100+ real ranked items already computed
+     by the pipeline) with a wide unused right margin on desktop. Now a
+     filterable feed (real pool, not a fixed slice) alongside a sidebar
+     that actually uses that width -- a computed sentiment-pulse bar and
+     a trending-tickers panel, both real aggregates of the same pool, not
+     decoration. Chip styling deliberately duplicated from .mkt-chip
+     (Markets strip) rather than shared -- same file, same look, but a
+     future change to one filter row shouldn't silently move the other. */
+  .news-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0 16px; }
+  .news-chip { font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 600; padding: 5px 13px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-secondary); cursor: pointer; transition: all .14s ease; }
+  .news-chip:hover { border-color: var(--border-hover); color: var(--text-primary); }
+  .news-chip.active { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent-on-soft); }
+  .news-count { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-faint); }
+
+  .news-layout { display: grid; grid-template-columns: 1fr 264px; gap: 22px; align-items: start; }
+  @media (max-width: 1080px) { .news-layout { grid-template-columns: 1fr; } }
+
+  .news-condensed-list { display: flex; flex-direction: column; max-height: 620px; overflow-y: auto; padding-right: 4px; }
   .news-item { padding: 12px 0; border-bottom: 1px solid var(--border); }
   .news-item:last-child { border-bottom: none; }
   .news-source-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .news-avatar { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%; font-size: 9px; font-weight: 700; font-family: 'Inter', sans-serif; flex-shrink: 0; }
   .news-source { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+  .news-time { font-size: 9.5px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
+  .news-time::before { content: '· '; }
   .news-title { font-size: 12.5px; margin: 5px 0 0; line-height: 1.45; color: var(--text-secondary); }
   .news-title a { text-decoration: none; color: var(--text-secondary); }
   .news-title a:hover { color: var(--accent); }
@@ -172,6 +191,25 @@
   .news-tier-badge.material { color: var(--amber); background: var(--amber-soft); }
   .news-tier-badge.company { color: var(--accent-on-soft); background: var(--accent-dim); }
   .news-tier-badge.market { color: var(--text-faint); background: var(--surface-2); }
+
+  .news-sidebar { display: flex; flex-direction: column; gap: 14px; }
+  .news-side-card { border-radius: var(--radius-lg); border: 1px solid var(--border); background: linear-gradient(160deg, var(--surface-2) 0%, var(--surface-1) 100%); padding: 16px 16px 15px; }
+  .news-side-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
+  .news-pulse-bar { height: 9px; border-radius: 999px; overflow: hidden; display: flex; background: var(--surface-3); margin: 12px 0 11px; }
+  .news-pulse-seg { height: 100%; transition: width .3s ease; }
+  .news-pulse-seg.bull { background: var(--bull); }
+  .news-pulse-seg.neutral { background: var(--gray); }
+  .news-pulse-seg.bear { background: var(--bear); }
+  .news-pulse-legend { display: flex; flex-direction: column; gap: 7px; }
+  .news-pulse-row { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--text-secondary); }
+  .news-pulse-row-label { display: flex; align-items: center; }
+  .news-pulse-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 7px; flex-shrink: 0; }
+  .news-pulse-row-count { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--text-primary); }
+  .news-pulse-caption { font-size: 10.5px; color: var(--text-faint); margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .news-trending-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .news-trending-chip { display: inline-flex; align-items: center; gap: 5px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-primary); cursor: pointer; transition: all .14s ease; }
+  .news-trending-chip:hover { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent-on-soft); }
+  .news-trending-count { color: var(--text-faint); font-weight: 600; }
 
   footer { text-align: center; padding: 30px 28px; color: var(--text-faint); font-size: 10.5px; font-family: 'JetBrains Mono', monospace; border-top: 1px solid var(--border); margin-top: 20px; }
   .footer-links { display: flex; justify-content: center; gap: 18px; margin-bottom: 12px; }
@@ -388,9 +426,27 @@
 </section>
 
 <section class="block" id="news-condensed">
-  <div class="block-header"><span class="block-title accent">Latest News</span></div>
+  <div class="block-header">
+    <span class="block-title accent">Latest News</span>
+    <span class="news-count" id="news-count"></span>
+  </div>
   <p class="block-sub">Material filings, company headlines, and market context — most important first</p>
-  <div class="news-condensed-list" id="news-condensed-list"></div>
+  <div class="news-chips" id="news-chips"></div>
+  <div class="news-layout" id="news-layout-wrap">
+    <div class="news-condensed-list" id="news-condensed-list"></div>
+    <aside class="news-sidebar">
+      <div class="news-side-card">
+        <div class="news-side-title">Sentiment Pulse</div>
+        <div class="news-pulse-bar" id="news-pulse-bar"></div>
+        <div class="news-pulse-legend" id="news-pulse-legend"></div>
+        <div class="news-pulse-caption" id="news-pulse-caption"></div>
+      </div>
+      <div class="news-side-card">
+        <div class="news-side-title">Trending Tickers</div>
+        <div class="news-trending-list" id="news-trending-list"></div>
+      </div>
+    </aside>
+  </div>
   <div id="news-condensed-empty" class="empty-state" style="display:none;">No headlines yet.</div>
 </section>
 
@@ -1675,51 +1731,174 @@ function renderMarketsStrip(macro, generatedAt) {
 }
 renderMarketsStrip({});
 
-// Condensed news — one list instead of three always-expanded sections.
-// Material Events (no importance field), Company News (1-5 importance),
-// and Market News (no ranking at all) use incompatible scales, so rather
-// than invent a fake unified score, take a fixed small quota per tier —
-// each item tagged with which tier it came from.
-function renderCondensedNews() {
-  const list = document.getElementById('news-condensed-list');
-  const empty = document.getElementById('news-condensed-empty');
+// Condensed news — filterable feed + sidebar, replacing a single list
+// hardcoded to 7 items (2 material + 3 company + 2 market) out of the
+// 100+ real ranked items main.py already computes. Material Events (no
+// importance field), Company News (1-5 importance), and Market News (no
+// ranking at all) still use incompatible scales, so this keeps a real
+// per-tier quota into one shared pool rather than inventing a fake
+// unified score — the quotas are just far less throttled now, and a
+// filter chip row lets a reader narrow to one tier instead of only ever
+// seeing a handful of each. newsPool is cached at module scope so the
+// chip clicks below re-render instantly, no re-fetch.
+const NEWS_TIER_LABEL = { material: 'Material', company: 'Company', market: 'Market' };
+const NEWS_FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'material', label: 'Material' },
+  { key: 'company', label: 'Company' },
+  { key: 'market', label: 'Market' },
+];
+let newsPool = [];
+let newsFilter = 'all';
 
+// No external favicon/image dependency (self-hosted-everything discipline,
+// same reasoning as the self-hosted price charts) — a deterministic
+// color hashed from the publisher's own name instead, so the same source
+// always gets the same color across a session without fetching anything.
+function pubAvatarHtml(name) {
+  const label = (name || '?').trim();
+  const initial = label.charAt(0).toUpperCase();
+  let hash = 0;
+  for (let i = 0; i < label.length; i++) hash = (hash * 31 + label.charCodeAt(i)) % 360;
+  return `<span class="news-avatar" style="background:hsl(${hash},48%,26%);color:hsl(${hash},70%,84%)">${initial}</span>`;
+}
+function timeAgo(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const diffMin = Math.round((Date.now() - d.getTime()) / 60000);
+  if (diffMin < 1) return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return `${diffH}h ago`;
+  return `${Math.round(diffH / 24)}d ago`;
+}
+
+// Company News (yfinance) publishes ISO 8601 ("2026-08-22T12:33:00Z");
+// Market News (RSS feeds like MarketWatch) publishes RFC 822
+// ("Sat, 22 Aug 2026 13:01:00 GMT") — a plain string sort mixes formats
+// and produces garbage ordering (an RFC-822 string starting with a
+// weekday name doesn't compare correctly against an ISO string), so real
+// months-old items were surfacing as "most recent." Date.parse() handles
+// both formats correctly; anything unparseable sorts last rather than
+// crashing or landing at a misleading position.
+function newsTs(iso) {
+  const t = Date.parse(iso || '');
+  return isNaN(t) ? 0 : t;
+}
+
+function buildNewsPool() {
   const meEntries = Object.entries(DATA.material_events || {})
     .flatMap(([ticker, filings]) => filings.map(f => ({ ticker, ...f })))
     .sort((a, b) => (a.date < b.date ? 1 : -1))
-    .slice(0, 2)
-    .map(f => ({ tier: 'material', ticker: f.ticker, source: f.date, title: f.labels.join(' · '), link: f.url }));
+    .slice(0, 6)
+    .map(f => ({ tier: 'material', ticker: f.ticker, source: 'SEC EDGAR', time: f.date, title: f.labels.join(' · '), link: f.url }));
 
   const cnEntries = Object.entries(DATA.company_news || {})
     .flatMap(([ticker, items]) => items.map(it => ({ ticker, ...it })))
-    .sort((a, b) => (b.importance || 0) - (a.importance || 0))
-    .slice(0, 3)
-    .map(n => ({ tier: 'company', ticker: n.ticker, source: n.publisher, title: n.title, link: n.link, sentiment_label: n.sentiment_label, importance: n.importance }));
+    .sort((a, b) => (b.importance || 0) - (a.importance || 0) || newsTs(b.published) - newsTs(a.published))
+    .slice(0, 12)
+    .map(n => ({ tier: 'company', ticker: n.ticker, source: n.publisher, time: n.published, title: n.title, link: n.link, sentiment_label: n.sentiment_label, importance: n.importance }));
 
   const mktEntries = (DATA.news || [])
-    .slice(0, 2)
-    .map(n => ({ tier: 'market', ticker: null, source: n.source, title: n.title, link: n.link, sentiment_label: n.sentiment_label }));
+    .slice()
+    .sort((a, b) => newsTs(b.published) - newsTs(a.published))
+    .slice(0, 10)
+    .map(n => ({ tier: 'market', ticker: null, source: n.source, time: n.published, title: n.title, link: n.link, sentiment_label: n.sentiment_label }));
 
-  const combined = [...meEntries, ...cnEntries, ...mktEntries];
-  if (combined.length === 0) {
-    empty.style.display = 'block';
-    list.innerHTML = '';
+  return [...meEntries, ...cnEntries, ...mktEntries];
+}
+
+function renderNewsChips() {
+  const wrap = document.getElementById('news-chips');
+  wrap.innerHTML = NEWS_FILTERS.map(f =>
+    `<button type="button" class="news-chip${f.key === newsFilter ? ' active' : ''}" data-filter="${f.key}">${f.label}</button>`
+  ).join('');
+  wrap.querySelectorAll('.news-chip').forEach(btn => {
+    btn.addEventListener('click', () => { newsFilter = btn.dataset.filter; renderNewsChips(); renderNewsList(); });
+  });
+}
+
+function renderNewsList() {
+  const list = document.getElementById('news-condensed-list');
+  const items = newsFilter === 'all' ? newsPool : newsPool.filter(n => n.tier === newsFilter);
+  document.getElementById('news-count').textContent = `${items.length} headline${items.length === 1 ? '' : 's'}`;
+  if (items.length === 0) {
+    list.innerHTML = `<div class="empty-state">Nothing in this category right now.</div>`;
     return;
   }
-  empty.style.display = 'none';
-  const tierLabel = { material: 'Material', company: 'Company', market: 'Market' };
-  list.innerHTML = combined.map(n => `
+  list.innerHTML = items.map(n => `
     <div class="news-item">
       <div class="news-source-row">
-        <span class="news-tier-badge ${n.tier}">${tierLabel[n.tier]}</span>
+        <span class="news-tier-badge ${n.tier}">${NEWS_TIER_LABEL[n.tier]}</span>
         ${n.ticker ? tickerLink(n.ticker, `<span class="news-item-ticker">${n.ticker}</span>`) : ''}
+        ${pubAvatarHtml(n.source)}
         <span class="news-source">${n.source}</span>
+        <span class="news-time">${timeAgo(n.time)}</span>
         ${n.importance ? `<span class="news-importance" title="${n.importance}/5 importance">${importanceDots(n.importance)}</span>` : ''}
         ${n.sentiment_label && n.sentiment_label !== 'Neutral' ? `<span class="label-pill ${labelClass(n.sentiment_label)}">${n.sentiment_label}</span>` : ''}
       </div>
       <p class="news-title"><a href="${n.link}" target="_blank" rel="noopener">${n.title}</a></p>
     </div>
   `).join('');
+}
+
+// Material Events have no sentiment field at all (a regulatory disclosure
+// isn't bullish/bearish), so the pulse is computed over company + market
+// tiers only — the two tiers that actually carry a sentiment_label.
+function renderNewsPulse() {
+  const scored = newsPool.filter(n => n.tier !== 'material');
+  const bull = scored.filter(n => n.sentiment_label === 'Bullish').length;
+  const bear = scored.filter(n => n.sentiment_label === 'Bearish').length;
+  const neutral = scored.length - bull - bear;
+  const total = scored.length || 1;
+  document.getElementById('news-pulse-bar').innerHTML =
+    `<span class="news-pulse-seg bull" style="width:${bull / total * 100}%"></span>` +
+    `<span class="news-pulse-seg neutral" style="width:${neutral / total * 100}%"></span>` +
+    `<span class="news-pulse-seg bear" style="width:${bear / total * 100}%"></span>`;
+  const row = (cls, label, count) =>
+    `<div class="news-pulse-row"><span class="news-pulse-row-label"><span class="news-pulse-dot" style="background:var(--${cls})"></span>${label}</span><span class="news-pulse-row-count">${count}</span></div>`;
+  document.getElementById('news-pulse-legend').innerHTML =
+    row('bull', 'Bullish', bull) + row('gray', 'Neutral', neutral) + row('bear', 'Bearish', bear);
+  document.getElementById('news-pulse-caption').textContent =
+    `Based on ${scored.length} ranked headline${scored.length === 1 ? '' : 's'} today`;
+}
+
+// Real mention counts across the pool, not a fixed editorial pick — a
+// ticker appearing in Material + Company news today shows up here
+// because it's genuinely getting attention, not because it's flagship.
+function renderNewsTrending() {
+  const counts = {};
+  newsPool.forEach(n => { if (n.ticker) counts[n.ticker] = (counts[n.ticker] || 0) + 1; });
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const el = document.getElementById('news-trending-list');
+  el.innerHTML = top.length === 0
+    ? '<span class="spark-empty">No ticker mentions yet</span>'
+    : top.map(([sym, count]) => `<span class="news-trending-chip" data-ticker="${sym}">${sym} <span class="news-trending-count">${count}</span></span>`).join('');
+  // No manual click binding needed — the document-level [data-ticker]
+  // delegate (see keydown/click listeners above) already opens the
+  // chart modal for any element carrying this attribute.
+}
+
+function renderCondensedNews() {
+  newsPool = buildNewsPool();
+  const empty = document.getElementById('news-condensed-empty');
+  const layout = document.getElementById('news-layout-wrap');
+  const chips = document.getElementById('news-chips');
+  if (newsPool.length === 0) {
+    empty.style.display = 'block';
+    layout.style.display = 'none';
+    chips.style.display = 'none';
+    document.getElementById('news-count').textContent = '';
+    return;
+  }
+  empty.style.display = 'none';
+  layout.style.display = '';
+  chips.style.display = '';
+  renderNewsChips();
+  renderNewsList();
+  renderNewsPulse();
+  renderNewsTrending();
 }
 renderCondensedNews();
 
