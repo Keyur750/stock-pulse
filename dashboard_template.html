@@ -1469,7 +1469,9 @@ const MKT_ICON_BY_SYMBOL = {
   '^GSPC': '🇺🇸', '^IXIC': '🇺🇸', '^DJI': '🇺🇸', '^RUT': '🇺🇸', '^VIX': '🇺🇸',
   '^GSPTSE': '🇨🇦', 'USDCAD=X': '🇨🇦',
   '^N225': '🇯🇵', '^NSEI': '🇮🇳', '000001.SS': '🇨🇳', '^KS11': '🇰🇷',
-  'BTC-USD': '₿', 'ETH-USD': 'Ξ', 'GC=F': '🥇', 'SI=F': '🥈', 'CL=F': '🛢️',
+  '^FTSE': '🇬🇧', '^GDAXI': '🇩🇪', '^FCHI': '🇫🇷', '^HSI': '🇭🇰',
+  'BTC-USD': '₿', 'ETH-USD': 'Ξ', 'SOL-USD': '◎', 'XRP-USD': '🪙', 'BNB-USD': '🪙', 'DOGE-USD': '🐕',
+  'GC=F': '🥇', 'SI=F': '🥈', 'CL=F': '🛢️', 'BZ=F': '🛢️', 'NG=F': '🔥', 'HG=F': '🟠',
 };
 const MKT_FILTERS = [
   { key: 'all', label: 'All' },
@@ -1482,13 +1484,22 @@ const MKT_FILTERS = [
 // — that's the literal "Canadian indexes next to the US ones" ask, not
 // just adjacent in the grid but grouped under the same filter.
 function mktBucket(category) { return (category === 'US' || category === 'Canada') ? 'indices' : (category || '').toLowerCase(); }
+// FX pairs need 4dp regardless of magnitude (a 1.38-ish rate still moves
+// in fractions of a cent that matter); sub-$1 instruments (e.g. Dogecoin)
+// need it for the opposite reason — 2dp rounds a real double-digit-percent
+// move down to "no visible change." Both cases, never fabricate the extra
+// precision if the backend didn't send it (market_data.py now rounds
+// sub-$1 prices to 6dp for exactly this reason).
+function mktNeedsPrecision(symbol, price) { return symbol.endsWith('=X') || (price !== null && price !== undefined && price < 1); }
 function mktFmtPrice(symbol, price) {
   if (price === null || price === undefined) return '—';
-  return symbol.endsWith('=X') ? price.toFixed(4) : fmtPrice(price);
+  if (symbol.endsWith('=X')) return price.toFixed(4); // exchange rate, no $ prefix
+  if (price < 1) return '$' + price.toFixed(4); // sub-$1 instrument, still a dollar price
+  return fmtPrice(price);
 }
-function mktFmtAbs(symbol, val) {
+function mktFmtAbs(symbol, val, price) {
   if (val === null || val === undefined) return null;
-  const dp = symbol.endsWith('=X') ? 4 : 2;
+  const dp = mktNeedsPrecision(symbol, price) ? 4 : 2;
   return `${val >= 0 ? '+' : ''}${val.toFixed(dp)}`;
 }
 let mktData = {};
@@ -1562,7 +1573,7 @@ function renderMarketsGrid() {
   grid.innerHTML = entries.map(([symbol, m]) => {
     const cls = chgClass(m.change_pct);
     const icon = MKT_ICON_BY_SYMBOL[symbol] || '';
-    const absChg = mktFmtAbs(symbol, (m.previous_close != null && m.price != null) ? (m.price - m.previous_close) : null);
+    const absChg = mktFmtAbs(symbol, (m.previous_close != null && m.price != null) ? (m.price - m.previous_close) : null, m.price);
     return `<div class="market-tile ${cls}" data-ticker="${symbol}">
       <div class="market-tile-top">
         <div class="market-tile-name">${m.name}</div>

@@ -25,6 +25,22 @@ INDICES = [
 # doesn't give on its own. ^TX60 / ^SPTSX60 (S&P/TSX 60) and TSX Venture
 # (^JX) were checked live and don't resolve on yfinance — not included
 # rather than guessed at.
+#
+# Expanded 2026-08-23 (crypto/commodities/global indices): curated to
+# genuinely well-known names, not every symbol yfinance happens to carry
+# — every one verified live before being added. Crypto: SOL/XRP/BNB/DOGE
+# are consistently the next-most-tracked names after BTC/ETH by market
+# cap and retail attention; ADA and others left out to keep this a
+# "famous names" strip, not a full market cap ranking. Commodities:
+# Natural Gas and Copper are the standard "energy + industrial metal"
+# pair alongside Gold/Silver/Oil (copper specifically tracked as a
+# growth-cycle bellwether, "Dr. Copper"); Brent Crude is the other half
+# of the oil benchmark most financial media actually quotes alongside
+# WTI, hence renaming the existing entry to disambiguate. Global indices:
+# FTSE 100 (UK), DAX (Germany), CAC 40 (France), and Hang Seng (Hong
+# Kong) were the clearest real gaps — the prior four (Nikkei/Nifty/
+# Shanghai/KOSPI) were all Asia-Pacific, with zero of Europe or Hong
+# Kong's financial hub represented.
 MACRO_INSTRUMENTS = [
     ("^GSPC", "S&P 500", "US"),
     ("^IXIC", "Nasdaq Composite", "US"),
@@ -35,13 +51,24 @@ MACRO_INSTRUMENTS = [
     ("USDCAD=X", "USD/CAD", "Canada"),
     ("BTC-USD", "Bitcoin", "Crypto"),
     ("ETH-USD", "Ethereum", "Crypto"),
+    ("SOL-USD", "Solana", "Crypto"),
+    ("XRP-USD", "XRP", "Crypto"),
+    ("BNB-USD", "BNB", "Crypto"),
+    ("DOGE-USD", "Dogecoin", "Crypto"),
     ("GC=F", "Gold", "Commodities"),
     ("SI=F", "Silver", "Commodities"),
-    ("CL=F", "Crude Oil", "Commodities"),
+    ("CL=F", "Crude Oil (WTI)", "Commodities"),
+    ("BZ=F", "Brent Crude", "Commodities"),
+    ("NG=F", "Natural Gas", "Commodities"),
+    ("HG=F", "Copper", "Commodities"),
     ("^N225", "Nikkei 225", "Global"),
     ("^NSEI", "Nifty 50", "Global"),
     ("000001.SS", "Shanghai Composite", "Global"),
     ("^KS11", "KOSPI", "Global"),
+    ("^FTSE", "FTSE 100", "Global"),
+    ("^GDAXI", "DAX", "Global"),
+    ("^FCHI", "CAC 40", "Global"),
+    ("^HSI", "Hang Seng", "Global"),
 ]
 
 # (symbol, display name, approx. S&P 500 sector weight %) — weight drives
@@ -67,7 +94,15 @@ def fetch_quotes(symbols: list, period: str = "5d") -> dict:
     its daily closes over `period` — the same call powers both the price
     ticker everywhere and the self-hosted charts (no separate round-trip
     needed). Symbols that fail to fetch (delisted, bad ticker, network
-    hiccup) are simply omitted rather than breaking the whole run."""
+    hiccup) are simply omitted rather than breaking the whole run.
+
+    `price` is rounded to 2 decimals for anything >= $1 (every flagship
+    equity), but 6 decimals below that — added 2026-08-23 when adding
+    Dogecoin to the Markets strip surfaced a real precision loss: a flat
+    2dp rounding was truncating a sub-$1 price (~$0.091) to $0.09 before
+    it ever reached the payload, silently erasing an 8%+ real daily move
+    (change_pct itself was always computed from the unrounded floats, so
+    only the displayed price/derived $-change were wrong, not the %)."""
     out = {}
     for sym in symbols:
         try:
@@ -78,11 +113,12 @@ def fetch_quotes(symbols: list, period: str = "5d") -> dict:
             last = float(closes.iloc[-1])
             prev = float(closes.iloc[-2])
             change_pct = round((last - prev) / prev * 100, 2) if prev else 0.0
+            price_decimals = 2 if last >= 1 else 6
             history = [
                 {"date": idx.strftime("%Y-%m-%d"), "close": round(float(v), 4)}
                 for idx, v in closes.items()
             ]
-            out[sym] = {"price": round(last, 2), "change_pct": change_pct, "history": history}
+            out[sym] = {"price": round(last, price_decimals), "change_pct": change_pct, "history": history}
         except Exception:
             continue
     return out
