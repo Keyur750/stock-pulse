@@ -269,7 +269,16 @@
      automatically -- no separate mobile-breakpoint override needed. */
   .radar-center-circle { transition: r .15s ease; }
   .radar-center-val-svg { font-family: 'JetBrains Mono', monospace; font-size: 21px; font-weight: 800; }
-  .radar-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; fill: var(--text-secondary); transition: fill .15s ease; }
+  /* Font-size here is in the SVG's own viewBox units (0-240), not real
+     CSS px -- the chart displays at 420px wide (1.75x the viewBox), so
+     this value renders 1.75x bigger on screen than the same number would
+     as plain CSS text. Measured live: 11 rendered the axis label
+     "Growth" at ~25.6px real height vs. the legend row's own "Growth"
+     title (.fund-legend-label, 12.5px CSS) at ~15.2px -- a real ~1.7x
+     mismatch for identical text in the same component, not just a
+     visual impression. 8 renders at ~14px, close parity with the legend
+     while staying clearly legible directly on the chart. */
+  .radar-label { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; fill: var(--text-secondary); transition: fill .15s ease; }
   .radar-label.active { fill: var(--text-primary); }
   .radar-dot { cursor: pointer; transition: r .18s ease, filter .18s ease; }
   .radar-dot.active { r: 6.5; filter: drop-shadow(0 0 5px var(--c, currentColor)); }
