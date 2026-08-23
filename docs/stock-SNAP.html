@@ -248,19 +248,19 @@
      .fund-legend is width-capped (not flex:1) so label and value stay
      adjacent instead of the value stranding at the row's far edge --
      caught live on the original layout. */
-  .fund-radar-wrap { display: flex; align-items: center; justify-content: center; gap: 72px; flex-wrap: wrap; }
-  .fund-radar-chart { position: relative; flex-shrink: 0; width: 300px; }
+  .fund-radar-wrap { display: flex; align-items: center; justify-content: center; gap: 100px; flex-wrap: wrap; }
+  .fund-radar-chart { position: relative; flex-shrink: 0; width: 420px; }
   .fund-radar-svg { width: 100%; height: auto; display: block; overflow: visible; }
-  .radar-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 92px; height: 92px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
-  .radar-center-val { font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 800; line-height: 1; letter-spacing: -.01em; }
-  .radar-center-label { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; letter-spacing: .07em; color: var(--text-faint); margin-top: 4px; text-transform: uppercase; }
+  .radar-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 128px; height: 128px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+  .radar-center-val { font-family: 'JetBrains Mono', monospace; font-size: 32px; font-weight: 800; line-height: 1; letter-spacing: -.01em; }
+  .radar-center-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; letter-spacing: .07em; color: var(--text-faint); margin-top: 5px; text-transform: uppercase; }
   .radar-label { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; fill: var(--text-secondary); transition: fill .15s ease; }
   .radar-label.active { fill: var(--text-primary); }
   .radar-dot { cursor: pointer; transition: r .18s ease, filter .18s ease; }
   .radar-dot.active { r: 6.5; filter: drop-shadow(0 0 5px var(--c, currentColor)); }
   .radar-hit { cursor: pointer; }
   .fund-tooltip { position: absolute; pointer-events: none; background: var(--surface-3); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: 700; box-shadow: var(--shadow-md); opacity: 0; transition: opacity .1s ease; white-space: nowrap; transform: translate(-50%, 0); z-index: 5; }
-  .fund-legend { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 440px; min-width: 240px; }
+  .fund-legend { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 540px; min-width: 260px; }
   .fund-legend-row { display: flex; flex-direction: column; gap: 9px; padding: 13px 15px; border-radius: var(--radius-md); background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--row-color, var(--border)); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
   .fund-legend-row:hover, .fund-legend-row.active { transform: translateY(-2px); border-color: var(--row-color, var(--border-hover)); box-shadow: 0 10px 22px -12px var(--row-color, transparent), var(--shadow-sm); }
   .fund-legend-row-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
@@ -270,7 +270,7 @@
   .fund-legend-val { font-size: 18px; font-weight: 800; flex-shrink: 0; font-family: 'JetBrains Mono', monospace; }
   .fund-legend-bar-track { height: 5px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
   .fund-legend-bar-fill { height: 100%; width: 0%; border-radius: 3px; transition: width .9s cubic-bezier(.22,.9,.32,1); }
-  @media (max-width: 560px) { .fund-radar-wrap { flex-direction: column; gap: 32px; } .fund-radar-chart { width: 240px; } }
+  @media (max-width: 560px) { .fund-radar-wrap { flex-direction: column; gap: 32px; } .fund-radar-chart { width: 240px; } .radar-center { width: 76px; height: 76px; } .radar-center-val { font-size: 20px; } .radar-center-label { font-size: 7px; } }
 
   /* Financials card */
   .fin-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
