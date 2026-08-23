@@ -96,6 +96,12 @@
   .nav-wrap.scrolled { background: rgba(15,28,46,0.97); box-shadow: 0 8px 24px -12px rgba(0,0,0,0.5); }
   nav.topnav { max-width: 1560px; margin: 0 auto; padding: 14px clamp(20px, 4vw, 56px); display: flex; align-items: center; justify-content: space-between; transition: padding .2s ease; }
   .nav-wrap.scrolled nav.topnav { padding-top: 10px; padding-bottom: 10px; }
+  /* nav-links + nav-search grouped into one right-hand flex block --
+     without this, topnav's 3 direct children (brand/nav-links/nav-search)
+     under justify-content:space-between spread evenly, stranding
+     nav-links floating in the dead center of the bar instead of sitting
+     next to search on the right (user feedback, 2026-08-23). */
+  .nav-right { display: flex; align-items: center; gap: 20px; }
   .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; }
   .brand-mark { width: 30px; height: 30px; border-radius: 7px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .brand-word { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
@@ -528,16 +534,18 @@
       </div>
       <span class="brand-word">UNDERTOW</span>
     </a>
-    <div class="nav-links">
-      <a href="dashboard.html">Dashboard</a>
-      <a href="sentiment.html">Sentiment</a>
-      <a href="about.html" class="nav-secondary">About</a>
-      <a href="careers.html" class="nav-secondary">Careers</a>
-    </div>
-    <div class="nav-search">
-      <span class="nav-search-icon">⌕</span>
-      <input type="text" id="nav-search-input" placeholder="Search ticker..." autocomplete="off">
-      <div class="nav-search-results" id="nav-search-results"></div>
+    <div class="nav-right">
+      <div class="nav-links">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="sentiment.html">Sentiment</a>
+        <a href="about.html" class="nav-secondary">About</a>
+        <a href="careers.html" class="nav-secondary">Careers</a>
+      </div>
+      <div class="nav-search">
+        <span class="nav-search-icon">⌕</span>
+        <input type="text" id="nav-search-input" placeholder="Search ticker..." autocomplete="off">
+        <div class="nav-search-results" id="nav-search-results"></div>
+      </div>
     </div>
   </nav>
 </div>
