@@ -18,13 +18,21 @@ INDICES = [
 # category is a display grouping only, not used for weighting. ^NSEI
 # (Nifty 50) chosen over ^BSESN (Sensex) as India's benchmark — more
 # commonly quoted internationally. Every symbol here was verified live
-# against yfinance before being added.
+# against yfinance before being added. Canadian entries (added
+# 2026-08-23): ^GSPTSE is the S&P/TSX Composite, Canada's headline
+# benchmark (TSX's own "S&P 500 equivalent"); USDCAD=X is the exchange
+# rate, real context for a Canadian-market read that a bare index level
+# doesn't give on its own. ^TX60 / ^SPTSX60 (S&P/TSX 60) and TSX Venture
+# (^JX) were checked live and don't resolve on yfinance — not included
+# rather than guessed at.
 MACRO_INSTRUMENTS = [
     ("^GSPC", "S&P 500", "US"),
     ("^IXIC", "Nasdaq Composite", "US"),
     ("^DJI", "Dow Jones", "US"),
     ("^RUT", "Russell 2000", "US"),
     ("^VIX", "VIX", "US"),
+    ("^GSPTSE", "S&P/TSX Composite", "Canada"),
+    ("USDCAD=X", "USD/CAD", "Canada"),
     ("BTC-USD", "Bitcoin", "Crypto"),
     ("ETH-USD", "Ethereum", "Crypto"),
     ("GC=F", "Gold", "Commodities"),

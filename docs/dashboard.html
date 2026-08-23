@@ -97,19 +97,51 @@
   .signal-view-link { font-size: 12px; font-weight: 600; color: var(--accent); text-decoration: none; }
   .signal-view-link:hover { text-decoration: underline; }
 
-  /* Markets strip */
-  .markets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
-  .market-tile { border-radius: var(--radius-md); padding: 10px 12px; border: 1px solid var(--border); background: var(--surface-1); border-left: 2px solid var(--gray); cursor: pointer; transition: background-color .15s ease, border-color .15s ease; }
-  .market-tile:hover { background: var(--surface-2); border-color: var(--border-hover); }
-  .market-tile.up { border-left-color: var(--bull); }
-  .market-tile.down { border-left-color: var(--bear); }
+  /* Markets strip -- Site visual pass, 2026-08-23: filter chips + breadth
+     badge + live-as-of stamp above a redesigned tile (gradient surface,
+     top accent bar instead of a left rule, pill-style change badge,
+     gradient-filled sparkline). Scoped to this file only -- the strip is
+     dashboard-only, unlike design/components.css's genuinely shared
+     pieces. */
+  .mkt-asof { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-faint); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .mkt-live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--bull); flex-shrink: 0; animation: livePulse 2s ease-in-out infinite; }
+  .mkt-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin: 12px 0 14px; }
+  .mkt-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .mkt-chip { font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 600; padding: 5px 13px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-secondary); cursor: pointer; transition: all .14s ease; }
+  .mkt-chip:hover { border-color: var(--border-hover); color: var(--text-primary); }
+  .mkt-chip.active { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent-on-soft); }
+  .mkt-toolbar-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .mkt-breadth { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-faint); display: flex; align-items: center; gap: 8px; }
+  .mkt-breadth .up { color: var(--bull); font-weight: 700; }
+  .mkt-breadth .down { color: var(--bear); font-weight: 700; }
+  .mkt-sort-btn { font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 600; padding: 5px 13px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text-secondary); cursor: pointer; transition: all .14s ease; }
+  .mkt-sort-btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
+  .mkt-sort-btn.active { border-color: var(--accent-border); color: var(--accent-on-soft); background: var(--accent-dim); }
+
+  .markets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 10px; }
+  .market-tile {
+    position: relative; overflow: hidden; border-radius: var(--radius-lg); padding: 13px 15px 12px;
+    border: 1px solid var(--border); background: linear-gradient(160deg, var(--surface-2) 0%, var(--surface-1) 100%);
+    cursor: pointer; transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+  }
+  .market-tile::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2.5px; background: var(--gray); opacity: .5; transition: opacity .16s ease, background-color .16s ease; }
+  .market-tile.up::before { background: var(--bull); }
+  .market-tile.down::before { background: var(--bear); }
+  .market-tile:hover { transform: translateY(-2px); border-color: var(--border-hover); box-shadow: var(--shadow-md); }
+  .market-tile:hover::before { opacity: 1; }
+  .market-tile.skeleton { cursor: default; }
+  .market-tile.skeleton::before { display: none; }
+  .market-tile-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .market-tile-flag { font-size: 12px; line-height: 1; opacity: .85; flex-shrink: 0; }
   .market-tile-name { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .15s ease; }
   .market-tile:hover .market-tile-name { color: var(--accent); }
-  .market-tile-price { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; margin-top: 4px; }
-  .market-tile-chg { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; margin-top: 1px; }
-  .market-tile-chg.up { color: var(--bull); }
-  .market-tile-chg.down { color: var(--bear); }
-  .market-tile-spark { height: 20px; margin-top: 5px; }
+  .market-tile-price { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; margin-top: 7px; letter-spacing: -0.01em; }
+  .market-tile-chg-row { display: flex; align-items: center; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+  .market-tile-chg { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 5px; }
+  .market-tile-chg.up { color: var(--bull); background: var(--bull-soft); }
+  .market-tile-chg.down { color: var(--bear-on-soft); background: var(--bear-soft); }
+  .market-tile-chg-abs { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint); }
+  .market-tile-spark { height: 28px; margin-top: 9px; display: block; }
 
   /* Tables (kept as generic base styles) */
   table { width: 100%; border-collapse: collapse; }
@@ -340,8 +372,18 @@
 <main>
 
 <section class="block" id="markets-strip" style="margin-top:24px;">
-  <div class="block-header"><span class="block-title accent">Markets</span></div>
-  <p class="block-sub">Major indices, crypto, and commodities — updates every 15 minutes</p>
+  <div class="block-header">
+    <span class="block-title accent">Markets</span>
+    <span class="mkt-asof" id="markets-asof"></span>
+  </div>
+  <p class="block-sub">US &amp; Canadian indices, crypto, commodities, and global markets — click any card for a full chart</p>
+  <div class="mkt-toolbar">
+    <div class="mkt-chips" id="markets-chips"></div>
+    <div class="mkt-toolbar-right">
+      <span class="mkt-breadth" id="markets-breadth"></span>
+      <button type="button" class="mkt-sort-btn" id="markets-sort-btn">Sort: Default</button>
+    </div>
+  </div>
   <div class="markets-grid" id="markets-grid"></div>
 </section>
 
@@ -1488,32 +1530,137 @@ function renderMovers() {
 }
 renderMovers();
 
-// Markets strip — indices, crypto, commodities, global markets. No
-// once-daily source (not part of main.py's pipeline), so this is driven
-// entirely by quotes.json's "macro" key via pollQuotes below; starts as
-// a loading skeleton until the first poll resolves.
-function renderMarketsStrip(macro) {
+// Markets strip — US + Canadian indices, crypto, commodities, global
+// markets. No once-daily source (not part of main.py's pipeline), so this
+// is driven entirely by quotes.json's "macro" key via pollQuotes below;
+// starts as a loading skeleton until the first poll resolves. Filter/sort
+// are pure client-side state (mktFilter/mktSortMovers) re-rendered from
+// the cached mktData on every click — never needs a new fetch, so tab
+// switches feel instant even on a 15-minute-refresh data source.
+const MKT_ICON_BY_SYMBOL = {
+  '^GSPC': '🇺🇸', '^IXIC': '🇺🇸', '^DJI': '🇺🇸', '^RUT': '🇺🇸', '^VIX': '🇺🇸',
+  '^GSPTSE': '🇨🇦', 'USDCAD=X': '🇨🇦',
+  '^N225': '🇯🇵', '^NSEI': '🇮🇳', '000001.SS': '🇨🇳', '^KS11': '🇰🇷',
+  'BTC-USD': '₿', 'ETH-USD': 'Ξ', 'GC=F': '🥇', 'SI=F': '🥈', 'CL=F': '🛢️',
+};
+const MKT_FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'indices', label: 'Indices' },
+  { key: 'crypto', label: 'Crypto' },
+  { key: 'commodities', label: 'Commodities' },
+  { key: 'global', label: 'Global' },
+];
+// US and Canada are two flags on one "Indices" tab, not two separate tabs
+// — that's the literal "Canadian indexes next to the US ones" ask, not
+// just adjacent in the grid but grouped under the same filter.
+function mktBucket(category) { return (category === 'US' || category === 'Canada') ? 'indices' : (category || '').toLowerCase(); }
+function mktFmtPrice(symbol, price) {
+  if (price === null || price === undefined) return '—';
+  return symbol.endsWith('=X') ? price.toFixed(4) : fmtPrice(price);
+}
+function mktFmtAbs(symbol, val) {
+  if (val === null || val === undefined) return null;
+  const dp = symbol.endsWith('=X') ? 4 : 2;
+  return `${val >= 0 ? '+' : ''}${val.toFixed(dp)}`;
+}
+let mktData = {};
+let mktFilter = 'all';
+let mktSortMovers = false;
+
+// Same self-hosted-sparkline approach as sparklineSvg (colored by
+// changePct, never by the line's own shape — see that function's comment
+// for why), extended with a soft gradient fill under the line so these
+// read as small area charts rather than a bare polyline against an empty
+// tile — cheap, real signal density gain for a card this size.
+function marketSparkline(history, changePct, symbol) {
+  const width = 100, height = 28;
+  if (!history || history.length < 2) return `<span class="spark-empty">—</span>`;
+  const closes = history.map(h => h.close);
+  const min = Math.min(...closes), max = Math.max(...closes);
+  const range = (max - min) || (max * 0.01) || 1;
+  const stepX = width / (closes.length - 1);
+  const linePts = closes.map((c, i) => `${(i * stepX).toFixed(1)},${(height - ((c - min) / range) * height).toFixed(1)}`).join(' ');
+  const color = (changePct === null || changePct === undefined) ? 'var(--accent)' : (changePct >= 0 ? 'var(--bull)' : 'var(--bear)');
+  const gid = 'mktGrad-' + symbol.replace(/[^a-zA-Z0-9]/g, '');
+  return `<svg class="market-tile-spark" width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">` +
+    `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">` +
+    `<stop offset="0%" stop-color="${color}" stop-opacity="0.35"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/>` +
+    `</linearGradient></defs>` +
+    `<polygon points="0,${height} ${linePts} ${width},${height}" fill="url(#${gid})"/>` +
+    `<polyline points="${linePts}" fill="none" style="stroke:${color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+function renderMarketsChips() {
+  const wrap = document.getElementById('markets-chips');
+  wrap.innerHTML = MKT_FILTERS.map(f =>
+    `<button type="button" class="mkt-chip${f.key === mktFilter ? ' active' : ''}" data-filter="${f.key}">${f.label}</button>`
+  ).join('');
+  wrap.querySelectorAll('.mkt-chip').forEach(btn => {
+    btn.addEventListener('click', () => { mktFilter = btn.dataset.filter; renderMarketsChips(); renderMarketsGrid(); });
+  });
+  const sortBtn = document.getElementById('markets-sort-btn');
+  sortBtn.textContent = mktSortMovers ? 'Sort: Biggest Movers' : 'Sort: Default';
+  sortBtn.classList.toggle('active', mktSortMovers);
+}
+document.getElementById('markets-sort-btn').addEventListener('click', () => {
+  mktSortMovers = !mktSortMovers;
+  renderMarketsChips();
+  renderMarketsGrid();
+});
+
+function renderMarketsBreadth() {
+  const el = document.getElementById('markets-breadth');
+  const entries = Object.values(mktData);
+  if (entries.length === 0) { el.innerHTML = ''; return; }
+  const up = entries.filter(m => (m.change_pct ?? 0) >= 0).length;
+  el.innerHTML = `<span class="up">▲ ${up}</span><span class="down">▼ ${entries.length - up}</span>`;
+}
+
+function renderMarketsGrid() {
   const grid = document.getElementById('markets-grid');
-  const entries = Object.entries(macro || {});
+  let entries = Object.entries(mktData);
   if (entries.length === 0) {
     grid.innerHTML = Array.from({ length: 8 }).map(() =>
-      '<div class="market-tile"><div class="market-tile-name">Loading…</div></div>'
+      '<div class="market-tile skeleton"><div class="market-tile-name">Loading…</div></div>'
     ).join('');
+    return;
+  }
+  if (mktFilter !== 'all') entries = entries.filter(([, m]) => mktBucket(m.category) === mktFilter);
+  if (mktSortMovers) entries = entries.slice().sort((a, b) => Math.abs(b[1].change_pct ?? 0) - Math.abs(a[1].change_pct ?? 0));
+  if (entries.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">Nothing in this category right now.</div>`;
     return;
   }
   grid.innerHTML = entries.map(([symbol, m]) => {
     const cls = chgClass(m.change_pct);
-    const spark = sparklineSvg(m.history, 'market-tile-spark', 100, 20, m.change_pct);
+    const icon = MKT_ICON_BY_SYMBOL[symbol] || '';
+    const absChg = mktFmtAbs(symbol, (m.previous_close != null && m.price != null) ? (m.price - m.previous_close) : null);
     return `<div class="market-tile ${cls}" data-ticker="${symbol}">
-      <div class="market-tile-name">${m.name}</div>
-      <div class="market-tile-price">${fmtPrice(m.price)}</div>
-      <div class="market-tile-chg ${cls}">${fmtChg(m.change_pct)}</div>
-      ${spark}
+      <div class="market-tile-top">
+        <div class="market-tile-name">${m.name}</div>
+        ${icon ? `<span class="market-tile-flag">${icon}</span>` : ''}
+      </div>
+      <div class="market-tile-price">${mktFmtPrice(symbol, m.price)}</div>
+      <div class="market-tile-chg-row">
+        <span class="market-tile-chg ${cls}">${fmtChg(m.change_pct)}</span>
+        ${absChg !== null ? `<span class="market-tile-chg-abs">${absChg}</span>` : ''}
+      </div>
+      ${marketSparkline(m.history, m.change_pct, symbol)}
     </div>`;
   }).join('');
   grid.querySelectorAll('.market-tile').forEach(tileEl => {
     tileEl.addEventListener('click', () => openChartModal(tileEl.dataset.ticker));
   });
+}
+
+function renderMarketsStrip(macro, generatedAt) {
+  mktData = macro || {};
+  renderMarketsChips();
+  renderMarketsBreadth();
+  renderMarketsGrid();
+  document.getElementById('markets-asof').innerHTML = generatedAt
+    ? `<span class="mkt-live-dot"></span>Live · as of ${generatedAt}`
+    : '';
 }
 renderMarketsStrip({});
 
@@ -1850,7 +1997,7 @@ renderAuthState();
 // on the once-a-day full pipeline since they don't change this fast.
 const QUOTES_POLL_INTERVAL_MS = 60000;
 
-function applyQuoteUpdates(quotes, macro) {
+function applyQuoteUpdates(quotes, macro, generatedAt) {
   latestQuotes = { ...quotes, ...(macro || {}) };
 
   [DATA.top_bullish, DATA.top_bearish, DATA.most_discussed, DATA.watchlist_grid].forEach(list => {
@@ -1861,7 +2008,7 @@ function applyQuoteUpdates(quotes, macro) {
   });
 
   renderMovers();
-  renderMarketsStrip(macro || {});
+  renderMarketsStrip(macro || {}, generatedAt);
   renderMyWatchlist();
   renderTape();
 
@@ -1875,7 +2022,7 @@ async function pollQuotes() {
     const res = await fetch('quotes.json', { cache: 'no-store' });
     if (!res.ok) return;
     const payload = await res.json();
-    applyQuoteUpdates(payload.quotes || {}, payload.macro || {});
+    applyQuoteUpdates(payload.quotes || {}, payload.macro || {}, payload.generated_at);
   } catch (e) {
     // Silent — a missed refresh just means prices stay as they were until
     // the next poll; not worth surfacing as a user-facing error.
