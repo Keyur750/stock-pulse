@@ -231,45 +231,45 @@
   .glance-delta.up { color: var(--bull); } .glance-delta.down { color: var(--bear); }
   .fund-empty { color: var(--text-faint); font-size: 12.5px; }
 
-  /* Fundamentals & Market radar -- redesigned 2026-08-22 against
-     current fintech-dashboard practice (researched live, not guessed):
-     (1) lead with one trusted number -- the pillar's own overall score
-     now sits at the dead center of its own shape instead of only being
-     implied by the polygon's size; (2) depth via a soft radial glow
-     behind the shape plus a gradient fill, replacing the old flat
-     18%-opacity fill that read muddy against the darkest surface;
-     (3) a real reveal animation -- the polygon grows outward from
-     center, each legend ring gauge sweeps in, numbers count up --
-     gated on IntersectionObserver so it plays once, the moment the
-     card actually enters view, not on every scroll or before anyone's
-     looking. The flat legend dot is replaced with a small ring gauge
-     (same visual language as the header's big pillar dial, scaled
-     down) so a category's score reads consistently everywhere it
-     appears on the page.
+  /* Fundamentals & Market radar -- v2 (2026-08-22, reworked same day
+     after live feedback on the first pass: tying the whole shape's
+     fill to the overall score flooded the chart in one saturated
+     color that fought with the per-category dot colors instead of
+     complementing them, raw center text sat directly on top of chart
+     lines/dots with no legibility floor, and the thin hollow legend
+     rings read as generic loading spinners, not a real gauge. Current
+     approach: the shape itself stays the site's own accent blue
+     (brand-consistent, calm backdrop for the colored dots), the
+     overall score lives in a self-contained "medallion" -- a solid
+     dark disc with a thin score-colored ring and matching glow --
+     instead of floating text, and each legend row is its own card
+     with a gradient progress bar under the label instead of a tiny
+     ring competing with the number for the same real estate.
      .fund-legend is width-capped (not flex:1) so label and value stay
      adjacent instead of the value stranding at the row's far edge --
-     caught live on the original layout; gap below is measured against
-     the real rendered "Profitability" label, the longest of the set. */
+     caught live on the original layout. */
   .fund-radar-wrap { display: flex; align-items: center; justify-content: center; gap: 72px; flex-wrap: wrap; }
   .fund-radar-chart { position: relative; flex-shrink: 0; width: 300px; }
   .fund-radar-svg { width: 100%; height: auto; display: block; overflow: visible; }
-  .radar-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; }
-  .radar-center-val { font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -.01em; }
-  .radar-center-label { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; font-weight: 700; letter-spacing: .08em; color: var(--text-faint); margin-top: 4px; text-transform: uppercase; }
+  .radar-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 92px; height: 92px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+  .radar-center-val { font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 800; line-height: 1; letter-spacing: -.01em; }
+  .radar-center-label { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; letter-spacing: .07em; color: var(--text-faint); margin-top: 4px; text-transform: uppercase; }
   .radar-label { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; fill: var(--text-secondary); transition: fill .15s ease; }
   .radar-label.active { fill: var(--text-primary); }
   .radar-dot { cursor: pointer; transition: r .18s ease, filter .18s ease; }
   .radar-dot.active { r: 6.5; filter: drop-shadow(0 0 5px var(--c, currentColor)); }
   .radar-hit { cursor: pointer; }
   .fund-tooltip { position: absolute; pointer-events: none; background: var(--surface-3); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: 700; box-shadow: var(--shadow-md); opacity: 0; transition: opacity .1s ease; white-space: nowrap; transform: translate(-50%, 0); z-index: 5; }
-  .fund-legend { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 440px; min-width: 240px; }
-  .fund-legend-row { display: flex; align-items: center; gap: 13px; padding: 10px 12px; border-radius: var(--radius-md); cursor: pointer; transition: background-color .15s ease, transform .15s ease, box-shadow .15s ease; }
-  .fund-legend-row:hover, .fund-legend-row.active { background: var(--surface-3); transform: translateX(3px); box-shadow: inset 3px 0 0 0 var(--row-color, var(--accent)); }
-  .fund-legend-ring { flex-shrink: 0; display: block; }
+  .fund-legend { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 440px; min-width: 240px; }
+  .fund-legend-row { display: flex; flex-direction: column; gap: 9px; padding: 13px 15px; border-radius: var(--radius-md); background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--row-color, var(--border)); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+  .fund-legend-row:hover, .fund-legend-row.active { transform: translateY(-2px); border-color: var(--row-color, var(--border-hover)); box-shadow: 0 10px 22px -12px var(--row-color, transparent), var(--shadow-sm); }
+  .fund-legend-row-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
   .fund-legend-text { flex: 1; min-width: 0; }
   .fund-legend-label { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
-  .fund-legend-desc { font-size: 10.5px; color: var(--text-faint); margin-top: 1px; }
-  .fund-legend-val { font-size: 16px; font-weight: 800; flex-shrink: 0; min-width: 32px; text-align: right; }
+  .fund-legend-desc { font-size: 10.5px; color: var(--text-faint); margin-top: 2px; }
+  .fund-legend-val { font-size: 18px; font-weight: 800; flex-shrink: 0; font-family: 'JetBrains Mono', monospace; }
+  .fund-legend-bar-track { height: 5px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+  .fund-legend-bar-fill { height: 100%; width: 0%; border-radius: 3px; transition: width .9s cubic-bezier(.22,.9,.32,1); }
   @media (max-width: 560px) { .fund-radar-wrap { flex-direction: column; gap: 32px; } .fund-radar-chart { width: 240px; } }
 
   /* Financials card */
@@ -1352,35 +1352,10 @@ function animateCountUp(el, to, duration) {
   requestAnimationFrame(tick);
 }
 
-// Small ring gauge for a legend row -- same visual language as
-// pillarDialSvg's big header dial (rounded stroke, track + fill arc),
-// scaled down, so a category's score reads consistently whether it's
-// the headline pillar dial up top or a category row here. Starts empty
-// (stroke-dasharray "0 c") and is swept in by animateRingsIn.
-function miniRingSvg(v, color, size) {
-  size = size || 34;
-  const r = (size / 2) - 3.5, c = 2 * Math.PI * r, mid = size / 2;
-  const pct = (v === null || v === undefined) ? 0 : Math.max(0, Math.min(100, v));
-  return `<svg class="fund-legend-ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-    <circle cx="${mid}" cy="${mid}" r="${r.toFixed(1)}" fill="none" stroke="var(--border)" stroke-width="3"/>
-    <circle class="ring-fg" cx="${mid}" cy="${mid}" r="${r.toFixed(1)}" fill="none" stroke="${color}" stroke-width="3"
-      stroke-linecap="round" stroke-dasharray="0 ${c.toFixed(1)}" data-target="${((pct / 100) * c).toFixed(1)}" data-c="${c.toFixed(1)}"
-      transform="rotate(-90 ${mid} ${mid})"/>
-  </svg>`;
-}
-
-function animateRingsIn(container) {
-  container.querySelectorAll('.ring-fg').forEach((ring, i) => {
-    const target = parseFloat(ring.dataset.target), c = ring.dataset.c;
-    const start = performance.now(), duration = 700, delay = i * 70;
-    function tick(now) {
-      if (now - start < delay) { requestAnimationFrame(tick); return; }
-      const t = Math.min(1, (now - start - delay) / duration);
-      ring.setAttribute('stroke-dasharray', `${(target * easeOutCubic(t)).toFixed(1)} ${c}`);
-      if (t < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  });
+function hexToRgba(hex, alpha) {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16), g = parseInt(h.substring(2, 4), 16), b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 
 // A radar/snowflake chart: the polygon's SHAPE shows at a glance which
@@ -1444,10 +1419,10 @@ function renderFundamentalsRadar(fundamentals, overallScore) {
     return `<text data-key="${key}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}" dominant-baseline="middle" class="radar-label">${FUND_CATEGORY_META[key].label}</text>`;
   }).join('');
 
-  const glowColor = fundScoreColor(overallScore);
+  const scoreColor = fundScoreColor(overallScore);
   const centerHtml = (overallScore === null || overallScore === undefined) ? '' : `
-    <div class="radar-center">
-      <div class="radar-center-val mono" id="fund-center-val" style="color:${glowColor}">0</div>
+    <div class="radar-center" style="border-color:${scoreColor}; box-shadow:0 0 18px -5px ${hexToRgba(scoreColor, 0.65)}, 0 6px 18px -6px rgba(0,0,0,.5);">
+      <div class="radar-center-val mono" id="fund-center-val" style="color:${scoreColor}">0</div>
       <div class="radar-center-label">Business Score</div>
     </div>`;
 
@@ -1457,15 +1432,15 @@ function renderFundamentalsRadar(fundamentals, overallScore) {
         <svg viewBox="0 0 ${size} ${size}" class="fund-radar-svg">
           <defs>
             <radialGradient id="fundAura" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stop-color="${glowColor}" stop-opacity="0.22"/>
-              <stop offset="100%" stop-color="${glowColor}" stop-opacity="0"/>
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.14"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
             </radialGradient>
             <radialGradient id="fundFill" cx="50%" cy="50%" r="65%">
-              <stop offset="0%" stop-color="${glowColor}" stop-opacity="0.38"/>
-              <stop offset="100%" stop-color="${glowColor}" stop-opacity="0.06"/>
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.30"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.05"/>
             </radialGradient>
             <filter id="fundGlow" x="-60%" y="-60%" width="220%" height="220%">
-              <feGaussianBlur stdDeviation="3.2" result="blur"/>
+              <feGaussianBlur stdDeviation="2.4" result="blur"/>
               <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
           </defs>
@@ -1481,17 +1456,20 @@ function renderFundamentalsRadar(fundamentals, overallScore) {
     </div>`;
 
   const legendEl = document.getElementById('fund-legend');
-  legendEl.innerHTML = FUND_CATEGORY_KEYS.map(key => {
+  legendEl.innerHTML = FUND_CATEGORY_KEYS.map((key, i) => {
     const v = categories[key];
     const meta = FUND_CATEGORY_META[key];
     const color = fundScoreColor(v);
+    const valText = (v === null || v === undefined) ? 'n/a' : 0;
     return `<div class="fund-legend-row" data-key="${key}" style="--row-color:${color}">
-      ${miniRingSvg(v, color)}
-      <div class="fund-legend-text">
-        <div class="fund-legend-label">${meta.label}</div>
-        <div class="fund-legend-desc">${meta.desc}</div>
+      <div class="fund-legend-row-top">
+        <div class="fund-legend-text">
+          <div class="fund-legend-label">${meta.label}</div>
+          <div class="fund-legend-desc">${meta.desc}</div>
+        </div>
+        <div class="fund-legend-val mono" id="fund-val-${key}" style="color:${color}">${valText}</div>
       </div>
-      <div class="fund-legend-val mono" id="fund-val-${key}" style="color:${color}">${(v === null || v === undefined) ? 'n/a' : 0}</div>
+      <div class="fund-legend-bar-track"><div class="fund-legend-bar-fill" id="fund-bar-${key}" style="background:linear-gradient(90deg, ${hexToRgba(color, 0.45)}, ${color}); box-shadow:0 0 8px 0 ${hexToRgba(color, 0.55)}; transition-delay:${i * 70}ms;"></div></div>
     </div>`;
   }).join('');
 
@@ -1511,7 +1489,7 @@ function renderFundamentalsRadar(fundamentals, overallScore) {
       return `<circle class="radar-dot" data-key="${key}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="${missing ? 'var(--surface-2)' : color}" stroke="${color}" stroke-width="2" stroke-dasharray="${missing ? '2,2' : 'none'}" style="--c:${color}"/>` +
              `<circle class="radar-hit" data-key="${key}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="16" fill="transparent"/>`;
     }).join('');
-    dataLayer.innerHTML = `<polygon class="radar-poly" points="${polyStr}" fill="url(#fundFill)" stroke="${glowColor}" stroke-width="2" stroke-linejoin="round" filter="url(#fundGlow)"/>${dots}`;
+    dataLayer.innerHTML = `<polygon class="radar-poly" points="${polyStr}" fill="url(#fundFill)" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" filter="url(#fundGlow)"/>${dots}`;
   }
 
   function highlight(key, evt) {
@@ -1547,10 +1525,12 @@ function renderFundamentalsRadar(fundamentals, overallScore) {
       if (t < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
-    animateRingsIn(legendEl);
     FUND_CATEGORY_KEYS.forEach(key => {
-      if (categories[key] === null || categories[key] === undefined) return;
-      animateCountUp(document.getElementById(`fund-val-${key}`), categories[key], duration);
+      const v = categories[key];
+      const bar = document.getElementById(`fund-bar-${key}`);
+      if (v === null || v === undefined) return;
+      bar.style.width = Math.max(0, Math.min(100, v)) + '%';
+      animateCountUp(document.getElementById(`fund-val-${key}`), v, duration);
     });
     if (overallScore !== null && overallScore !== undefined) {
       animateCountUp(document.getElementById('fund-center-val'), overallScore, duration);
@@ -1653,21 +1633,24 @@ function renderMarketRadar(market, overallScore) {
     return `<text data-key="${key}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}" dominant-baseline="middle" class="radar-label">${MARKET_CATEGORY_META[key].label}</text>`;
   }).join('');
 
-  const glowColor = fundScoreColor(overallScore);
+  const scoreColor = fundScoreColor(overallScore);
   const centerHtml = (overallScore === null || overallScore === undefined) ? '' : `
-    <div class="radar-center">
-      <div class="radar-center-val mono" id="market-center-val" style="color:${glowColor}">0</div>
+    <div class="radar-center" style="border-color:${scoreColor}; box-shadow:0 0 18px -5px ${hexToRgba(scoreColor, 0.65)}, 0 6px 18px -6px rgba(0,0,0,.5);">
+      <div class="radar-center-val mono" id="market-center-val" style="color:${scoreColor}">0</div>
       <div class="radar-center-label">Market Score</div>
     </div>`;
 
   const confLabel = market.confidence_label;
-  const confRow = confLabel ? `<div class="fund-legend-row" style="opacity:0.8;">
-      ${miniRingSvg(market.confidence, '#5B6B84')}
-      <div class="fund-legend-text">
-        <div class="fund-legend-label">Confidence</div>
-        <div class="fund-legend-desc">Coverage, momentum agreement &amp; sample depth</div>
+  const confColor = '#5B6B84';
+  const confRow = confLabel ? `<div class="fund-legend-row" style="--row-color:${confColor}; opacity:0.85;">
+      <div class="fund-legend-row-top">
+        <div class="fund-legend-text">
+          <div class="fund-legend-label">Confidence</div>
+          <div class="fund-legend-desc">Coverage, momentum agreement &amp; sample depth</div>
+        </div>
+        <div class="fund-legend-val mono" style="color:${confColor}">${confLabel}</div>
       </div>
-      <div class="fund-legend-val mono">${confLabel}</div>
+      <div class="fund-legend-bar-track"><div class="fund-legend-bar-fill" id="market-bar-confidence" style="background:linear-gradient(90deg, ${hexToRgba(confColor, 0.45)}, ${confColor}); transition-delay:${MARKET_CATEGORY_KEYS.length * 70}ms;"></div></div>
     </div>` : '';
 
   el.innerHTML = `
@@ -1676,15 +1659,15 @@ function renderMarketRadar(market, overallScore) {
         <svg viewBox="0 0 ${size} ${size}" class="fund-radar-svg">
           <defs>
             <radialGradient id="marketAura" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stop-color="${glowColor}" stop-opacity="0.22"/>
-              <stop offset="100%" stop-color="${glowColor}" stop-opacity="0"/>
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.14"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
             </radialGradient>
             <radialGradient id="marketFill" cx="50%" cy="50%" r="65%">
-              <stop offset="0%" stop-color="${glowColor}" stop-opacity="0.38"/>
-              <stop offset="100%" stop-color="${glowColor}" stop-opacity="0.06"/>
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.30"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.05"/>
             </radialGradient>
             <filter id="marketGlow" x="-60%" y="-60%" width="220%" height="220%">
-              <feGaussianBlur stdDeviation="3.2" result="blur"/>
+              <feGaussianBlur stdDeviation="2.4" result="blur"/>
               <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
           </defs>
@@ -1700,17 +1683,20 @@ function renderMarketRadar(market, overallScore) {
     </div>`;
 
   const legendEl = document.getElementById('market-legend');
-  legendEl.innerHTML = MARKET_CATEGORY_KEYS.map(key => {
+  legendEl.innerHTML = MARKET_CATEGORY_KEYS.map((key, i) => {
     const v = categories[key];
     const meta = MARKET_CATEGORY_META[key];
     const color = fundScoreColor(v);
+    const valText = (v === null || v === undefined) ? 'n/a' : 0;
     return `<div class="fund-legend-row" data-key="${key}" style="--row-color:${color}">
-      ${miniRingSvg(v, color)}
-      <div class="fund-legend-text">
-        <div class="fund-legend-label">${meta.label}</div>
-        <div class="fund-legend-desc">${meta.desc}</div>
+      <div class="fund-legend-row-top">
+        <div class="fund-legend-text">
+          <div class="fund-legend-label">${meta.label}</div>
+          <div class="fund-legend-desc">${meta.desc}</div>
+        </div>
+        <div class="fund-legend-val mono" id="market-val-${key}" style="color:${color}">${valText}</div>
       </div>
-      <div class="fund-legend-val mono" id="market-val-${key}" style="color:${color}">${(v === null || v === undefined) ? 'n/a' : 0}</div>
+      <div class="fund-legend-bar-track"><div class="fund-legend-bar-fill" id="market-bar-${key}" style="background:linear-gradient(90deg, ${hexToRgba(color, 0.45)}, ${color}); box-shadow:0 0 8px 0 ${hexToRgba(color, 0.55)}; transition-delay:${i * 70}ms;"></div></div>
     </div>`;
   }).join('') + confRow;
 
@@ -1730,7 +1716,7 @@ function renderMarketRadar(market, overallScore) {
       return `<circle class="radar-dot" data-key="${key}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="${missing ? 'var(--surface-2)' : color}" stroke="${color}" stroke-width="2" stroke-dasharray="${missing ? '2,2' : 'none'}" style="--c:${color}"/>` +
              `<circle class="radar-hit" data-key="${key}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="16" fill="transparent"/>`;
     }).join('');
-    dataLayer.innerHTML = `<polygon class="radar-poly" points="${polyStr}" fill="url(#marketFill)" stroke="${glowColor}" stroke-width="2" stroke-linejoin="round" filter="url(#marketGlow)"/>${dots}`;
+    dataLayer.innerHTML = `<polygon class="radar-poly" points="${polyStr}" fill="url(#marketFill)" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" filter="url(#marketGlow)"/>${dots}`;
   }
 
   function highlight(key, evt) {
@@ -1764,11 +1750,17 @@ function renderMarketRadar(market, overallScore) {
       if (t < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
-    animateRingsIn(legendEl);
     MARKET_CATEGORY_KEYS.forEach(key => {
-      if (categories[key] === null || categories[key] === undefined) return;
-      animateCountUp(document.getElementById(`market-val-${key}`), categories[key], duration);
+      const v = categories[key];
+      const bar = document.getElementById(`market-bar-${key}`);
+      if (v === null || v === undefined) return;
+      bar.style.width = Math.max(0, Math.min(100, v)) + '%';
+      animateCountUp(document.getElementById(`market-val-${key}`), v, duration);
     });
+    if (market.confidence !== null && market.confidence !== undefined) {
+      const confBar = document.getElementById('market-bar-confidence');
+      if (confBar) confBar.style.width = Math.max(0, Math.min(100, market.confidence)) + '%';
+    }
     if (overallScore !== null && overallScore !== undefined) {
       animateCountUp(document.getElementById('market-center-val'), overallScore, duration);
     }
