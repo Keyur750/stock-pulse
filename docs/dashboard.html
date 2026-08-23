@@ -57,20 +57,82 @@
   .surface-hover { transition: border-color .15s ease, background-color .15s ease; }
   .surface-hover:hover { border-color: var(--border-hover); background: var(--surface-2); }
 
-  /* Market read hero */
-  .market-read { border-radius: var(--radius-lg); border: 1px solid var(--border); background: linear-gradient(160deg, var(--surface-2) 0%, var(--surface-1) 100%); padding: 22px 26px; }
-  .market-read-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
-  .market-read-line { font-size: 18px; font-weight: 600; line-height: 1.45; margin: 8px 0 0; max-width: 820px; color: var(--text-primary); }
-  .market-read-line strong { color: var(--accent); font-weight: 700; }
-  .market-read-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border-radius: var(--radius-md); overflow: hidden; margin-top: 20px; border: 1px solid var(--border); }
+  /* Today's Market Read -- the dashboard's actual hero, redesigned
+     2026-08-23: previously sat AFTER Signals with a visually dead empty
+     strip above it, before Markets. Moved to the top of <main> and
+     rebuilt as a real opening banner. No stock photos/video -- this is
+     a $0, unattended, self-hosted pipeline (see CLAUDE.md's "never
+     fabricate" / no-external-fetch conventions), so the "visual" here
+     is generative and data-driven instead: ambient glow + a live
+     composition ring, both colored/sized from real DATA.* counts
+     already computed below, not decoration. Motion vocabulary
+     (glow drift, gradient sheen, live-pulse dot) intentionally mirrors
+     index_template.html's marketing hero so the app doesn't visually
+     jar coming in from the homepage. */
+  .market-read { position: relative; overflow: hidden; border-radius: var(--radius-lg); border: 1px solid var(--border); background: linear-gradient(160deg, var(--surface-2) 0%, var(--surface-1) 100%); padding: 28px clamp(20px, 3vw, 34px) 26px; }
+  .mr-glow { position: absolute; z-index: 0; border-radius: 50%; filter: blur(64px); pointer-events: none; opacity: 0.55; }
+  .mr-glow-a { top: -110px; right: -60px; width: 360px; height: 360px; background: radial-gradient(circle, var(--mr-glow-color, rgba(59,130,246,0.20)), transparent 70%); animation: mr-glow-drift-a 17s ease-in-out infinite; }
+  .mr-glow-b { bottom: -130px; left: 12%; width: 300px; height: 300px; background: radial-gradient(circle, var(--mr-glow-color, rgba(59,130,246,0.14)), transparent 70%); animation: mr-glow-drift-b 21s ease-in-out infinite; }
+  @keyframes mr-glow-drift-a { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-26px, 24px) scale(1.1); } }
+  @keyframes mr-glow-drift-b { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(22px, -18px) scale(1.08); } }
+  @media (prefers-reduced-motion: reduce) { .mr-glow-a, .mr-glow-b { animation: none; } }
+  .market-read.lean-bull { --mr-glow-color: rgba(16,185,129,0.20); }
+  .market-read.lean-bear { --mr-glow-color: rgba(239,68,68,0.18); }
+
+  .market-read-top { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .market-read-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-on-soft); background: var(--accent-dim); border: 1px solid var(--accent-border); display: inline-flex; align-items: center; gap: 7px; padding: 5px 13px; border-radius: 20px; }
+  .market-read.lean-bull .market-read-eyebrow { color: var(--bull); background: var(--bull-soft); border-color: var(--bull-border); }
+  .market-read.lean-bear .market-read-eyebrow { color: var(--bear-on-soft); background: var(--bear-soft); border-color: var(--bear-border); }
+  .mr-eyebrow-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; animation: livePulse 2s ease-in-out infinite; }
+  .mr-asof { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-faint); }
+
+  .market-read-body { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 176px; gap: 30px; align-items: center; margin-top: 16px; }
+  @media (max-width: 760px) { .market-read-body { grid-template-columns: 1fr; } }
+  .market-read-line { font-size: 19px; font-weight: 600; line-height: 1.5; margin: 0; max-width: 720px; color: var(--text-primary); }
+  .market-read-line strong.mr-lean-word.bull { color: var(--bull); font-weight: 800; }
+  .market-read-line strong.mr-lean-word.bear { color: var(--bear); font-weight: 800; }
+  .market-read-line strong.mr-lean-word.mixed { color: var(--text-secondary); font-weight: 800; }
+  .market-read-line strong.mr-count-word {
+    font-weight: 800; background: linear-gradient(100deg, var(--accent) 30%, #7DB2FF 50%, var(--accent) 70%);
+    background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: mr-sheen 5s ease-in-out infinite;
+  }
+  @keyframes mr-sheen { 0%, 100% { background-position: 0% 0; } 50% { background-position: 100% 0; } }
+  @media (prefers-reduced-motion: reduce) { .market-read-line strong.mr-count-word { animation: none; background-position: 0% 0; } }
+
+  /* Composition ring -- real share of the watchlist that cleared each
+     sentiment threshold today, not a signal count. r=46, circumference
+     2*pi*46 = 289.03; JS sets stroke-dasharray per arc and offsets the
+     bear arc to start where the bull arc ends, so together they read as
+     one continuous split ring against the gray track (= neutral). */
+  .mr-ring-wrap { position: relative; display: flex; flex-direction: column; align-items: center; }
+  .mr-ring { width: 132px; height: 132px; display: block; transform: rotate(-90deg); }
+  .mr-ring-track { fill: none; stroke: var(--border); stroke-width: 7; }
+  .mr-ring-bull { fill: none; stroke: var(--bull); stroke-width: 7; stroke-linecap: round; stroke-dasharray: 0 289.03; transition: stroke-dasharray 1.1s cubic-bezier(.16,.8,.24,1); }
+  .mr-ring-bear { fill: none; stroke: var(--bear); stroke-width: 7; stroke-linecap: round; stroke-dasharray: 0 289.03; stroke-dashoffset: 0; transition: stroke-dasharray 1.1s cubic-bezier(.16,.8,.24,1) .1s, stroke-dashoffset 1.1s cubic-bezier(.16,.8,.24,1) .1s; }
+  .mr-ring-center { position: absolute; top: 0; left: 0; width: 132px; height: 132px; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+  .mr-ring-lean { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; }
+  .mr-ring-lean.bull { color: var(--bull); }
+  .mr-ring-lean.bear { color: var(--bear); }
+  .mr-ring-lean.mixed { color: var(--text-secondary); }
+  .mr-ring-sub { font-size: 9px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 3px; }
+  .mr-ring-caption { font-size: 10.5px; color: var(--text-faint); margin-top: 12px; text-align: center; max-width: 168px; }
+
+  .market-read-stats { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 22px; }
   @media (max-width: 760px) { .market-read-stats { grid-template-columns: repeat(2, 1fr); } }
-  .stat-cell { background: var(--surface-1); padding: 14px 16px; }
-  .stat-value { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; line-height: 1; }
-  .stat-value.accent { color: var(--accent); }
-  .stat-value.bull { color: var(--bull); }
-  .stat-value.bear { color: var(--bear); }
-  .stat-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); font-weight: 600; margin-top: 6px; }
-  .stat-sub { font-size: 11px; color: var(--text-secondary); margin-top: 5px; }
+  .mr-stat { position: relative; overflow: hidden; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface-1); padding: 13px 15px 12px; transition: transform .16s ease, border-color .16s ease; }
+  .mr-stat:hover { transform: translateY(-2px); border-color: var(--border-hover); }
+  .mr-stat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2.5px; background: var(--gray); opacity: .5; }
+  .mr-stat.accent::before { background: var(--accent); opacity: 1; }
+  .mr-stat.bull::before { background: var(--bull); opacity: 1; }
+  .mr-stat.bear::before { background: var(--bear); opacity: 1; }
+  .mr-stat-icon { font-size: 12px; opacity: .75; }
+  .mr-stat-value { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; line-height: 1; margin-top: 6px; }
+  .mr-stat-value.accent { color: var(--accent); }
+  .mr-stat-value.bull { color: var(--bull); }
+  .mr-stat-value.bear { color: var(--bear); }
+  .mr-stat-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); font-weight: 600; margin-top: 6px; }
+  .mr-stat-sub { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
 
   /* Signal cards */
   .signal-list { display: flex; flex-direction: column; gap: 8px; }
@@ -409,6 +471,33 @@
 
 <main>
 
+<section class="block" id="market-read-block" style="margin-top:0;">
+  <div class="market-read" id="market-read">
+    <div class="mr-glow mr-glow-a"></div>
+    <div class="mr-glow mr-glow-b"></div>
+    <div class="market-read-top">
+      <span class="market-read-eyebrow"><span class="mr-eyebrow-dot"></span>Today's Market Read</span>
+      <span class="mr-asof" id="market-read-asof"></span>
+    </div>
+    <div class="market-read-body">
+      <p class="market-read-line" id="hero-line"></p>
+      <div class="mr-ring-wrap">
+        <svg class="mr-ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="mr-ring-track" cx="50" cy="50" r="46"></circle>
+          <circle class="mr-ring-bull" id="mrRingBull" cx="50" cy="50" r="46"></circle>
+          <circle class="mr-ring-bear" id="mrRingBear" cx="50" cy="50" r="46"></circle>
+        </svg>
+        <div class="mr-ring-center">
+          <div class="mr-ring-lean" id="mrRingLean"></div>
+          <div class="mr-ring-sub">of watchlist</div>
+        </div>
+        <div class="mr-ring-caption" id="mrRingCaption"></div>
+      </div>
+    </div>
+    <div class="market-read-stats" id="kpi-row"></div>
+  </div>
+</section>
+
 <section class="block" id="markets-strip" style="margin-top:24px;">
   <div class="block-header">
     <span class="block-title accent">Markets</span>
@@ -452,14 +541,6 @@
 
 <div class="page-layout">
   <div class="main-col">
-  <section class="block" style="margin-top:0;">
-    <div class="market-read">
-      <div class="market-read-eyebrow">Today's Market Read</div>
-      <p class="market-read-line" id="hero-line"></p>
-      <div class="market-read-stats" id="kpi-row"></div>
-    </div>
-  </section>
-
   <section class="block" id="signals-block">
     <div class="block-header">
       <span class="block-title accent">Signal Feed</span>
@@ -1434,8 +1515,12 @@ document.addEventListener('click', (e) => {
   if (el) { e.preventDefault(); openChartModal(el.dataset.ticker); }
 });
 
-// Today's Market Read — a narrative summary instead of four unrelated
-// counters, still built entirely from real counts already computed.
+// Today's Market Read — the dashboard's hero, moved to the top of the
+// page 2026-08-23 (previously sat after Signals, with a visually dead
+// empty gap above it before Markets). Narrative sentence unchanged;
+// added a real composition ring (bull/bear share of the watchlist, not
+// a signal count) and count-up stat animation, both driven by the same
+// counts already computed here — no new data, just surfaced better.
 const signalTypeLabels = {
   bullish_dip: 'price divergence', bearish_rally: 'price divergence',
   volume_spike: 'StockTwits volume', reddit_spike: 'Reddit volume', search_spike: 'search interest',
@@ -1447,44 +1532,91 @@ const signalTypesPresent = [...new Set(DATA.signals.map(s => signalTypeLabels[s.
 const bullCount = DATA.top_bullish.length;
 const bearCount = DATA.top_bearish.length;
 let leanText = 'mixed, with no clear lean';
-if (bullCount > bearCount * 1.5) leanText = 'leaning bullish';
-else if (bearCount > bullCount * 1.5) leanText = 'leaning bearish';
+let leanKey = 'mixed';
+if (bullCount > bearCount * 1.5) { leanText = 'leaning bullish'; leanKey = 'bull'; }
+else if (bearCount > bullCount * 1.5) { leanText = 'leaning bearish'; leanKey = 'bear'; }
 const concentrationNote = (bullCount > 0 && DATA.signals.some(s => s.type === 'retail_euphoria'))
   ? ' — though conviction on a few names is running ahead of what Wall Street and the fundamentals confirm'
   : '';
 
+const marketReadEl = document.getElementById('market-read');
+marketReadEl.classList.add(`lean-${leanKey}`);
+document.getElementById('market-read-asof').textContent = DATA.generated_at ? `As of ${DATA.generated_at}` : '';
+
 document.getElementById('hero-line').innerHTML =
-  `Retail sentiment across your watchlist is <strong>${leanText}</strong> today${concentrationNote}. ` +
-  `<strong>${DATA.signals.length}</strong> signal${DATA.signals.length === 1 ? '' : 's'} flagged` +
+  `Retail sentiment across your watchlist is <strong class="mr-lean-word ${leanKey}">${leanText}</strong> today${concentrationNote}. ` +
+  `<strong class="mr-count-word">${DATA.signals.length}</strong> signal${DATA.signals.length === 1 ? '' : 's'} flagged` +
   (signalTypesPresent.length ? ` — ${signalTypesPresent.join(', ')}.` : '.');
 
 if (DATA.signals.length > 0) {
   document.getElementById('nav-signals').classList.add('has-signal');
 }
 
+// Composition ring: real share of the watchlist clearing each sentiment
+// threshold today. r=46 circle, circumference 2*pi*46 = 289.03; the
+// bear arc's dashoffset starts where the bull arc ends so the two read
+// as one continuous split against the gray track (= neutral, untouched).
+const RING_C = 289.03;
+const totalT = DATA.total_tickers || 1;
+const bullLen = (bullCount / totalT) * RING_C;
+const bearLen = (bearCount / totalT) * RING_C;
+requestAnimationFrame(() => {
+  document.getElementById('mrRingBull').style.strokeDasharray = `${bullLen} ${RING_C - bullLen}`;
+  const ringBear = document.getElementById('mrRingBear');
+  ringBear.style.strokeDasharray = `${bearLen} ${RING_C - bearLen}`;
+  ringBear.style.strokeDashoffset = `${-bullLen}`;
+});
+const ringLeanEl = document.getElementById('mrRingLean');
+ringLeanEl.textContent = leanKey === 'bull' ? 'Bullish' : leanKey === 'bear' ? 'Bearish' : 'Mixed';
+ringLeanEl.className = `mr-ring-lean ${leanKey}`;
+document.getElementById('mrRingCaption').textContent =
+  `${bullCount} bullish · ${bearCount} bearish · ${Math.max(totalT - bullCount - bearCount, 0)} neutral`;
+
 const kpiRow = document.getElementById('kpi-row');
 kpiRow.innerHTML = `
-  <div class="stat-cell">
-    <div class="stat-value accent">${DATA.total_messages.toLocaleString()}</div>
-    <div class="stat-label">Messages analyzed</div>
-    <div class="stat-sub">across ${DATA.total_tickers} tickers</div>
+  <div class="mr-stat accent">
+    <span class="mr-stat-icon">💬</span>
+    <div class="mr-stat-value accent" data-count="${DATA.total_messages}">0</div>
+    <div class="mr-stat-label">Messages analyzed</div>
+    <div class="mr-stat-sub">across ${DATA.total_tickers} tickers</div>
   </div>
-  <div class="stat-cell">
-    <div class="stat-value accent">${DATA.signals.length}</div>
-    <div class="stat-label">Signals today</div>
-    <div class="stat-sub">${signalTypesPresent.length ? signalTypesPresent.slice(0,2).join(', ') : 'nothing flagged'}</div>
+  <div class="mr-stat accent">
+    <span class="mr-stat-icon">⚡</span>
+    <div class="mr-stat-value accent" data-count="${DATA.signals.length}">0</div>
+    <div class="mr-stat-label">Signals today</div>
+    <div class="mr-stat-sub">${signalTypesPresent.length ? signalTypesPresent.slice(0,2).join(', ') : 'nothing flagged'}</div>
   </div>
-  <div class="stat-cell">
-    <div class="stat-value bull">${bullCount}</div>
-    <div class="stat-label">Bullish leaders</div>
-    <div class="stat-sub">cleared the sentiment threshold</div>
+  <div class="mr-stat bull">
+    <span class="mr-stat-icon">▲</span>
+    <div class="mr-stat-value bull" data-count="${bullCount}">0</div>
+    <div class="mr-stat-label">Bullish leaders</div>
+    <div class="mr-stat-sub">cleared the sentiment threshold</div>
   </div>
-  <div class="stat-cell">
-    <div class="stat-value bear">${bearCount}</div>
-    <div class="stat-label">Bearish leaders</div>
-    <div class="stat-sub">cleared the sentiment threshold</div>
+  <div class="mr-stat bear">
+    <span class="mr-stat-icon">▼</span>
+    <div class="mr-stat-value bear" data-count="${bearCount}">0</div>
+    <div class="mr-stat-label">Bearish leaders</div>
+    <div class="mr-stat-sub">cleared the sentiment threshold</div>
   </div>
 `;
+
+// Count-up animation for the stat numbers — skipped (final value set
+// immediately) under prefers-reduced-motion, matching every other
+// animated element on this page (imap-particle, hero-accent-sheen etc).
+const mrReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+kpiRow.querySelectorAll('.mr-stat-value[data-count]').forEach(el => {
+  const target = parseInt(el.dataset.count, 10) || 0;
+  if (mrReduceMotion || target === 0) { el.textContent = target.toLocaleString(); return; }
+  const start = performance.now();
+  const dur = 900;
+  function tick(now) {
+    const p = Math.min((now - start) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(target * eased).toLocaleString();
+    if (p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+});
 
 // Signals — the visual centerpiece: type, ticker, headline, AI detail,
 // inline four-pillar mini-row, and a link into the full analysis.
