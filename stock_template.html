@@ -264,9 +264,8 @@
      viewBox units (not CSS px), so it scales with the chart
      automatically -- no separate mobile-breakpoint override needed. */
   .radar-center-circle { transition: r .15s ease; }
-  .radar-center-val-svg { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 800; }
-  .radar-center-label-svg { font-family: 'JetBrains Mono', monospace; font-size: 5.5px; font-weight: 700; letter-spacing: .06em; fill: var(--text-faint); text-transform: uppercase; }
-  .radar-label { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; fill: var(--text-secondary); transition: fill .15s ease; }
+  .radar-center-val-svg { font-family: 'JetBrains Mono', monospace; font-size: 21px; font-weight: 800; }
+  .radar-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; fill: var(--text-secondary); transition: fill .15s ease; }
   .radar-label.active { fill: var(--text-primary); }
   .radar-dot { cursor: pointer; transition: r .18s ease, filter .18s ease; }
   .radar-dot.active { r: 6.5; filter: drop-shadow(0 0 5px var(--c, currentColor)); }
@@ -1389,7 +1388,7 @@ function renderFundamentalsRadar(fundamentals, overallScore) {
   }
 
   const n = FUND_CATEGORY_KEYS.length;
-  const size = 240, cx = size / 2, cy = size / 2, maxR = 84;
+  const size = 240, cx = size / 2, cy = size / 2, maxR = 96;
   const angleFor = i => -90 + (360 / n) * i;
   const toXY = (angleDeg, r) => {
     const rad = angleDeg * Math.PI / 180;
@@ -1423,7 +1422,7 @@ function renderFundamentalsRadar(fundamentals, overallScore) {
   // left instead of staying centered.
   const labels = FUND_CATEGORY_KEYS.map((key, i) => {
     const angle = angleFor(i);
-    const [x, y] = toXY(angle, maxR + 18);
+    const [x, y] = toXY(angle, maxR + 16);
     const cosA = Math.cos(angle * Math.PI / 180);
     let anchor = 'middle';
     if (cosA > 0.15) anchor = 'start';
@@ -1436,11 +1435,10 @@ function renderFundamentalsRadar(fundamentals, overallScore) {
   // on .radar-center-circle for why (a hidden-dot bug). Drawn once,
   // between the shape and dots layers, radius in SVG viewBox units so
   // it scales with the chart instead of needing a px/media-query tune.
-  const medallionR = 24;
+  const medallionR = 27;
   const medallionSvg = (overallScore === null || overallScore === undefined) ? '' : `
     <circle class="radar-center-circle" cx="${cx}" cy="${cy}" r="${medallionR}" fill="var(--surface-2)" stroke="${scoreColor}" stroke-width="2"/>
-    <text x="${cx}" y="${cy - 2}" text-anchor="middle" dominant-baseline="middle" class="radar-center-val-svg mono" fill="${scoreColor}" id="fund-center-val">0</text>
-    <text x="${cx}" y="${cy + 10}" text-anchor="middle" dominant-baseline="middle" class="radar-center-label-svg">BUSINESS SCORE</text>`;
+    <text x="${cx}" y="${cy + 1}" text-anchor="middle" dominant-baseline="middle" class="radar-center-val-svg mono" fill="${scoreColor}" id="fund-center-val">0</text>`;
 
   el.innerHTML = `
     <div class="fund-radar-wrap">
@@ -1621,7 +1619,7 @@ function renderMarketRadar(market, overallScore) {
   }
 
   const n = MARKET_CATEGORY_KEYS.length;
-  const size = 240, cx = size / 2, cy = size / 2, maxR = 84;
+  const size = 240, cx = size / 2, cy = size / 2, maxR = 96;
   const angleFor = i => -90 + (360 / n) * i;
   const toXY = (angleDeg, r) => {
     const rad = angleDeg * Math.PI / 180;
@@ -1647,7 +1645,7 @@ function renderMarketRadar(market, overallScore) {
 
   const labels = MARKET_CATEGORY_KEYS.map((key, i) => {
     const angle = angleFor(i);
-    const [x, y] = toXY(angle, maxR + 18);
+    const [x, y] = toXY(angle, maxR + 16);
     const cosA = Math.cos(angle * Math.PI / 180);
     let anchor = 'middle';
     if (cosA > 0.15) anchor = 'start';
@@ -1656,11 +1654,10 @@ function renderMarketRadar(market, overallScore) {
   }).join('');
 
   const scoreColor = fundScoreColor(overallScore);
-  const medallionR = 24;
+  const medallionR = 27;
   const medallionSvg = (overallScore === null || overallScore === undefined) ? '' : `
     <circle class="radar-center-circle" cx="${cx}" cy="${cy}" r="${medallionR}" fill="var(--surface-2)" stroke="${scoreColor}" stroke-width="2"/>
-    <text x="${cx}" y="${cy - 2}" text-anchor="middle" dominant-baseline="middle" class="radar-center-val-svg mono" fill="${scoreColor}" id="market-center-val">0</text>
-    <text x="${cx}" y="${cy + 10}" text-anchor="middle" dominant-baseline="middle" class="radar-center-label-svg">MARKET SCORE</text>`;
+    <text x="${cx}" y="${cy + 1}" text-anchor="middle" dominant-baseline="middle" class="radar-center-val-svg mono" fill="${scoreColor}" id="market-center-val">0</text>`;
 
   const confLabel = market.confidence_label;
   const confColor = '#5B6B84';
