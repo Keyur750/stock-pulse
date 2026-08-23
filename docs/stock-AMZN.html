@@ -1527,7 +1527,13 @@ function renderFundamentalsRadar(fundamentals, overallScore) {
               <feGaussianBlur stdDeviation="2.4" result="blur"/>
               <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
+            <radialGradient id="fundField" cx="38%" cy="34%" r="78%">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.05"/>
+              <stop offset="55%" stop-color="var(--accent)" stop-opacity="0.02"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+            </radialGradient>
           </defs>
+          <rect x="0" y="0" width="${size}" height="${size}" fill="url(#fundField)"/>
           <circle cx="${cx}" cy="${cy}" r="${maxR + 26}" fill="url(#fundAura)"/>
           ${rings}${spokes}
           <g id="fund-shape-layer"></g>
@@ -1759,7 +1765,13 @@ function renderMarketRadar(market, overallScore) {
               <feGaussianBlur stdDeviation="2.4" result="blur"/>
               <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
+            <radialGradient id="marketField" cx="38%" cy="34%" r="78%">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.05"/>
+              <stop offset="55%" stop-color="var(--accent)" stop-opacity="0.02"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+            </radialGradient>
           </defs>
+          <rect x="0" y="0" width="${size}" height="${size}" fill="url(#marketField)"/>
           <circle cx="${cx}" cy="${cy}" r="${maxR + 26}" fill="url(#marketAura)"/>
           ${rings}${spokes}
           <g id="market-shape-layer"></g>

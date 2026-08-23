@@ -1474,7 +1474,23 @@ function renderFundamentalsRadar(fundamentals, overallScore) {
               <feGaussianBlur stdDeviation="2.4" result="blur"/>
               <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
+            <!-- A soft, off-center ambient field reaching into the
+                 square's empty corners -- the tighter fundAura circle
+                 below only reaches radius maxR+26, well short of a
+                 240x240 viewBox's own corners (~170 units out), leaving
+                 them visibly flat. Positioned upper-left (38%/34%,
+                 not dead center) to echo the page's own established
+                 light-source language (body's own radial-gradient sits
+                 at "10% -12%") rather than inventing a new motif; capped
+                 at 5% peak opacity so it reads as ambient light, not a
+                 second visible shape competing with the data. -->
+            <radialGradient id="fundField" cx="38%" cy="34%" r="78%">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.05"/>
+              <stop offset="55%" stop-color="var(--accent)" stop-opacity="0.02"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+            </radialGradient>
           </defs>
+          <rect x="0" y="0" width="${size}" height="${size}" fill="url(#fundField)"/>
           <circle cx="${cx}" cy="${cy}" r="${maxR + 26}" fill="url(#fundAura)"/>
           ${rings}${spokes}
           <g id="fund-shape-layer"></g>
@@ -1706,7 +1722,15 @@ function renderMarketRadar(market, overallScore) {
               <feGaussianBlur stdDeviation="2.4" result="blur"/>
               <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
+            <!-- Same off-center ambient field as renderFundamentalsRadar's
+                 fundField -- see that comment for the full rationale. -->
+            <radialGradient id="marketField" cx="38%" cy="34%" r="78%">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.05"/>
+              <stop offset="55%" stop-color="var(--accent)" stop-opacity="0.02"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+            </radialGradient>
           </defs>
+          <rect x="0" y="0" width="${size}" height="${size}" fill="url(#marketField)"/>
           <circle cx="${cx}" cy="${cy}" r="${maxR + 26}" fill="url(#marketAura)"/>
           ${rings}${spokes}
           <g id="market-shape-layer"></g>
