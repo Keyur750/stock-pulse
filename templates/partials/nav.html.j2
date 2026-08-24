@@ -14,6 +14,12 @@
   openChartModal() directly (sentiment has no global [data-ticker] click
   delegation the way dashboard does).
 
+  Dashboard/Sentiment split (2026-08-23): the dashboard's "Signals" link
+  used to jump to its own #signals-block -- that section (and "Today's
+  Market Read" above it) moved wholesale to sentiment_template.html, so
+  this now points cross-page at sentiment.html's new #signal-feed-block
+  instead of a same-page anchor that no longer exists.
+
   Nav label is plain "Sentiment" (Phase 4B: "Intelligence" reserved for
   the brand-level tagline only, per SITE_REDESIGN_RESET.md's copy audit
   -- it was overloading five unrelated things across the site).
@@ -34,7 +40,7 @@
   <div class="site-nav-links" id="quicknav">
     <a href="#markets-strip">Markets</a>
     <a href="#news-condensed">News</a>
-    <a href="#signals-block" id="nav-signals">Signals</a>
+    <a href="sentiment.html#signal-feed-block" id="nav-signals">Signals</a>
     <a href="sentiment.html">Sentiment</a>
     <a href="about.html" class="nav-secondary">About</a>
   </div>

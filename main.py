@@ -1078,8 +1078,19 @@ def _copy_shared_design_assets():
 # Found by actually loading the rendered page in a browser and clicking
 # through, not by grepping the template source -- a static text/dry-
 # render check can confirm the code is present, never that it runs.
+# Dashboard/Sentiment split (2026-08-23): "Today's Market Read" (hero
+# narrative, composition ring, messages-analyzed/signals-today/bullish-
+# leaders/bearish-leaders stats) and the Signal Feed both moved wholesale
+# to sentiment_template.html -- the dashboard is meant to be a market/
+# news surface, not a second place carrying the same crowd-sentiment
+# numbers the dedicated Sentiment Intelligence page already owns.
+# `total_messages`/`total_tickers` dropped here since nothing left in
+# dashboard_template.html reads them (moved to _SENTIMENT_PAYLOAD_KEYS
+# instead, for the Signal Feed's new stats row); `top_bullish`/
+# `top_bearish` stay -- dashboard's ticker tape and search still index
+# over them and were never sentiment-hero-only.
 _DASHBOARD_PAYLOAD_KEYS = (
-    "generated_at", "total_messages", "total_tickers", "signals",
+    "generated_at", "signals",
     "top_bullish", "top_bearish", "most_discussed", "watchlist_grid",
     "news", "price_history", "analyst", "pillar_scores", "composite",
     "timeframe_history", "material_events", "company_news",
@@ -1087,7 +1098,7 @@ _DASHBOARD_PAYLOAD_KEYS = (
 _SENTIMENT_PAYLOAD_KEYS = (
     "generated_at", "analyst", "composite", "pillar_scores", "price_history",
     "sentiment_history", "signals", "timeframe_history", "watchlist_grid",
-    "market_insight",
+    "market_insight", "total_messages", "total_tickers",
 )
 _STOCK_PAYLOAD_KEYS = (
     "analyst", "company_news", "composite", "financial_history",

@@ -211,10 +211,61 @@
   .coverage-dot.filled { background: var(--accent); }
   .coverage-days-label { font-size: 10.5px; color: var(--text-faint); margin-left: 10px; white-space: nowrap; }
 
+  /* ---------- Signal Feed (Dashboard/Sentiment split, 2026-08-23) ----------
+     Ported wholesale from dashboard_template.html, which used to be the
+     only place this rendered. The composition ring and bullish/bearish
+     leader counts were deliberately NOT ported alongside it -- this
+     page's existing Sentiment Breakdown panel (.breakdown-stack/-list
+     above) already shows the exact same bull/neutral/bear split by
+     security, so re-adding it here as a second ring would be the same
+     number twice, not new information. Only the two counts genuinely
+     absent from this page (messages analyzed, signals today) get a
+     stats row; ticker-link/signal-card/mini-pillar styling is otherwise
+     identical to dashboard's, both so it looks like the same product and
+     so a future dashboard redesign pass isn't fighting a second,
+     divergent visual language for the same component. */
+  .ticker-link { text-decoration: none; cursor: pointer; }
+  .ticker-link:hover { color: var(--accent); }
+
+  .signal-feed-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  @media (max-width: 480px) { .signal-feed-stats { grid-template-columns: 1fr; } }
+  .mr-stat { position: relative; overflow: hidden; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface-1); padding: 13px 15px 12px; transition: transform .16s ease, border-color .16s ease; }
+  .mr-stat:hover { transform: translateY(-2px); border-color: var(--border-hover); }
+  .mr-stat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2.5px; background: var(--accent); }
+  .mr-stat-icon { font-size: 12px; opacity: .75; }
+  .mr-stat-value { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; line-height: 1; margin-top: 6px; color: var(--accent); }
+  .mr-stat-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); font-weight: 600; margin-top: 6px; }
+  .mr-stat-sub { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+  .signal-list { display: flex; flex-direction: column; gap: 8px; }
+  .signal-card { border-radius: var(--radius-lg); padding: 16px 18px; border: 1px solid var(--border); background: var(--surface-1); border-left: 3px solid var(--gray); transition: border-color .15s ease, background-color .15s ease; }
+  .signal-card:hover { background: var(--surface-2); }
+  .signal-card.up { border-left-color: var(--bull); }
+  .signal-card.down { border-left-color: var(--bear); }
+  .signal-card.warn { border-left-color: var(--amber); }
+  .signal-card.info { border-left-color: var(--accent); }
+  .signal-top-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .signal-chip { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 9px; border-radius: 5px; }
+  .signal-chip.up { background: var(--bull-soft); color: var(--bull); }
+  .signal-chip.down { background: var(--bear-soft); color: var(--bear-on-soft); }
+  .signal-chip.warn { background: var(--amber-soft); color: var(--amber); }
+  .signal-chip.info { background: var(--accent-dim); color: var(--accent-on-soft); }
+  .signal-ticker { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: var(--text-primary); }
+  .signal-headline { font-size: 14.5px; font-weight: 600; margin-top: 9px; line-height: 1.4; }
+  .signal-detail { font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; line-height: 1.55; max-width: 760px; }
+  .signal-pillars { display: flex; gap: 18px; margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .mini-pillar { display: flex; align-items: center; gap: 6px; }
+  .mini-pillar-label { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); font-weight: 600; }
+  .mini-pillar-val { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 700; }
+  .signal-footer { display: flex; justify-content: flex-end; margin-top: 10px; }
+  .signal-view-link { font-size: 12px; font-weight: 600; color: var(--accent); text-decoration: none; }
+  .signal-view-link:hover { text-decoration: underline; }
+
   /* ---------- Table toolbar ---------- */
   section.block { margin-top: 30px; }
   .block-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
   .block-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); }
+  .block-title.accent { color: var(--accent); }
   .block-sub { color: var(--text-faint); font-size: 12.5px; margin: 3px 0 14px; }
   .empty-state { color: var(--text-faint); font-size: 13px; padding: 22px 0; text-align: center; border: 1px dashed var(--border); border-radius: var(--radius-md); }
 
@@ -661,6 +712,17 @@
       </div>
     </div>
   </div>
+
+  <section class="block" id="signal-feed-block">
+    <div class="block-header">
+      <span class="block-title accent">Signal Feed</span>
+      <span class="mono" id="signal-feed-asof" style="font-size:11px;color:var(--text-faint);"></span>
+    </div>
+    <p class="block-sub">Where the crowd, Wall Street, the business, and the market agree — or don't</p>
+    <div class="signal-feed-stats" id="signal-feed-stats"></div>
+    <div class="signal-list" id="signal-list"></div>
+    <div id="signals-empty" class="empty-state" style="display:none;">No notable divergences or volume spikes today.</div>
+  </section>
 
   <section class="block">
     <div class="block-header">
@@ -1625,6 +1687,20 @@ function fillList(id, items) {
 const PILLAR_LABELS = { crowd: 'Crowd', wall_street: 'Wall Street', business: 'Business', market: 'Market' };
 {% include "partials/divergence_meta.js.j2" %}
 {% include "partials/confidence_indicator.js.j2" %}
+// Dashboard/Sentiment split, 2026-08-23: ported from dashboard_template.html,
+// which used to be the Signal Feed's only home.
+const SIGNAL_META = {
+  bullish_dip: { chip: 'Price vs. Chatter', cls: 'up' },
+  bearish_rally: { chip: 'Price vs. Chatter', cls: 'down' },
+  volume_spike: { chip: 'StockTwits Volume', cls: 'info' },
+  reddit_spike: { chip: 'Reddit Volume', cls: 'info' },
+  search_spike: { chip: 'Google Trends', cls: 'info' },
+  media_divergence: { chip: 'Media vs. Retail', cls: 'warn' },
+  emerging_consensus: { chip: 'Emerging Consensus', cls: 'up' },
+  retail_euphoria: { chip: 'Retail Euphoria', cls: 'warn' },
+  fundamental_deterioration: { chip: 'Fundamental Deterioration', cls: 'down' },
+  under_the_radar: { chip: 'Under-the-Radar', cls: 'info' },
+};
 
 function pillarColorHex(score) {
   if (score === null || score === undefined) return '#64748B';
@@ -1644,6 +1720,18 @@ function pillarDialSvg(score) {
       transform="rotate(-90 28 28)"/>
     <text x="28" y="33" text-anchor="middle">${valueText}</text>
   </svg>`;
+}
+// Compact inline pillar row for signal cards — same data, denser
+// presentation, no dials (dials are reserved for the focused chart view).
+function miniPillarRow(sym) {
+  const pillars = (DATA.pillar_scores || {})[sym];
+  if (!pillars) return '';
+  const items = Object.entries(PILLAR_LABELS).map(([key, label]) => {
+    const v = pillars[key];
+    const val = (v === null || v === undefined) ? '—' : Math.round(v);
+    return `<span class="mini-pillar"><span class="mini-pillar-label">${label}</span><span class="mini-pillar-val" style="color:${pillarColorHex(v)}">${val}</span></span>`;
+  }).join('');
+  return `<div class="signal-pillars">${items}</div>`;
 }
 function renderPillarRow(sym) {
   const el = document.getElementById('cm-pillar-row');
@@ -2422,7 +2510,92 @@ function renderBreadthChart() {
   setTimeout(() => dayEls.forEach(dayEl => dayEl.classList.add('in')), dayEls.length * 60 + 400);
 }
 
+// Signal Feed (Dashboard/Sentiment split, 2026-08-23) -- stats row plus
+// the signal cards themselves, ported from dashboard_template.html.
+// Ticker links use their own `.ticker-link` + explicit click listeners
+// scoped to #signal-list, rather than dashboard's global [data-ticker]
+// document delegate -- this page deliberately has no such delegate (see
+// nav-search's own comment above) since #sec-table rows already use
+// data-ticker for row selection, not chart-opening; a global delegate
+// here would double-fire both behaviors on every table row click.
+function tickerLink(sym, innerHtml) {
+  return `<a class="ticker-link" href="#" data-ticker="${sym}" title="View ${sym} chart">${innerHtml}</a>`;
+}
+function renderSignalFeed() {
+  // No nav-signals dot to light here -- that indicator lives only in
+  // dashboard's nav variant (nav.html.j2), pointing a visitor at this
+  // section; this page IS that section, so there's nothing to hint at.
+  document.getElementById('signal-feed-asof').textContent = DATA.generated_at ? `Updated ${DATA.generated_at}` : '';
+
+  const signalTypeLabels = {
+    bullish_dip: 'price divergence', bearish_rally: 'price divergence',
+    volume_spike: 'StockTwits volume', reddit_spike: 'Reddit volume', search_spike: 'search interest',
+    media_divergence: 'media vs. retail', emerging_consensus: 'emerging consensus',
+    retail_euphoria: 'retail euphoria', fundamental_deterioration: 'fundamental deterioration',
+    under_the_radar: 'under-the-radar',
+  };
+  const signalTypesPresent = [...new Set(DATA.signals.map(s => signalTypeLabels[s.type] || s.type))];
+
+  const statsRow = document.getElementById('signal-feed-stats');
+  statsRow.innerHTML = `
+    <div class="mr-stat">
+      <span class="mr-stat-icon">💬</span>
+      <div class="mr-stat-value" data-count="${DATA.total_messages}">0</div>
+      <div class="mr-stat-label">Messages analyzed</div>
+      <div class="mr-stat-sub">across ${DATA.total_tickers} tickers</div>
+    </div>
+    <div class="mr-stat">
+      <span class="mr-stat-icon">⚡</span>
+      <div class="mr-stat-value" data-count="${DATA.signals.length}">0</div>
+      <div class="mr-stat-label">Signals today</div>
+      <div class="mr-stat-sub">${signalTypesPresent.length ? signalTypesPresent.slice(0,2).join(', ') : 'nothing flagged'}</div>
+    </div>
+  `;
+  const statReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  statsRow.querySelectorAll('.mr-stat-value[data-count]').forEach(el => {
+    const target = parseInt(el.dataset.count, 10) || 0;
+    if (statReduceMotion || target === 0) { el.textContent = target.toLocaleString(); return; }
+    const start = performance.now();
+    const dur = 900;
+    function tick(now) {
+      const p = Math.min((now - start) / dur, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * eased).toLocaleString();
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+    // Same guarantee as this page's own animateCountUp() above: a
+    // backgrounded/throttled tab can silently starve rAF and leave the
+    // stat stuck at 0 forever -- the real number landing is not optional.
+    setTimeout(() => { el.textContent = target.toLocaleString(); }, dur + 60);
+  });
+
+  const signalList = document.getElementById('signal-list');
+  if (DATA.signals.length === 0) {
+    document.getElementById('signals-empty').style.display = 'block';
+    return;
+  }
+  signalList.innerHTML = DATA.signals.map(s => {
+    const meta = SIGNAL_META[s.type] || { chip: s.type, cls: 'info' };
+    return `
+    <div class="signal-card ${meta.cls}">
+      <div class="signal-top-row">
+        <span class="signal-chip ${meta.cls}">${meta.chip}</span>
+        ${tickerLink(s.ticker, `<span class="signal-ticker">${s.ticker}</span>`)}
+      </div>
+      <div class="signal-headline">${tickerLink(s.ticker, s.headline)}</div>
+      <div class="signal-detail">${s.detail}</div>
+      ${miniPillarRow(s.ticker)}
+      <div class="signal-footer">${tickerLink(s.ticker, '<span class="signal-view-link">View analysis →</span>')}</div>
+    </div>`;
+  }).join('');
+  signalList.querySelectorAll('.ticker-link').forEach(el => {
+    el.addEventListener('click', (e) => { e.preventDefault(); openChartModal(el.dataset.ticker); });
+  });
+}
+
 renderHero();
+renderSignalFeed();
 renderTable();
 renderBreadthChart();
 

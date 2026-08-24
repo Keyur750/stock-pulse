@@ -57,108 +57,6 @@
   .surface-hover { transition: border-color .15s ease, background-color .15s ease; }
   .surface-hover:hover { border-color: var(--border-hover); background: var(--surface-2); }
 
-  /* Today's Market Read -- the dashboard's actual hero, redesigned
-     2026-08-23: previously sat AFTER Signals with a visually dead empty
-     strip above it, before Markets. Moved to the top of <main> and
-     rebuilt as a real opening banner. No stock photos/video -- this is
-     a $0, unattended, self-hosted pipeline (see CLAUDE.md's "never
-     fabricate" / no-external-fetch conventions), so the "visual" here
-     is generative and data-driven instead: ambient glow + a live
-     composition ring, both colored/sized from real DATA.* counts
-     already computed below, not decoration. Motion vocabulary
-     (glow drift, gradient sheen, live-pulse dot) intentionally mirrors
-     index_template.html's marketing hero so the app doesn't visually
-     jar coming in from the homepage. */
-  .market-read { position: relative; overflow: hidden; border-radius: var(--radius-lg); border: 1px solid var(--border); background: linear-gradient(160deg, var(--surface-2) 0%, var(--surface-1) 100%); padding: 28px clamp(20px, 3vw, 34px) 26px; }
-  .mr-glow { position: absolute; z-index: 0; border-radius: 50%; filter: blur(64px); pointer-events: none; opacity: 0.55; }
-  .mr-glow-a { top: -110px; right: -60px; width: 360px; height: 360px; background: radial-gradient(circle, var(--mr-glow-color, rgba(59,130,246,0.20)), transparent 70%); animation: mr-glow-drift-a 17s ease-in-out infinite; }
-  .mr-glow-b { bottom: -130px; left: 12%; width: 300px; height: 300px; background: radial-gradient(circle, var(--mr-glow-color, rgba(59,130,246,0.14)), transparent 70%); animation: mr-glow-drift-b 21s ease-in-out infinite; }
-  @keyframes mr-glow-drift-a { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-26px, 24px) scale(1.1); } }
-  @keyframes mr-glow-drift-b { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(22px, -18px) scale(1.08); } }
-  @media (prefers-reduced-motion: reduce) { .mr-glow-a, .mr-glow-b { animation: none; } }
-  .market-read.lean-bull { --mr-glow-color: rgba(16,185,129,0.20); }
-  .market-read.lean-bear { --mr-glow-color: rgba(239,68,68,0.18); }
-
-  .market-read-top { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  .market-read-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-on-soft); background: var(--accent-dim); border: 1px solid var(--accent-border); display: inline-flex; align-items: center; gap: 7px; padding: 5px 13px; border-radius: 20px; }
-  .market-read.lean-bull .market-read-eyebrow { color: var(--bull); background: var(--bull-soft); border-color: var(--bull-border); }
-  .market-read.lean-bear .market-read-eyebrow { color: var(--bear-on-soft); background: var(--bear-soft); border-color: var(--bear-border); }
-  .mr-eyebrow-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; animation: livePulse 2s ease-in-out infinite; }
-  .mr-asof { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-faint); }
-
-  .market-read-body { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 176px; gap: 30px; align-items: center; margin-top: 16px; }
-  @media (max-width: 760px) { .market-read-body { grid-template-columns: 1fr; } }
-  .market-read-line { font-size: 19px; font-weight: 600; line-height: 1.5; margin: 0; max-width: 720px; color: var(--text-primary); }
-  .market-read-line strong.mr-lean-word.bull { color: var(--bull); font-weight: 800; }
-  .market-read-line strong.mr-lean-word.bear { color: var(--bear); font-weight: 800; }
-  .market-read-line strong.mr-lean-word.mixed { color: var(--text-secondary); font-weight: 800; }
-  .market-read-line strong.mr-count-word {
-    font-weight: 800; background: linear-gradient(100deg, var(--accent) 30%, #7DB2FF 50%, var(--accent) 70%);
-    background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
-    animation: mr-sheen 5s ease-in-out infinite;
-  }
-  @keyframes mr-sheen { 0%, 100% { background-position: 0% 0; } 50% { background-position: 100% 0; } }
-  @media (prefers-reduced-motion: reduce) { .market-read-line strong.mr-count-word { animation: none; background-position: 0% 0; } }
-
-  /* Composition ring -- real share of the watchlist that cleared each
-     sentiment threshold today, not a signal count. r=46, circumference
-     2*pi*46 = 289.03; JS sets stroke-dasharray per arc and offsets the
-     bear arc to start where the bull arc ends, so together they read as
-     one continuous split ring against the gray track (= neutral). */
-  .mr-ring-wrap { position: relative; display: flex; flex-direction: column; align-items: center; }
-  .mr-ring { width: 132px; height: 132px; display: block; transform: rotate(-90deg); }
-  .mr-ring-track { fill: none; stroke: var(--border); stroke-width: 7; }
-  .mr-ring-bull { fill: none; stroke: var(--bull); stroke-width: 7; stroke-linecap: round; stroke-dasharray: 0 289.03; transition: stroke-dasharray 1.1s cubic-bezier(.16,.8,.24,1); }
-  .mr-ring-bear { fill: none; stroke: var(--bear); stroke-width: 7; stroke-linecap: round; stroke-dasharray: 0 289.03; stroke-dashoffset: 0; transition: stroke-dasharray 1.1s cubic-bezier(.16,.8,.24,1) .1s, stroke-dashoffset 1.1s cubic-bezier(.16,.8,.24,1) .1s; }
-  .mr-ring-center { position: absolute; top: 0; left: 0; width: 132px; height: 132px; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
-  .mr-ring-lean { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; }
-  .mr-ring-lean.bull { color: var(--bull); }
-  .mr-ring-lean.bear { color: var(--bear); }
-  .mr-ring-lean.mixed { color: var(--text-secondary); }
-  .mr-ring-sub { font-size: 9px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 3px; }
-  .mr-ring-caption { font-size: 10.5px; color: var(--text-faint); margin-top: 12px; text-align: center; max-width: 168px; }
-
-  .market-read-stats { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 22px; }
-  @media (max-width: 760px) { .market-read-stats { grid-template-columns: repeat(2, 1fr); } }
-  .mr-stat { position: relative; overflow: hidden; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface-1); padding: 13px 15px 12px; transition: transform .16s ease, border-color .16s ease; }
-  .mr-stat:hover { transform: translateY(-2px); border-color: var(--border-hover); }
-  .mr-stat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2.5px; background: var(--gray); opacity: .5; }
-  .mr-stat.accent::before { background: var(--accent); opacity: 1; }
-  .mr-stat.bull::before { background: var(--bull); opacity: 1; }
-  .mr-stat.bear::before { background: var(--bear); opacity: 1; }
-  .mr-stat-icon { font-size: 12px; opacity: .75; }
-  .mr-stat-value { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; line-height: 1; margin-top: 6px; }
-  .mr-stat-value.accent { color: var(--accent); }
-  .mr-stat-value.bull { color: var(--bull); }
-  .mr-stat-value.bear { color: var(--bear); }
-  .mr-stat-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); font-weight: 600; margin-top: 6px; }
-  .mr-stat-sub { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
-
-  /* Signal cards */
-  .signal-list { display: flex; flex-direction: column; gap: 8px; }
-  .signal-card { border-radius: var(--radius-lg); padding: 16px 18px; border: 1px solid var(--border); background: var(--surface-1); border-left: 3px solid var(--gray); transition: border-color .15s ease, background-color .15s ease; }
-  .signal-card:hover { background: var(--surface-2); }
-  .signal-card.up { border-left-color: var(--bull); }
-  .signal-card.down { border-left-color: var(--bear); }
-  .signal-card.warn { border-left-color: var(--amber); }
-  .signal-card.info { border-left-color: var(--accent); }
-  .signal-top-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .signal-chip { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 9px; border-radius: 5px; }
-  .signal-chip.up { background: var(--bull-soft); color: var(--bull); }
-  .signal-chip.down { background: var(--bear-soft); color: var(--bear-on-soft); }
-  .signal-chip.warn { background: var(--amber-soft); color: var(--amber); }
-  .signal-chip.info { background: var(--accent-dim); color: var(--accent-on-soft); }
-  .signal-ticker { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: var(--text-primary); }
-  .signal-headline { font-size: 14.5px; font-weight: 600; margin-top: 9px; line-height: 1.4; }
-  .signal-detail { font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; line-height: 1.55; max-width: 760px; }
-  .signal-pillars { display: flex; gap: 18px; margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--border); flex-wrap: wrap; }
-  .mini-pillar { display: flex; align-items: center; gap: 6px; }
-  .mini-pillar-label { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); font-weight: 600; }
-  .mini-pillar-val { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 700; }
-  .signal-footer { display: flex; justify-content: flex-end; margin-top: 10px; }
-  .signal-view-link { font-size: 12px; font-weight: 600; color: var(--accent); text-decoration: none; }
-  .signal-view-link:hover { text-decoration: underline; }
-
   /* Markets strip -- Site visual pass, 2026-08-23: filter chips + breadth
      badge + live-as-of stamp above a redesigned tile (gradient surface,
      top accent bar instead of a left rule, pill-style change badge,
@@ -387,14 +285,15 @@
   /* My Watchlist — a personal pick from the 15 flagship tickers,
      distinct from "Flagship Coverage" below it (everything Undertow
      tracks, unchanged, no login needed). */
-  /* Two-column layout: sticky watchlist sidebar + main content column */
-  .page-layout { display: grid; grid-template-columns: 1fr 296px; align-items: start; gap: 28px; }
-  .sidebar { position: sticky; top: 78px; display: flex; flex-direction: column; gap: 16px; }
-  .main-col { min-width: 0; }
-  @media (max-width: 1080px) {
-    .page-layout { display: block; }
-    .sidebar { position: static; margin-bottom: 32px; }
-  }
+  /* Dashboard/Sentiment split (2026-08-23): this used to be a sticky
+     sidebar next to a main-col holding Signal Feed. Signal Feed moved to
+     sentiment_template.html, so main-col would otherwise be an empty
+     column wasting half the page width -- these three cards now run
+     full-width as a 3-up row instead. Not the "full redesign" pass
+     itself (that's the deliberate next step), just enough to not leave
+     the page visibly broken in the meantime. */
+  .sidebar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .sidebar { grid-template-columns: 1fr; } }
 
   .sidebar-card { border-radius: var(--radius-lg); border: 1px solid var(--border); background: linear-gradient(165deg, var(--surface-2) 0%, var(--surface-1) 65%); box-shadow: var(--shadow-sm); overflow: hidden; }
   .sidebar-card-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--border); }
@@ -446,34 +345,7 @@
 
 <main>
 
-<section class="block" id="market-read-block" style="margin-top:0;">
-  <div class="market-read" id="market-read">
-    <div class="mr-glow mr-glow-a"></div>
-    <div class="mr-glow mr-glow-b"></div>
-    <div class="market-read-top">
-      <span class="market-read-eyebrow"><span class="mr-eyebrow-dot"></span>Today's Market Read</span>
-      <span class="mr-asof" id="market-read-asof"></span>
-    </div>
-    <div class="market-read-body">
-      <p class="market-read-line" id="hero-line"></p>
-      <div class="mr-ring-wrap">
-        <svg class="mr-ring" viewBox="0 0 100 100" aria-hidden="true">
-          <circle class="mr-ring-track" cx="50" cy="50" r="46"></circle>
-          <circle class="mr-ring-bull" id="mrRingBull" cx="50" cy="50" r="46"></circle>
-          <circle class="mr-ring-bear" id="mrRingBear" cx="50" cy="50" r="46"></circle>
-        </svg>
-        <div class="mr-ring-center">
-          <div class="mr-ring-lean" id="mrRingLean"></div>
-          <div class="mr-ring-sub">of watchlist</div>
-        </div>
-        <div class="mr-ring-caption" id="mrRingCaption"></div>
-      </div>
-    </div>
-    <div class="market-read-stats" id="kpi-row"></div>
-  </div>
-</section>
-
-<section class="block" id="markets-strip" style="margin-top:24px;">
+<section class="block" id="markets-strip" style="margin-top:0;">
   <div class="block-header">
     <span class="block-title accent">Markets</span>
     <span class="mkt-asof" id="markets-asof"></span>
@@ -514,45 +386,31 @@
   <div id="news-condensed-empty" class="empty-state" style="display:none;">No headlines yet.</div>
 </section>
 
-<div class="page-layout">
-  <div class="main-col">
-  <section class="block" id="signals-block">
-    <div class="block-header">
-      <span class="block-title accent">Signal Feed</span>
-      <span class="timestamp mono" id="timestamp" style="font-size:11px;color:var(--text-faint);"></span>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-card">
+    <div class="sidebar-card-header">
+      <span class="sidebar-title">My Watchlist</span>
+      <span class="sidebar-count" id="sidebar-watchlist-count" style="display:none;">0</span>
     </div>
-    <p class="block-sub">Where the crowd, Wall Street, the business, and the market agree — or don't</p>
-    <div class="signal-list" id="signal-list"></div>
-    <div id="signals-empty" class="empty-state" style="display:none;">No notable divergences or volume spikes today.</div>
-  </section>
+    <div class="sidebar-login" id="watchlist-login-prompt" style="display:none;">
+      <p>Log in to build your own watchlist from the tickers we cover.</p>
+      <button class="nav-auth-btn" id="watchlist-login-btn" type="button">Log in</button>
+    </div>
+    <div class="watchlist-rows" id="my-watchlist-grid" style="display:none;"></div>
   </div>
 
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-card">
-      <div class="sidebar-card-header">
-        <span class="sidebar-title">My Watchlist</span>
-        <span class="sidebar-count" id="sidebar-watchlist-count" style="display:none;">0</span>
-      </div>
-      <div class="sidebar-login" id="watchlist-login-prompt" style="display:none;">
-        <p>Log in to build your own watchlist from the tickers we cover.</p>
-        <button class="nav-auth-btn" id="watchlist-login-btn" type="button">Log in</button>
-      </div>
-      <div class="watchlist-rows" id="my-watchlist-grid" style="display:none;"></div>
-    </div>
+  <div class="sidebar-card">
+    <div class="sidebar-card-header"><span class="sidebar-title">Top Gainers Today</span></div>
+    <div class="watchlist-rows" id="top-gainers-rows"></div>
+    <div id="top-gainers-empty" class="sidebar-empty" style="display:none;">No tickers cleared the bullish threshold today.</div>
+  </div>
 
-    <div class="sidebar-card">
-      <div class="sidebar-card-header"><span class="sidebar-title">Top Gainers Today</span></div>
-      <div class="watchlist-rows" id="top-gainers-rows"></div>
-      <div id="top-gainers-empty" class="sidebar-empty" style="display:none;">No tickers cleared the bullish threshold today.</div>
-    </div>
-
-    <div class="sidebar-card">
-      <div class="sidebar-card-header"><span class="sidebar-title">Top Losers Today</span></div>
-      <div class="watchlist-rows" id="top-losers-rows"></div>
-      <div id="top-losers-empty" class="sidebar-empty" style="display:none;">No tickers cleared the bearish threshold today.</div>
-    </div>
-  </aside>
-</div>
+  <div class="sidebar-card">
+    <div class="sidebar-card-header"><span class="sidebar-title">Top Losers Today</span></div>
+    <div class="watchlist-rows" id="top-losers-rows"></div>
+    <div id="top-losers-empty" class="sidebar-empty" style="display:none;">No tickers cleared the bearish threshold today.</div>
+  </div>
+</aside>
 </main>
 
 <div class="chart-modal-backdrop" id="chart-modal">
@@ -622,8 +480,6 @@
 
 <script>
 const DATA = {{ payload_json }};
-
-document.getElementById('timestamp').textContent = 'Updated ' + DATA.generated_at;
 
 function tickerUrl(sym) { return `https://finance.yahoo.com/quote/${encodeURIComponent(sym)}`; }
 function tickerLink(sym, innerHtml) {
@@ -1231,18 +1087,6 @@ const PILLAR_LABELS = { crowd: 'Crowd', wall_street: 'Wall Street', business: 'B
 // four plus gray for pure-attention (volume/search) signals.
 {% include "partials/divergence_meta.js.j2" %}
 {% include "partials/confidence_indicator.js.j2" %}
-const SIGNAL_META = {
-  bullish_dip: { chip: 'Price vs. Chatter', cls: 'up' },
-  bearish_rally: { chip: 'Price vs. Chatter', cls: 'down' },
-  volume_spike: { chip: 'StockTwits Volume', cls: 'info' },
-  reddit_spike: { chip: 'Reddit Volume', cls: 'info' },
-  search_spike: { chip: 'Google Trends', cls: 'info' },
-  media_divergence: { chip: 'Media vs. Retail', cls: 'warn' },
-  emerging_consensus: { chip: 'Emerging Consensus', cls: 'up' },
-  retail_euphoria: { chip: 'Retail Euphoria', cls: 'warn' },
-  fundamental_deterioration: { chip: 'Fundamental Deterioration', cls: 'down' },
-  under_the_radar: { chip: 'Under-the-Radar', cls: 'info' },
-};
 
 function pillarColorHex(score) {
   if (score === null || score === undefined) return '#64748B';
@@ -1286,19 +1130,6 @@ function renderPillarRow(sym) {
   `).join('');
 
   el.innerHTML = badge + `<div class="pillar-grid">${cards}</div>`;
-}
-
-// Compact inline pillar row for signal cards — same data, denser
-// presentation, no dials (dials are reserved for the focused chart view).
-function miniPillarRow(sym) {
-  const pillars = (DATA.pillar_scores || {})[sym];
-  if (!pillars) return '';
-  const items = Object.entries(PILLAR_LABELS).map(([key, label]) => {
-    const v = pillars[key];
-    const val = (v === null || v === undefined) ? '—' : Math.round(v);
-    return `<span class="mini-pillar"><span class="mini-pillar-label">${label}</span><span class="mini-pillar-val" style="color:${pillarColorHex(v)}">${val}</span></span>`;
-  }).join('');
-  return `<div class="signal-pillars">${items}</div>`;
 }
 
 function renderAiSection(result, composite) {
@@ -1443,129 +1274,12 @@ document.addEventListener('click', (e) => {
   if (el) { e.preventDefault(); openChartModal(el.dataset.ticker); }
 });
 
-// Today's Market Read — the dashboard's hero, moved to the top of the
-// page 2026-08-23 (previously sat after Signals, with a visually dead
-// empty gap above it before Markets). Narrative sentence unchanged;
-// added a real composition ring (bull/bear share of the watchlist, not
-// a signal count) and count-up stat animation, both driven by the same
-// counts already computed here — no new data, just surfaced better.
-const signalTypeLabels = {
-  bullish_dip: 'price divergence', bearish_rally: 'price divergence',
-  volume_spike: 'StockTwits volume', reddit_spike: 'Reddit volume', search_spike: 'search interest',
-  media_divergence: 'media vs. retail', emerging_consensus: 'emerging consensus',
-  retail_euphoria: 'retail euphoria', fundamental_deterioration: 'fundamental deterioration',
-  under_the_radar: 'under-the-radar',
-};
-const signalTypesPresent = [...new Set(DATA.signals.map(s => signalTypeLabels[s.type] || s.type))];
-const bullCount = DATA.top_bullish.length;
-const bearCount = DATA.top_bearish.length;
-let leanText = 'mixed, with no clear lean';
-let leanKey = 'mixed';
-if (bullCount > bearCount * 1.5) { leanText = 'leaning bullish'; leanKey = 'bull'; }
-else if (bearCount > bullCount * 1.5) { leanText = 'leaning bearish'; leanKey = 'bear'; }
-const concentrationNote = (bullCount > 0 && DATA.signals.some(s => s.type === 'retail_euphoria'))
-  ? ' — though conviction on a few names is running ahead of what Wall Street and the fundamentals confirm'
-  : '';
-
-const marketReadEl = document.getElementById('market-read');
-marketReadEl.classList.add(`lean-${leanKey}`);
-document.getElementById('market-read-asof').textContent = DATA.generated_at ? `As of ${DATA.generated_at}` : '';
-
-document.getElementById('hero-line').innerHTML =
-  `Retail sentiment across your watchlist is <strong class="mr-lean-word ${leanKey}">${leanText}</strong> today${concentrationNote}. ` +
-  `<strong class="mr-count-word">${DATA.signals.length}</strong> signal${DATA.signals.length === 1 ? '' : 's'} flagged` +
-  (signalTypesPresent.length ? ` — ${signalTypesPresent.join(', ')}.` : '.');
-
+// Nav "Signals" dot — a lightweight cross-page hint that the Signal Feed
+// (moved wholesale to sentiment.html#signal-feed-block 2026-08-23) has
+// something flagged today, without pulling the whole hero/signal-card
+// rendering back into this page just to light one dot.
 if (DATA.signals.length > 0) {
   document.getElementById('nav-signals').classList.add('has-signal');
-}
-
-// Composition ring: real share of the watchlist clearing each sentiment
-// threshold today. r=46 circle, circumference 2*pi*46 = 289.03; the
-// bear arc's dashoffset starts where the bull arc ends so the two read
-// as one continuous split against the gray track (= neutral, untouched).
-const RING_C = 289.03;
-const totalT = DATA.total_tickers || 1;
-const bullLen = (bullCount / totalT) * RING_C;
-const bearLen = (bearCount / totalT) * RING_C;
-requestAnimationFrame(() => {
-  document.getElementById('mrRingBull').style.strokeDasharray = `${bullLen} ${RING_C - bullLen}`;
-  const ringBear = document.getElementById('mrRingBear');
-  ringBear.style.strokeDasharray = `${bearLen} ${RING_C - bearLen}`;
-  ringBear.style.strokeDashoffset = `${-bullLen}`;
-});
-const ringLeanEl = document.getElementById('mrRingLean');
-ringLeanEl.textContent = leanKey === 'bull' ? 'Bullish' : leanKey === 'bear' ? 'Bearish' : 'Mixed';
-ringLeanEl.className = `mr-ring-lean ${leanKey}`;
-document.getElementById('mrRingCaption').textContent =
-  `${bullCount} bullish · ${bearCount} bearish · ${Math.max(totalT - bullCount - bearCount, 0)} neutral`;
-
-const kpiRow = document.getElementById('kpi-row');
-kpiRow.innerHTML = `
-  <div class="mr-stat accent">
-    <span class="mr-stat-icon">💬</span>
-    <div class="mr-stat-value accent" data-count="${DATA.total_messages}">0</div>
-    <div class="mr-stat-label">Messages analyzed</div>
-    <div class="mr-stat-sub">across ${DATA.total_tickers} tickers</div>
-  </div>
-  <div class="mr-stat accent">
-    <span class="mr-stat-icon">⚡</span>
-    <div class="mr-stat-value accent" data-count="${DATA.signals.length}">0</div>
-    <div class="mr-stat-label">Signals today</div>
-    <div class="mr-stat-sub">${signalTypesPresent.length ? signalTypesPresent.slice(0,2).join(', ') : 'nothing flagged'}</div>
-  </div>
-  <div class="mr-stat bull">
-    <span class="mr-stat-icon">▲</span>
-    <div class="mr-stat-value bull" data-count="${bullCount}">0</div>
-    <div class="mr-stat-label">Bullish leaders</div>
-    <div class="mr-stat-sub">cleared the sentiment threshold</div>
-  </div>
-  <div class="mr-stat bear">
-    <span class="mr-stat-icon">▼</span>
-    <div class="mr-stat-value bear" data-count="${bearCount}">0</div>
-    <div class="mr-stat-label">Bearish leaders</div>
-    <div class="mr-stat-sub">cleared the sentiment threshold</div>
-  </div>
-`;
-
-// Count-up animation for the stat numbers — skipped (final value set
-// immediately) under prefers-reduced-motion, matching every other
-// animated element on this page (imap-particle, hero-accent-sheen etc).
-const mrReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-kpiRow.querySelectorAll('.mr-stat-value[data-count]').forEach(el => {
-  const target = parseInt(el.dataset.count, 10) || 0;
-  if (mrReduceMotion || target === 0) { el.textContent = target.toLocaleString(); return; }
-  const start = performance.now();
-  const dur = 900;
-  function tick(now) {
-    const p = Math.min((now - start) / dur, 1);
-    const eased = 1 - Math.pow(1 - p, 3);
-    el.textContent = Math.round(target * eased).toLocaleString();
-    if (p < 1) requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-});
-
-// Signals — the visual centerpiece: type, ticker, headline, AI detail,
-// inline four-pillar mini-row, and a link into the full analysis.
-const signalList = document.getElementById('signal-list');
-if (DATA.signals.length === 0) {
-  document.getElementById('signals-empty').style.display = 'block';
-} else {
-  signalList.innerHTML = DATA.signals.map(s => {
-    const meta = SIGNAL_META[s.type] || { chip: s.type, cls: 'info' };
-    return `
-    <div class="signal-card ${meta.cls}">
-      <div class="signal-top-row">
-        <span class="signal-chip ${meta.cls}">${meta.chip}</span>
-        ${tickerLink(s.ticker, `<span class="signal-ticker">${s.ticker}</span>`)}
-      </div>
-      <div class="signal-headline">${tickerLink(s.ticker, s.headline)}</div>
-      <div class="signal-detail">${s.detail}</div>
-      ${miniPillarRow(s.ticker)}
-      <div class="signal-footer">${tickerLink(s.ticker, '<span class="signal-view-link">View analysis →</span>')}</div>
-    </div>`;
-  }).join('');
 }
 
 // "98 StockTwits · 44 Reddit" style breakdown, shown as a tooltip on
