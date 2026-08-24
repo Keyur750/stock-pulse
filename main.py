@@ -22,7 +22,7 @@ from stocktwits import collect_all
 from reddit import collect_reddit
 from bluesky import collect_bluesky
 from apewisdom import fetch_mentions as fetch_reddit_mentions
-from news_fetcher import fetch_news, fetch_ticker_news
+from news_fetcher import fetch_news, fetch_ticker_news, fetch_finnhub_company_news, fetch_finnhub_market_news, dedupe_news_items
 from news_ranker import rank_news
 from sec_filings import fetch_recent_8ks
 from sentiment import (
@@ -1352,9 +1352,18 @@ def main():
 
     print("Fetching and ranking company-specific news (Tier 2)...")
     raw_company_news = fetch_ticker_news(flagship_tickers)
+    finnhub_company_news = fetch_finnhub_company_news(
+        flagship_tickers, days=config.get("finnhub_lookback_days", 3),
+        sleep_seconds=config.get("finnhub_call_sleep_seconds", 1.1),
+    )
+    if finnhub_company_news:
+        print(f"  Finnhub (second, independent source) matched {len(finnhub_company_news)}/{len(flagship_tickers)} tickers")
     company_news = {}
     for i, ticker in enumerate(flagship_tickers):
-        items = raw_company_news.get(ticker)
+        # yfinance listed first so it wins dedup ties -- it's the
+        # longer-proven source; Finnhub only ever contributes real,
+        # net-new coverage once duplicates of the same story are dropped.
+        items = dedupe_news_items((raw_company_news.get(ticker) or []) + (finnhub_company_news.get(ticker) or []))
         if not items:
             continue
         ranked = rank_news(ticker, ticker, items)
@@ -1370,8 +1379,10 @@ def main():
     print(f"  kept ranked company news for {len(company_news)}/{len(flagship_tickers)} tickers")
 
     print("Fetching and scoring broad market news (Tier 3)...")
-    news_items = score_news(fetch_news(config["news_feeds"]))
-    print(f"  collected {len(news_items)} headlines")
+    raw_market_news = fetch_news(config["news_feeds"]) + fetch_finnhub_market_news()
+    news_items = score_news(dedupe_news_items(raw_market_news))
+    print(f"  collected {len(news_items)} headlines "
+          f"({len(raw_market_news) - len(news_items)} duplicate(s) across feeds/sources dropped)")
 
     media_sentiment = build_media_sentiment(news_items, known_symbols)
     ticker_results = merge_media_sentiment(ticker_results, media_sentiment)

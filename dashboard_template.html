@@ -151,6 +151,11 @@
   .news-tier-badge.material { color: var(--amber); background: var(--amber-soft); }
   .news-tier-badge.company { color: var(--accent-on-soft); background: var(--accent-dim); }
   .news-tier-badge.market { color: var(--text-faint); background: var(--surface-2); }
+  /* Reuses the Markets strip's own "Live" pulse language (mkt-live-dot / livePulse)
+     rather than inventing a second freshness indicator -- < 90 min old, per
+     news_utils.js.j2's isBreakingNews(). */
+  .news-breaking { display: inline-flex; align-items: center; gap: 4px; font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; padding: 2px 6px 2px 5px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; color: var(--bear-on-soft); background: var(--bear-soft); }
+  .news-breaking::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--bear); animation: livePulse 2s ease-in-out infinite; }
 
   .news-sidebar { display: flex; flex-direction: column; gap: 14px; }
   .news-side-card { border-radius: var(--radius-lg); border: 1px solid var(--border); background: linear-gradient(160deg, var(--surface-2) 0%, var(--surface-1) 100%); padding: 16px 16px 15px; }
@@ -1541,30 +1546,7 @@ function pubAvatarHtml(name) {
   for (let i = 0; i < label.length; i++) hash = (hash * 31 + label.charCodeAt(i)) % 360;
   return `<span class="news-avatar" style="background:hsl(${hash},48%,26%);color:hsl(${hash},70%,84%)">${initial}</span>`;
 }
-function timeAgo(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return '';
-  const diffMin = Math.round((Date.now() - d.getTime()) / 60000);
-  if (diffMin < 1) return 'just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffH = Math.round(diffMin / 60);
-  if (diffH < 24) return `${diffH}h ago`;
-  return `${Math.round(diffH / 24)}d ago`;
-}
-
-// Company News (yfinance) publishes ISO 8601 ("2026-08-22T12:33:00Z");
-// Market News (RSS feeds like MarketWatch) publishes RFC 822
-// ("Sat, 22 Aug 2026 13:01:00 GMT") — a plain string sort mixes formats
-// and produces garbage ordering (an RFC-822 string starting with a
-// weekday name doesn't compare correctly against an ISO string), so real
-// months-old items were surfacing as "most recent." Date.parse() handles
-// both formats correctly; anything unparseable sorts last rather than
-// crashing or landing at a misleading position.
-function newsTs(iso) {
-  const t = Date.parse(iso || '');
-  return isNaN(t) ? 0 : t;
-}
+{% include "partials/news_utils.js.j2" %}
 
 function buildNewsPool() {
   // Each tier still keeps its own internal cap/sort for picking WHICH
@@ -1574,9 +1556,13 @@ function buildNewsPool() {
   // the three tiers used to just get concatenated tier-by-tier
   // (material, then company, then market) for display, which meant a
   // days-old SEC filing always sat above an hours-old headline just
-  // because "material" came first in the array. Fixed 2026-08-24: the
-  // pool itself is real news, freshest first, full stop -- a final sort
-  // by actual publish time across all three tiers, after selection.
+  // because "material" came first in the array. Fixed 2026-08-24: a
+  // final cross-tier sort by real publish time. Refined again the same
+  // day once that alone proved too blunt the other direction -- a
+  // routine, minutes-old headline could then permanently outrank a
+  // genuinely major story from an hour ago. The pool is now ordered by
+  // newsRelevanceScore() (see news_utils.js.j2): relevance and recency
+  // decayed together, not two separate sorts fighting each other.
   const meEntries = Object.entries(DATA.material_events || {})
     .flatMap(([ticker, filings]) => filings.map(f => ({ ticker, ...f })))
     .sort((a, b) => (a.date < b.date ? 1 : -1))
@@ -1595,7 +1581,9 @@ function buildNewsPool() {
     .slice(0, 10)
     .map(n => ({ tier: 'market', ticker: null, source: n.source, time: n.published, title: n.title, link: n.link, sentiment_label: n.sentiment_label }));
 
-  return [...meEntries, ...cnEntries, ...mktEntries].sort((a, b) => newsTs(b.time) - newsTs(a.time));
+  const now = Date.now();
+  return [...meEntries, ...cnEntries, ...mktEntries]
+    .sort((a, b) => newsRelevanceScore(b.tier, b.importance, b.time, now) - newsRelevanceScore(a.tier, a.importance, a.time, now));
 }
 
 function renderNewsChips() {
@@ -1624,6 +1612,7 @@ function renderNewsList() {
         ${pubAvatarHtml(n.source)}
         <span class="news-source">${n.source}</span>
         <span class="news-time">${timeAgo(n.time)}</span>
+        ${isBreakingNews(n.time) ? `<span class="news-breaking">Breaking</span>` : ''}
         ${n.importance ? `<span class="news-importance" title="${n.importance}/5 importance">${importanceDots(n.importance)}</span>` : ''}
         ${n.sentiment_label && n.sentiment_label !== 'Neutral' ? `<span class="label-pill ${labelClass(n.sentiment_label)}">${n.sentiment_label}</span>` : ''}
       </div>

@@ -1,0 +1,82 @@
+{#
+  News mechanism research pass (2026-08-24). A pure "freshest first"
+  sort (buildNewsPool's prior shape) satisfies "newest on top" but
+  throws away relevance entirely -- a routine, 1-importance headline
+  from 2 minutes ago permanently outranks a major, 5-importance story
+  from 40 minutes ago. A pure importance sort has the opposite problem
+  (a big story from 3 days ago never leaves the top). Real news
+  products don't pick one axis -- they combine relevance and recency
+  into a single score that decays over time, the same shape Reddit's
+  "hot" ranking and Hacker News' own points/(age)^gravity formula use.
+  This project already has its own established convention for exactly
+  this kind of decay -- sentiment.py's score_messages() and
+  wallstreet.py's _score_rating_momentum() both use exponential
+  half-life decay, not a power law -- reused here rather than
+  introducing a second decay shape into the codebase.
+
+  Tiers don't share one native importance scale: Material Events have
+  none at all (a filing is material by regulatory definition, not
+  graded 1-5), Company News has a real Gemini-assigned 1-5, Market
+  News is deliberately unranked ambient context (see PRODUCT.md's News
+  Intelligence System -- three tiers, each answering a different
+  question). NEWS_BASELINE_IMPORTANCE anchors each tier onto one
+  shared comparable scale without pretending a precise per-item score
+  exists where none was ever computed.
+
+  Shared here (not hand-copied) because dashboard_template.html's
+  cross-tier feed and stock_template.html's per-ticker Company News
+  list both need the identical ranking, and this project has already
+  been burned once by the same logic drifting between hand-copied
+  <script> blocks (see SITE_REDESIGN_RESET.md's Phase 0 finding).
+#}
+const NEWS_RELEVANCE_HALF_LIFE_HOURS = 6; // roughly a trading day: a big story should still lead for a few hours, but day-old news shouldn't outrank anything fresh by the next session
+const NEWS_BASELINE_IMPORTANCE = { material: 4, company: 3, market: 2.5 };
+const NEWS_BREAKING_MINUTES = 90;
+
+// Company News (yfinance/Finnhub) publishes ISO 8601 ("2026-08-22T12:33:00Z");
+// Market News (RSS feeds, Finnhub general news) publishes RFC 822
+// ("Sat, 22 Aug 2026 13:01:00 GMT") or ISO -- a plain string sort mixes
+// formats and produces garbage ordering (an RFC-822 string starting with
+// a weekday name doesn't compare correctly against an ISO string).
+// Date.parse() handles both correctly; anything unparseable sorts as
+// "no known time" (null age) rather than crashing or landing at a
+// misleading position.
+function newsTs(iso) {
+  const t = Date.parse(iso || '');
+  return isNaN(t) ? 0 : t;
+}
+
+function newsAgeHours(iso, now) {
+  const ts = Date.parse(iso || '');
+  if (isNaN(ts)) return null;
+  return Math.max(0, ((now || Date.now()) - ts) / 3600000);
+}
+
+// Real relevance + recency, decayed together -- not two separate sorts.
+// `importance` is the item's own 1-5 score when one was actually
+// computed (Company News); otherwise falls back to its tier's baseline
+// anchor. An item with no parseable timestamp is scored on relevance
+// alone (age === null) -- never fabricate a recency bonus or penalty
+// for a story whose real publish time isn't known.
+function newsRelevanceScore(tier, importance, iso, now) {
+  const base = importance || NEWS_BASELINE_IMPORTANCE[tier] || NEWS_BASELINE_IMPORTANCE.market;
+  const age = newsAgeHours(iso, now);
+  if (age === null) return base;
+  return base * Math.pow(0.5, age / NEWS_RELEVANCE_HALF_LIFE_HOURS);
+}
+
+function isBreakingNews(iso, now) {
+  const age = newsAgeHours(iso, now);
+  return age !== null && age * 60 <= NEWS_BREAKING_MINUTES;
+}
+
+function timeAgo(iso) {
+  const ts = Date.parse(iso || '');
+  if (isNaN(ts)) return '';
+  const diffMin = Math.round((Date.now() - ts) / 60000);
+  if (diffMin < 1) return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return `${diffH}h ago`;
+  return `${Math.round(diffH / 24)}d ago`;
+}

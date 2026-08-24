@@ -111,10 +111,23 @@ single pillar, not the AI — is the actual differentiator; see
 
 **News Intelligence** (three tiers, each answering a different
 question): `sec_filings.py` (Tier 1, real SEC 8-Ks, ground-truth
-materiality, not LLM-filtered) → `news_fetcher.py` +`news_ranker.py`
-(Tier 2, per-company news via `yfinance`, one batched Gemini call per
-ticker to separate real news from listicle/opinion filler) → generic RSS
-feeds (Tier 3, ambient market context, unranked).
+materiality, not LLM-filtered) → `news_fetcher.py` + `news_ranker.py`
+(Tier 2, per-company news via `yfinance` + Finnhub if `FINNHUB_API_KEY`
+is set, deduplicated across the two aggregators via
+`news_fetcher.dedupe_news_items` — a word-overlap check on normalized
+titles — then one batched Gemini call per ticker to separate real news
+from listicle/opinion filler) → generic RSS feeds + Finnhub's
+general-news stream, deduplicated the same way (Tier 3, ambient market
+context, unranked). **News mechanism reset (2026-08-24):** added
+Finnhub as a second Tier 2/3 source (PRODUCT.md flagged this back on
+2026-08-13 as a deferred "clean fast-follow," never built until now) and
+replaced pure-freshness ordering with a combined relevance+recency score
+(`templates/partials/news_utils.js.j2`, shared by `dashboard_template.html`'s
+cross-tier feed and `stock_template.html`'s per-ticker Company News list)
+— exponential half-life decay on each item's importance, the same decay
+shape `sentiment.py`/`wallstreet.py` already use, so a major story
+doesn't get buried by fresher-but-routine headlines within minutes, nor
+does it sit at the top forever once it's actually stale.
 
 **Charts:** `market_data.py` (quotes + macro instruments: indices,
 crypto, commodities, global markets) and `market_history.py`

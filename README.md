@@ -84,9 +84,27 @@ that's a small, contained change in `analyst.py`, not a rewrite.
 Skip this and everything else still works — the analyst model just won't
 run, same graceful-skip pattern as Reddit.
 
-### 6. Add your Reddit and Bluesky credentials as repo secrets
+### 6. Get a free Finnhub API key (optional, a second news source)
 
-Skip this if you skipped step 4.
+`news_fetcher.py` pulls Company News from `yfinance` by default. Finnhub
+is a second, independent aggregator — real outlets, updated in
+real time, free tier of 60 calls/minute, no card required — added
+specifically for corroboration: a real event covered by two aggregators
+should show up once, not twice (a dedup step handles that), and a real
+event only one of them caught still gets through. It also adds a fifth
+general-market-news stream to Market News, alongside your configured RSS
+feeds.
+
+1. Go to https://finnhub.io/register and sign up (free)
+2. Copy your API key from the dashboard (Settings → API Keys)
+
+Skip this and everything else still works exactly as before — Finnhub is
+entirely additive, same graceful-skip pattern as Reddit/Bluesky/Gemini.
+
+### 7. Add your Reddit, Bluesky, and Finnhub credentials as repo secrets
+
+Skip the Reddit/Bluesky lines if you skipped step 4, and the Finnhub
+line if you skipped step 6.
 
 1. Go to your repo's **Settings** tab → **Secrets and variables** → **Actions**
 2. Click **New repository secret**, add these (one at a time):
@@ -99,14 +117,15 @@ Skip this if you skipped step 4.
      login password (Bluesky app → Settings → Privacy and Security → App
      Passwords → Add App Password). Revocable independently of your account
      if you ever want to cut off access.
+   - `FINNHUB_API_KEY` — the key from step 6, if you got one
 
 Secrets are encrypted and never shown in logs — this is the standard,
 safe way to give a GitHub Actions job credentials.
 
-Bluesky is additive, same as Reddit — skip it and everything else still
-works, just without that source's chatter.
+Bluesky and Finnhub are both additive, same as Reddit — skip either and
+everything else still works, just without that source's data.
 
-### 7. Let Actions write back to your repo
+### 8. Let Actions write back to your repo
 
 1. Go to your repo's **Settings** tab → **Actions** → **General**
 2. Scroll to **Workflow permissions**
@@ -115,7 +134,7 @@ works, just without that source's chatter.
 
    (This lets the daily job commit the updated dashboard back into your repo.)
 
-### 8. Turn on GitHub Pages
+### 9. Turn on GitHub Pages
 
 1. Still in **Settings**, click **Pages** in the left sidebar
 2. Under **Build and deployment** → **Source**, choose **Deploy from a branch**
@@ -123,7 +142,7 @@ works, just without that source's chatter.
 4. GitHub will show you your site's URL — something like
    `https://yourusername.github.io/stock-pulse/`. That's your website.
 
-### 9. Run it for the first time
+### 10. Run it for the first time
 
 Don't wait for the schedule — trigger it manually once to confirm everything works:
 
@@ -131,7 +150,7 @@ Don't wait for the schedule — trigger it manually once to confirm everything w
 2. Click **Update Undertow Dashboard** in the left list
 3. Click **Run workflow** (dropdown on the right) → **Run workflow**
 4. Wait 2–4 minutes, refresh the page — you should see a green checkmark
-5. Visit your Pages URL from step 8 — your dashboard should now be live
+5. Visit your Pages URL from step 9 — your dashboard should now be live
 
 From here, it re-runs automatically every day on the schedule in
 `.github/workflows/update-dashboard.yml` (12:30 UTC by default — see below
@@ -194,6 +213,7 @@ $env:REDDIT_USER_AGENT = "stock-pulse-yourname/1.0"
 $env:BSKY_HANDLE = "yourname.bsky.social"
 $env:BSKY_APP_PASSWORD = "your-app-password"
 $env:GEMINI_API_KEY = "your-gemini-key"
+$env:FINNHUB_API_KEY = "your-finnhub-key"
 python main.py
 ```
 
@@ -248,13 +268,21 @@ still in `market_data.py`), not deleted — see `PRODUCT.md` for why.
 - **Material Events** — real SEC 8-K filings for your flagship tickers,
   shown as-is (a legal disclosure requirement, not an editorial guess
   at what's important)
-- **Company News** — per-company headlines (via `yfinance`), filtered
-  and importance-ranked by the AI so generic advice/listicle content
-  doesn't crowd out real company-specific news
-- **Market News** — headlines from your configured RSS feeds, each scored
-  for sentiment so you can see when the press leans bullish or bearish on
-  a story, not just read it — kept as broad ambient context, not ranked
-  against company news
+- **Company News** — per-company headlines (via `yfinance`, plus Finnhub
+  if you set it up — step 6), deduplicated where the two aggregators
+  covered the same story, then filtered and importance-ranked by the AI
+  so generic advice/listicle content doesn't crowd out real
+  company-specific news
+- **Market News** — headlines from your configured RSS feeds plus
+  Finnhub's general-news stream (if configured), deduplicated, each
+  scored for sentiment so you can see when the press leans bullish or
+  bearish on a story, not just read it — kept as broad ambient context,
+  not ranked against company news
+- News is ordered by relevance and recency together, not just freshness
+  — a major, high-importance story stays near the top for a few hours
+  even as fresher, more routine headlines arrive, then fades once
+  something newer and comparably important takes over. Anything under
+  90 minutes old gets a "Breaking" tag regardless of tier.
 
 Click any ticker anywhere to open a self-hosted chart — a ~3-month price
 history with hover crosshair, built entirely from data already fetched for
@@ -289,10 +317,22 @@ inside that chart, for anyone who wants the full real-time view.
   one retry, and partial failures on a given day are expected, not a
   bug. Controlled by `google_trends_enabled` / `google_trends_sleep_seconds`
   in `config.json`.
-- **News sentiment**: headlines from your RSS feeds are scored with the
-  same VADER pipeline as chatter, and matched to your flagship tickers by
-  symbol mention — giving a media-sentiment read distinct from retail
+- **News sentiment**: headlines from your RSS feeds (plus Finnhub's
+  general-news stream, if configured) are scored with the same VADER
+  pipeline as chatter, and matched to your flagship tickers by symbol
+  mention — giving a media-sentiment read distinct from retail
   sentiment, which is what the media-divergence signal compares.
+- **News Intelligence** (`news_fetcher.py`, `news_ranker.py`,
+  `sec_filings.py`): three tiers — Material Events (SEC 8-Ks, ground
+  truth), Company News (`yfinance` + Finnhub if configured, deduplicated,
+  then filtered/importance-ranked by one batched Gemini call per ticker),
+  and Market News (RSS feeds + Finnhub general news, deduplicated). The
+  dashboard's combined feed and each ticker's Company News list are both
+  ordered by relevance and recency together (`news_utils.js.j2`) — an
+  exponential half-life decay on each item's importance, same decay
+  shape `sentiment.py` and `wallstreet.py` already use elsewhere in this
+  pipeline — so a major story stays near the top for a few hours without
+  permanently burying everything that comes after it.
 - **Sentiment** (`sentiment.py`): StockTwits users' own Bullish/Bearish
   tags are ground truth and weighted 2x in each ticker's aggregate score.
   Everything else (untagged StockTwits posts, all of Reddit and Bluesky) is read by

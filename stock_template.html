@@ -346,6 +346,9 @@
   .news-importance { display: inline-flex; gap: 2px; vertical-align: middle; margin-left: 4px; }
   .imp-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--border); }
   .imp-dot.filled { background: var(--amber); }
+  /* Same pulse language as .live-dot above (< 90 min old, per news_utils.js.j2's isBreakingNews()). */
+  .news-breaking { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; padding: 1px 6px 1px 5px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; color: var(--bear-on-soft); background: var(--bear-soft); }
+  .news-breaking::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--bear); animation: livePulse 2s ease-in-out infinite; }
 
   footer { text-align: center; padding: 30px 28px 10px; color: var(--text-faint); font-size: var(--text-2xs); font-family: 'JetBrains Mono', monospace; }
   footer a { color: var(--text-secondary); text-decoration: none; }
@@ -569,6 +572,7 @@ function pillarDialSvg(score) {
 }
 {% include "partials/divergence_meta.js.j2" %}
 {% include "partials/confidence_indicator.js.j2" %}
+{% include "partials/news_utils.js.j2" %}
 // Site Redesign Reset, Phase 4C (research point 10): shown once ever,
 // dismissed via localStorage -- wrapped in try/catch since localStorage
 // can throw in strict privacy modes, same graceful-degradation
@@ -1951,19 +1955,27 @@ function renderNews(sym) {
     </div>`);
   }
 
-  const company = ((DATA.company_news || {})[sym] || []);
+  // Sorted by relevance+recency (news_utils.js.j2), not the raw
+  // importance-only order main.py stored the list in -- the same
+  // hybrid ranking dashboard.html's news feed uses, so a stale
+  // importance-5 item from days ago doesn't sit above today's real
+  // company news forever. See that partial for why.
+  const company = ((DATA.company_news || {})[sym] || []).slice()
+    .sort((a, b) => newsRelevanceScore('company', b.importance, b.published) - newsRelevanceScore('company', a.importance, a.published));
   if (company.length) {
     sections.push(`<div>
       <div class="news-tier-label"><span class="tier-badge company">Company News</span></div>
-      ${company.map(n => `<div class="news-item"><a class="news-title" href="${n.link}" target="_blank" rel="noopener">${n.title}${n.sentiment_label && n.sentiment_label !== 'Neutral' ? ` <span class="label-pill ${labelClass(n.sentiment_label)}">${n.sentiment_label}</span>` : ''}</a><span class="news-source">${n.publisher}${n.importance ? ` <span class="news-importance">${importanceDots(n.importance)}</span>` : ''}</span></div>`).join('')}
+      ${company.map(n => `<div class="news-item"><a class="news-title" href="${n.link}" target="_blank" rel="noopener">${n.title}${n.sentiment_label && n.sentiment_label !== 'Neutral' ? ` <span class="label-pill ${labelClass(n.sentiment_label)}">${n.sentiment_label}</span>` : ''}</a><span class="news-source">${isBreakingNews(n.published) ? '<span class="news-breaking">Breaking</span> ' : ''}${n.publisher}${n.published ? ` · ${timeAgo(n.published)}` : ''}${n.importance ? ` <span class="news-importance">${importanceDots(n.importance)}</span>` : ''}</span></div>`).join('')}
     </div>`);
   }
 
-  const market = (DATA.news || []).slice(0, 3);
+  const market = (DATA.news || []).slice()
+    .sort((a, b) => newsTs(b.published) - newsTs(a.published))
+    .slice(0, 3);
   if (market.length) {
     sections.push(`<div>
       <div class="news-tier-label"><span class="tier-badge market">Market News</span><span class="mention-stat" style="font-size:var(--text-2xs);">broad market context, not ${sym}-specific</span></div>
-      ${market.map(n => `<div class="news-item"><a class="news-title" href="${n.link}" target="_blank" rel="noopener">${n.title}</a><span class="news-source">${n.source}</span></div>`).join('')}
+      ${market.map(n => `<div class="news-item"><a class="news-title" href="${n.link}" target="_blank" rel="noopener">${n.title}</a><span class="news-source">${n.source}${n.published ? ` · ${timeAgo(n.published)}` : ''}</span></div>`).join('')}
     </div>`);
   }
 
