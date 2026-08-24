@@ -1405,7 +1405,12 @@ function mktFmtAbs(symbol, val, price) {
   return `${val >= 0 ? '+' : ''}${val.toFixed(dp)}`;
 }
 let mktData = {};
-let mktFilter = 'all';
+// Defaults to Indices, not All -- dashboards that dump every index +
+// crypto + commodity + global market into one first-look grid duplicate
+// what dedicated aggregators already do better. Crypto/Commodities/
+// Global are one chip click away, not gone -- this only changes what
+// loads by default, so nothing here needed to shrink.
+let mktFilter = 'indices';
 let mktSortMovers = false;
 
 // Same self-hosted-sparkline approach as sparklineSvg (colored by
