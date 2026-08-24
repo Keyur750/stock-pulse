@@ -366,7 +366,7 @@
     <span class="block-title accent">Latest News</span>
     <span class="news-count" id="news-count"></span>
   </div>
-  <p class="block-sub">Material filings, company headlines, and market context — most important first</p>
+  <p class="block-sub">Material filings, company headlines, and market context — most recent first</p>
   <div class="news-chips" id="news-chips"></div>
   <div class="news-layout" id="news-layout-wrap">
     <div class="news-condensed-list" id="news-condensed-list"></div>
@@ -1567,6 +1567,16 @@ function newsTs(iso) {
 }
 
 function buildNewsPool() {
+  // Each tier still keeps its own internal cap/sort for picking WHICH
+  // items make the pool (company news wants its most-important items
+  // considered even if a lower-importance one is a few minutes fresher;
+  // material events have no importance field to rank by at all) -- but
+  // the three tiers used to just get concatenated tier-by-tier
+  // (material, then company, then market) for display, which meant a
+  // days-old SEC filing always sat above an hours-old headline just
+  // because "material" came first in the array. Fixed 2026-08-24: the
+  // pool itself is real news, freshest first, full stop -- a final sort
+  // by actual publish time across all three tiers, after selection.
   const meEntries = Object.entries(DATA.material_events || {})
     .flatMap(([ticker, filings]) => filings.map(f => ({ ticker, ...f })))
     .sort((a, b) => (a.date < b.date ? 1 : -1))
@@ -1585,7 +1595,7 @@ function buildNewsPool() {
     .slice(0, 10)
     .map(n => ({ tier: 'market', ticker: null, source: n.source, time: n.published, title: n.title, link: n.link, sentiment_label: n.sentiment_label }));
 
-  return [...meEntries, ...cnEntries, ...mktEntries];
+  return [...meEntries, ...cnEntries, ...mktEntries].sort((a, b) => newsTs(b.time) - newsTs(a.time));
 }
 
 function renderNewsChips() {
