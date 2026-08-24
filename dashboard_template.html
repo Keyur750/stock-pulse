@@ -57,6 +57,85 @@
   .surface-hover { transition: border-color .15s ease, background-color .15s ease; }
   .surface-hover:hover { border-color: var(--border-hover); background: var(--surface-2); }
 
+  /* Command Center redesign, 2026-08-24 -- see main.py's `_DASHBOARD_
+     PAYLOAD_KEYS`: `signals` (the Divergence Engine, Undertow's actual
+     differentiator per PRODUCT.md's "moat"), `composite` (deterministic
+     composite scores + confidence), and `analyst` (AI verdicts) were
+     already fetched into this page's own payload but never rendered
+     anywhere outside the click-triggered chart modal -- confirmed by
+     grepping every DATA.signals/DATA.composite/DATA.analyst access before
+     this pass. These four sections surface that already-computed data
+     directly, in a real asymmetric bento layout (tile size = priority,
+     not uniform stacked blocks -- large tiles get ~2.6x longer user
+     fixation per bento-grid UX research) instead of one more uniform card.
+     Reuses existing tokens only (--accent/--bull/--bear), no new palette --
+     SITE_REDESIGN_RESET.md already settled dark-only + WCAG contrast. */
+  .cc-hero {
+    position: relative; overflow: hidden; border-radius: var(--radius-lg);
+    border: 1px solid var(--border); padding: 22px 26px;
+    background:
+      radial-gradient(520px 260px at 8% 0%, var(--accent-dim), transparent 65%),
+      radial-gradient(420px 220px at 95% 100%, color-mix(in srgb, var(--bull) 14%, transparent), transparent 70%),
+      linear-gradient(160deg, var(--surface-2) 0%, var(--surface-1) 100%);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 30px;
+  }
+  .cc-hero-breadth { flex: 1 1 260px; min-width: 220px; }
+  .cc-hero-breadth-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); font-weight: 700; }
+  .cc-hero-breadth-value { font-family: 'JetBrains Mono', monospace; font-size: 34px; font-weight: 800; letter-spacing: -0.01em; margin-top: 6px; line-height: 1; }
+  .cc-hero-breadth-value .up { color: var(--bull); }
+  .cc-hero-breadth-value .down { color: var(--bear); }
+  .cc-hero-breadth-value .sep { color: var(--text-faint); font-weight: 500; margin: 0 3px; font-size: 22px; }
+  .cc-hero-breadth-bar { display: flex; height: 6px; border-radius: 999px; overflow: hidden; margin-top: 12px; background: var(--surface-3); max-width: 320px; }
+  .cc-hero-breadth-bar span { height: 100%; }
+  .cc-hero-stats { display: flex; gap: 26px; flex-wrap: wrap; }
+  .cc-hero-stat-value { font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 800; }
+  .cc-hero-stat-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); font-weight: 700; margin-top: 4px; white-space: nowrap; }
+
+  .cc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+  @media (max-width: 1080px) { .cc-grid { grid-template-columns: 1fr; } }
+
+  .cc-panel { border-radius: var(--radius-lg); border: 1px solid var(--border); background: var(--surface-1); padding: 16px 18px 14px; }
+  .cc-panel-link { font-size: 11px; color: var(--accent-on-soft); text-decoration: none; font-weight: 600; white-space: nowrap; }
+  .cc-panel-link:hover { text-decoration: underline; }
+
+  .signal-card { display: flex; flex-direction: column; gap: 5px; padding: 11px 0; border-top: 1px solid var(--border); }
+  .signal-card:first-of-type { border-top: none; padding-top: 4px; }
+  .signal-card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .signal-card-ticker { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12.5px; color: var(--accent); }
+  .signal-card-headline { font-size: 12.5px; color: var(--text-secondary); line-height: 1.4; }
+  /* .pillar-divergence-badge / .pillar-divergence-why are already defined
+     in design/components.css (Site Redesign Reset, Phase 4) -- reused
+     as-is here, not redefined, so this stays the one WCAG-checked source. */
+
+  .lb-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 700px) { .lb-cols { grid-template-columns: 1fr; } }
+  .lb-col-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 6px; }
+  .lb-col-title.bull { color: var(--bull); }
+  .lb-col-title.bear { color: var(--bear); }
+  .lb-row { display: grid; grid-template-columns: 40px 1fr 56px; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); }
+  .lb-row:first-of-type { border-top: none; }
+  .lb-row-main { min-width: 0; }
+  .lb-row-top { display: flex; align-items: center; gap: 7px; }
+  .lb-row-ticker { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12.5px; }
+  .lb-row-verdict { font-size: 11px; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .lb-row-score { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 16px; text-align: right; }
+  .lb-row-score.up { color: var(--bull); }
+  .lb-row-score.down { color: var(--bear); }
+  .lb-row-score.na { color: var(--text-faint); }
+  .lb-row-conf { display: block; text-align: right; margin-top: 2px; }
+
+  .sector-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sector-tile {
+    border-radius: var(--radius-md); border: 1px solid var(--border); padding: 10px 12px;
+    cursor: default; transition: transform .14s ease, border-color .14s ease;
+    flex: 1 1 auto; min-width: 92px;
+  }
+  .sector-tile:hover { transform: translateY(-2px); border-color: var(--border-hover); }
+  .sector-tile-name { font-size: 10.5px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sector-tile-chg { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px; margin-top: 4px; }
+  .sector-tile-chg.up { color: var(--bull); }
+  .sector-tile-chg.down { color: var(--bear); }
+
   /* Markets strip -- Site visual pass, 2026-08-23: filter chips + breadth
      badge + live-as-of stamp above a redesigned tile (gradient surface,
      top accent bar instead of a left rule, pill-style change badge,
@@ -350,7 +429,49 @@
 
 <main>
 
-<section class="block" id="markets-strip" style="margin-top:0;">
+<section class="block cc-hero" id="cc-hero" style="margin-top:0;"></section>
+
+<section class="block cc-grid" id="cc-grid">
+  <div class="cc-panel" id="signal-spotlight">
+    <div class="block-header">
+      <span class="block-title accent">Signal Spotlight</span>
+      <a class="cc-panel-link" href="sentiment.html#signal-feed-block">Full Signal Feed →</a>
+    </div>
+    <p class="block-sub">Where the crowd, Wall Street, the business, and the market agree — or don't</p>
+    <div id="signal-spotlight-list"></div>
+    <div id="signal-spotlight-empty" class="empty-state" style="display:none;">No notable divergences or volume spikes today.</div>
+  </div>
+
+  <div class="cc-panel" id="composite-leaderboard">
+    <div class="block-header">
+      <span class="block-title accent">Composite Leaderboard</span>
+      <a class="cc-panel-link" href="sentiment.html">Full ranking →</a>
+    </div>
+    <p class="block-sub">Deterministic four-pillar composite score, confidence-weighted and divergence-adjusted</p>
+    <div class="lb-cols">
+      <div>
+        <div class="lb-col-title bull">Top Bullish</div>
+        <div id="lb-bullish-rows"></div>
+      </div>
+      <div>
+        <div class="lb-col-title bear">Top Bearish</div>
+        <div id="lb-bearish-rows"></div>
+      </div>
+    </div>
+    <div id="composite-leaderboard-empty" class="empty-state" style="display:none;">Composite scores aren't available yet.</div>
+  </div>
+</section>
+
+<section class="block" id="sector-pulse">
+  <div class="block-header">
+    <span class="block-title accent">Sector Pulse</span>
+  </div>
+  <p class="block-sub">S&amp;P sector ETFs, today's move — tile width reflects each sector's real S&amp;P weight</p>
+  <div class="sector-grid" id="sector-grid"></div>
+  <div id="sector-pulse-empty" class="empty-state" style="display:none;">Sector data isn't available right now.</div>
+</section>
+
+<section class="block" id="markets-strip">
   <div class="block-header">
     <span class="block-title accent">Markets</span>
     <span class="mkt-asof" id="markets-asof"></span>
@@ -1092,6 +1213,7 @@ const PILLAR_LABELS = { crowd: 'Crowd', wall_street: 'Wall Street', business: 'B
 // four plus gray for pure-attention (volume/search) signals.
 {% include "partials/divergence_meta.js.j2" %}
 {% include "partials/confidence_indicator.js.j2" %}
+{% include "partials/news_utils.js.j2" %}
 
 function pillarColorHex(score) {
   if (score === null || score === undefined) return '#64748B';
@@ -1504,6 +1626,187 @@ function renderMarketsGrid() {
   });
 }
 
+// Command Center: hero breadth + stats. 35/65 mirrors main.py's own
+// _DEFAULT_LEVEL_THRESHOLDS so "bullish"/"bearish" means the same thing
+// everywhere on the site, not a frontend-invented cutoff. buildNewsPool()/
+// isBreakingNews() are safe to call here even though their own
+// definitions sit later in this file -- function declarations are
+// hoisted, so this only needs DATA (already parsed at the top of this
+// script) to be ready, not source order.
+function renderHeroBand() {
+  const el = document.getElementById('cc-hero');
+  const compositeEntries = Object.entries(DATA.composite || {})
+    .filter(([, c]) => c && c.composite_score !== null && c.composite_score !== undefined);
+  let bullish = 0, bearish = 0, neutral = 0;
+  compositeEntries.forEach(([, c]) => {
+    if (c.composite_score >= 65) bullish++;
+    else if (c.composite_score <= 35) bearish++;
+    else neutral++;
+  });
+  const total = compositeEntries.length || 1;
+
+  const divergenceCount = (DATA.signals || []).filter(s => DIVERGENCE_META[s.type]).length;
+  const breakingCount = buildNewsPool().filter(n => isBreakingNews(n.time)).length;
+
+  el.innerHTML = `
+    <div class="cc-hero-breadth">
+      <div class="cc-hero-breadth-label">Composite Breadth · ${compositeEntries.length} flagship tickers</div>
+      <div class="cc-hero-breadth-value">
+        <span class="up">${bullish}</span><span class="sep">·</span><span class="down">${bearish}</span><span class="sep">·</span><span style="color:var(--text-faint)">${neutral}</span>
+      </div>
+      <div class="cc-hero-breadth-bar">
+        <span style="width:${bullish / total * 100}%;background:var(--bull)"></span>
+        <span style="width:${neutral / total * 100}%;background:var(--gray)"></span>
+        <span style="width:${bearish / total * 100}%;background:var(--bear)"></span>
+      </div>
+    </div>
+    <div class="cc-hero-stats">
+      <div>
+        <div class="cc-hero-stat-value" style="color:${divergenceCount ? 'var(--accent)' : 'var(--text-faint)'}">${divergenceCount}</div>
+        <div class="cc-hero-stat-label">Signals Today</div>
+      </div>
+      <div>
+        <div class="cc-hero-stat-value" style="color:${breakingCount ? 'var(--bear)' : 'var(--text-faint)'}">${breakingCount}</div>
+        <div class="cc-hero-stat-label">Breaking News</div>
+      </div>
+      <div>
+        <div class="cc-hero-stat-value mono" style="font-size:14px;color:var(--text-secondary);white-space:nowrap;">${DATA.generated_at || '—'}</div>
+        <div class="cc-hero-stat-label"><span class="mkt-live-dot" style="margin-right:5px;"></span>As Of</div>
+      </div>
+    </div>
+  `;
+}
+renderHeroBand();
+
+// Divergence-pattern signals first -- the actual product differentiator
+// per PRODUCT.md's "moat," currently reachable nowhere but a click-
+// triggered chart modal -- padded with the next-highest-magnitude generic
+// signals (compute_signals() already returns up to 8, sorted, shown
+// nowhere on this page) when fewer than a full spotlight's worth of named
+// patterns fired today. Most days most tickers won't match a pattern
+// (main.py's own classify_divergence docstring says so) -- an empty
+// section reads as broken, not quiet, so this backfills rather than
+// showing 1-2 cards in a mostly blank panel.
+function renderSignalSpotlight() {
+  const listEl = document.getElementById('signal-spotlight-list');
+  const emptyEl = document.getElementById('signal-spotlight-empty');
+  const signals = DATA.signals || [];
+  if (signals.length === 0) {
+    listEl.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  const divergence = signals.filter(s => DIVERGENCE_META[s.type]);
+  const rest = signals.filter(s => !DIVERGENCE_META[s.type]);
+  const shown = [...divergence, ...rest].slice(0, 5);
+
+  listEl.innerHTML = shown.map(s => {
+    const meta = DIVERGENCE_META[s.type];
+    const badge = meta
+      ? `<div class="pillar-divergence-badge ${meta.cls}"><span class="pillar-divergence-icon">${meta.icon}</span>${meta.label}</div>`
+      : '';
+    return `
+      <div class="signal-card">
+        <div class="signal-card-head">
+          ${tickerLink(s.ticker, `<span class="signal-card-ticker">${s.ticker}</span>`)}
+          ${badge}
+        </div>
+        <div class="signal-card-headline">${s.headline}</div>
+        <div class="pillar-divergence-why">${meta ? meta.why : s.detail}</div>
+      </div>
+    `;
+  }).join('');
+  // No manual click binding needed -- the document-level [data-ticker]
+  // delegate (see the click listener further down this script) already
+  // opens the chart modal for tickerLink()'s output.
+}
+renderSignalSpotlight();
+
+// Composite Leaderboard: the same deterministic composite_score already
+// computed for every flagship ticker (overall_score.py), currently only
+// ever shown one ticker at a time inside the chart modal. Reuses
+// sparklineSvg/scoreClass/confidenceDotsHtml -- no new visual language.
+function renderCompositeLeaderboard() {
+  const bullEl = document.getElementById('lb-bullish-rows');
+  const bearEl = document.getElementById('lb-bearish-rows');
+  const colsEl = document.querySelector('#composite-leaderboard .lb-cols');
+  const emptyEl = document.getElementById('composite-leaderboard-empty');
+  const entries = Object.entries(DATA.composite || {})
+    .filter(([, c]) => c && c.composite_score !== null && c.composite_score !== undefined)
+    .map(([ticker, c]) => Object.assign({ ticker }, c));
+
+  if (entries.length === 0) {
+    colsEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  colsEl.style.display = '';
+  emptyEl.style.display = 'none';
+
+  const sorted = entries.slice().sort((a, b) => b.composite_score - a.composite_score);
+  const bullish = sorted.slice(0, 5);
+  const bearish = sorted.slice(-5).reverse();
+
+  const wgByTicker = {};
+  (DATA.watchlist_grid || []).forEach(r => { wgByTicker[r.ticker] = r; });
+
+  function rowHtml(c) {
+    const row = wgByTicker[c.ticker] || {};
+    const verdict = ((DATA.analyst || {})[c.ticker] || {}).verdict || '';
+    return `
+      <div class="lb-row">
+        ${sparklineSvg((DATA.price_history || {})[c.ticker], 'watchlist-row-spark', 40, 22, row.change_pct)}
+        <div class="lb-row-main">
+          <div class="lb-row-top">${tickerLink(c.ticker, `<span class="lb-row-ticker">${c.ticker}</span>`)}</div>
+          <div class="lb-row-verdict">${verdict}</div>
+        </div>
+        <div>
+          <span class="lb-row-score ${scoreClass(c.composite_score)}">${c.composite_score}</span>
+          ${c.composite_confidence_label ? `<span class="lb-row-conf">${confidenceDotsHtml(c.composite_confidence_label)}</span>` : ''}
+        </div>
+      </div>
+    `;
+  }
+  bullEl.innerHTML = bullish.map(rowHtml).join('');
+  bearEl.innerHTML = bearish.map(rowHtml).join('');
+}
+renderCompositeLeaderboard();
+
+// Sector Pulse: market_data.py's fetch_sector_heatmap() was real, free,
+// and completely unused before this pass (README.md called it out as
+// "shelved") -- SECTORS' own weight field was already documented there as
+// driving "treemap tile size," just never wired to anything. flex-grow
+// applies that directly; color-mix() blends the existing --bull/--bear
+// tokens rather than introducing a new heatmap palette.
+function renderSectorPulse() {
+  const el = document.getElementById('sector-grid');
+  const emptyEl = document.getElementById('sector-pulse-empty');
+  const sectors = DATA.sector_heatmap || [];
+  if (sectors.length === 0) {
+    el.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  const maxWeight = Math.max(...sectors.map(s => s.weight || 1));
+  el.innerHTML = sectors.map(s => {
+    const cls = chgClass(s.change_pct);
+    const intensity = Math.min(45, Math.abs(s.change_pct || 0) * 15);
+    const tone = s.change_pct >= 0 ? '--bull' : '--bear';
+    const bg = `color-mix(in srgb, var(${tone}) ${intensity}%, var(--surface-2))`;
+    const flexGrow = Math.max(1, (s.weight || 1) / maxWeight * 6);
+    return `
+      <div class="sector-tile" style="background:${bg};flex-grow:${flexGrow.toFixed(2)};" title="${s.name} — ${s.weight}% of the S&P 500">
+        <div class="sector-tile-name">${s.name}</div>
+        <div class="sector-tile-chg ${cls}">${fmtChg(s.change_pct)}</div>
+      </div>
+    `;
+  }).join('');
+}
+renderSectorPulse();
+
 function renderMarketsStrip(macro, generatedAt) {
   mktData = macro || {};
   renderMarketsChips();
@@ -1546,7 +1849,6 @@ function pubAvatarHtml(name) {
   for (let i = 0; i < label.length; i++) hash = (hash * 31 + label.charCodeAt(i)) % 360;
   return `<span class="news-avatar" style="background:hsl(${hash},48%,26%);color:hsl(${hash},70%,84%)">${initial}</span>`;
 }
-{% include "partials/news_utils.js.j2" %}
 
 function buildNewsPool() {
   // Each tier still keeps its own internal cap/sort for picking WHICH

@@ -31,7 +31,7 @@ from sentiment import (
     crowd_confidence, crowd_confidence_label,
 )
 from reddit import extract_tickers
-from market_data import MACRO_INSTRUMENTS, fetch_quotes
+from market_data import MACRO_INSTRUMENTS, fetch_quotes, fetch_sector_heatmap
 from supabase_sync import sync_sentiment_history, sync_signal_history, sync_ticker_snapshots
 from fundamentals import fetch_fundamentals, score_fundamentals, fetch_financial_history, fetch_balance_sheet_history, fetch_cashflow_history, business_confidence, business_confidence_label
 from market_history import build_ticker_history
@@ -1094,6 +1094,7 @@ _DASHBOARD_PAYLOAD_KEYS = (
     "top_bullish", "top_bearish", "most_discussed", "watchlist_grid",
     "news", "price_history", "analyst", "pillar_scores", "composite",
     "timeframe_history", "material_events", "company_news",
+    "sector_heatmap",
 )
 _SENTIMENT_PAYLOAD_KEYS = (
     "generated_at", "analyst", "composite", "pillar_scores", "price_history",
@@ -1415,6 +1416,10 @@ def main():
     print("Fetching multi-timeframe chart data for macro instruments (indices, crypto, commodities, global markets)...")
     history_data.update(fetch_macro_history(sleep_seconds=config.get("macro_history_call_sleep_seconds", 2.0)))
 
+    print("Fetching sector heatmap (S&P sector ETFs)...")
+    sector_heatmap = fetch_sector_heatmap()
+    print(f"  got {len(sector_heatmap)}/11 sectors")
+
     print("Computing signals (divergences, volume spikes, the Divergence Engine)...")
     signals = compute_signals(ticker_results, history, pillar_scores)
 
@@ -1464,6 +1469,7 @@ def main():
         "material_events": material_events,
         "company_news": company_news,
         "flagship_tickers": flagship_tickers,
+        "sector_heatmap": sector_heatmap,
     }
     render_dashboard(payload)
     render_sentiment_page(payload)
