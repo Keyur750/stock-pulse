@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-13 20:31 UTC",
+  "generated_at": "2026-10-13 23:52 UTC",
   "quotes": {
     "META": {
       "price": 762.5,
@@ -560,9 +560,9 @@
     "^DJI": {
       "name": "Dow Jones",
       "category": "US",
-      "price": 51670.1,
-      "change_pct": -0.35,
-      "previous_close": 51850.5508,
+      "price": 51850.55,
+      "change_pct": 0.38,
+      "previous_close": 51654.9492,
       "history": [
         {
           "date": "2026-09-14",
@@ -647,10 +647,6 @@
         {
           "date": "2026-10-12",
           "close": 51850.5508
-        },
-        {
-          "date": "2026-10-13",
-          "close": 51670.1016
         }
       ]
     },
@@ -945,8 +941,8 @@
       "name": "USD/CAD",
       "category": "Canada",
       "price": 1.42,
-      "change_pct": -0.3,
-      "previous_close": 1.4259,
+      "change_pct": -0.43,
+      "previous_close": 1.428,
       "history": [
         {
           "date": "2026-09-14",
@@ -1034,15 +1030,19 @@
         },
         {
           "date": "2026-10-13",
-          "close": 1.4217
+          "close": 1.428
+        },
+        {
+          "date": "2026-10-14",
+          "close": 1.4218
         }
       ]
     },
     "BTC-USD": {
       "name": "Bitcoin",
       "category": "Crypto",
-      "price": 83089.11,
-      "change_pct": 1.62,
+      "price": 83136.27,
+      "change_pct": 1.68,
       "previous_close": 81762.5625,
       "history": [
         {
@@ -1167,15 +1167,15 @@
         },
         {
           "date": "2026-10-13",
-          "close": 83089.1094
+          "close": 83136.2734
         }
       ]
     },
     "ETH-USD": {
       "name": "Ethereum",
       "category": "Crypto",
-      "price": 2503.6,
-      "change_pct": 2.42,
+      "price": 2497.2,
+      "change_pct": 2.16,
       "previous_close": 2444.3574,
       "history": [
         {
@@ -1300,15 +1300,15 @@
         },
         {
           "date": "2026-10-13",
-          "close": 2503.6001
+          "close": 2497.2
         }
       ]
     },
     "SOL-USD": {
       "name": "Solana",
       "category": "Crypto",
-      "price": 107.12,
-      "change_pct": 1.48,
+      "price": 106.77,
+      "change_pct": 1.15,
       "previous_close": 105.5594,
       "history": [
         {
@@ -1433,7 +1433,7 @@
         },
         {
           "date": "2026-10-13",
-          "close": 107.12
+          "close": 106.77
         }
       ]
     },
@@ -1441,7 +1441,7 @@
       "name": "XRP",
       "category": "Crypto",
       "price": 1.37,
-      "change_pct": 2.25,
+      "change_pct": 1.9,
       "previous_close": 1.3395,
       "history": [
         {
@@ -1566,15 +1566,15 @@
         },
         {
           "date": "2026-10-13",
-          "close": 1.3697
+          "close": 1.365
         }
       ]
     },
     "BNB-USD": {
       "name": "BNB",
       "category": "Crypto",
-      "price": 741.03,
-      "change_pct": 1.22,
+      "price": 741.28,
+      "change_pct": 1.25,
       "previous_close": 732.1297,
       "history": [
         {
@@ -1699,15 +1699,15 @@
         },
         {
           "date": "2026-10-13",
-          "close": 741.03
+          "close": 741.28
         }
       ]
     },
     "DOGE-USD": {
       "name": "Dogecoin",
       "category": "Crypto",
-      "price": 0.08438,
-      "change_pct": 2.69,
+      "price": 0.08427,
+      "change_pct": 2.55,
       "previous_close": 0.0822,
       "history": [
         {
@@ -1832,15 +1832,15 @@
         },
         {
           "date": "2026-10-13",
-          "close": 0.0844
+          "close": 0.0843
         }
       ]
     },
     "GC=F": {
       "name": "Gold",
       "category": "Commodities",
-      "price": 4181.6,
-      "change_pct": -0.21,
+      "price": 4179.3,
+      "change_pct": -0.27,
       "previous_close": 4190.6001,
       "history": [
         {
@@ -1929,15 +1929,15 @@
         },
         {
           "date": "2026-10-13",
-          "close": 4181.6001
+          "close": 4179.2998
         }
       ]
     },
     "SI=F": {
       "name": "Silver",
       "category": "Commodities",
-      "price": 59.37,
-      "change_pct": -1.28,
+      "price": 59.2,
+      "change_pct": -1.56,
       "previous_close": 60.141,
       "history": [
         {
@@ -2026,15 +2026,15 @@
         },
         {
           "date": "2026-10-13",
-          "close": 59.37
+          "close": 59.2
         }
       ]
     },
     "CL=F": {
       "name": "Crude Oil (WTI)",
       "category": "Commodities",
-      "price": 95.07,
-      "change_pct": 1.42,
+      "price": 94.75,
+      "change_pct": 1.08,
       "previous_close": 93.74,
       "history": [
         {
@@ -2123,15 +2123,15 @@
         },
         {
           "date": "2026-10-13",
-          "close": 95.07
+          "close": 94.75
         }
       ]
     },
     "BZ=F": {
       "name": "Brent Crude",
       "category": "Commodities",
-      "price": 106.7,
-      "change_pct": 0.05,
+      "price": 106.28,
+      "change_pct": -0.35,
       "previous_close": 106.65,
       "history": [
         {
@@ -2220,7 +2220,7 @@
         },
         {
           "date": "2026-10-13",
-          "close": 106.7
+          "close": 106.28
         }
       ]
     },
@@ -2228,7 +2228,7 @@
       "name": "Natural Gas",
       "category": "Commodities",
       "price": 3.32,
-      "change_pct": 4.77,
+      "change_pct": 4.8,
       "previous_close": 3.167,
       "history": [
         {
@@ -2317,15 +2317,15 @@
         },
         {
           "date": "2026-10-13",
-          "close": 3.318
+          "close": 3.319
         }
       ]
     },
     "HG=F": {
       "name": "Copper",
       "category": "Commodities",
-      "price": 6.73,
-      "change_pct": 0.42,
+      "price": 6.72,
+      "change_pct": 0.34,
       "previous_close": 6.6985,
       "history": [
         {
@@ -2414,7 +2414,7 @@
         },
         {
           "date": "2026-10-13",
-          "close": 6.7265
+          "close": 6.721
         }
       ]
     },
@@ -2729,9 +2729,9 @@
     "^FTSE": {
       "name": "FTSE 100",
       "category": "Global",
-      "price": 10650.33,
-      "change_pct": -0.06,
-      "previous_close": 10656.2998,
+      "price": 10656.3,
+      "change_pct": 0.99,
+      "previous_close": 10552.0996,
       "history": [
         {
           "date": "2026-09-14",
@@ -2816,19 +2816,15 @@
         {
           "date": "2026-10-12",
           "close": 10656.2998
-        },
-        {
-          "date": "2026-10-13",
-          "close": 10650.3301
         }
       ]
     },
     "^GDAXI": {
       "name": "DAX",
       "category": "Global",
-      "price": 25259.9,
-      "change_pct": -0.07,
-      "previous_close": 25277.6797,
+      "price": 25277.68,
+      "change_pct": 0.76,
+      "previous_close": 25087.2695,
       "history": [
         {
           "date": "2026-09-14",
@@ -2913,19 +2909,15 @@
         {
           "date": "2026-10-12",
           "close": 25277.6797
-        },
-        {
-          "date": "2026-10-13",
-          "close": 25259.9004
         }
       ]
     },
     "^FCHI": {
       "name": "CAC 40",
       "category": "Global",
-      "price": 7827.63,
-      "change_pct": -0.07,
-      "previous_close": 7832.8799,
+      "price": 7832.88,
+      "change_pct": 0.38,
+      "previous_close": 7803.3301,
       "history": [
         {
           "date": "2026-09-14",
@@ -3010,10 +3002,6 @@
         {
           "date": "2026-10-12",
           "close": 7832.8799
-        },
-        {
-          "date": "2026-10-13",
-          "close": 7827.6299
         }
       ]
     },
